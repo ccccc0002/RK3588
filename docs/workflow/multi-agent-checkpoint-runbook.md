@@ -19,6 +19,20 @@ Parallel lanes per stage:
 
 Merge lane branches into stage branch only after verification gates pass.
 
+Use dedicated worktree per independent task to avoid lane conflicts:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\new-workstream.ps1 `
+  -Stage P0 `
+  -Task "lane-a media ingest"
+```
+
+List current worktrees:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\list-workstreams.ps1
+```
+
 ## 2. Stage Gates (must pass before checkpoint)
 
 1. Build check
@@ -29,6 +43,19 @@ Merge lane branches into stage branch only after verification gates pass.
 6. Diff review
 
 Reference skill: `verification-loop`.
+
+Sync heartbeat every 30 minutes (required):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\update-sync-log.ps1 `
+  -Stage P0 `
+  -Lane lane-a-media `
+  -Agent planner `
+  -Status in_progress `
+  -Summary "implemented stream session state machine" `
+  -Next "write idempotency tests" `
+  -Risks "webhook retry queue backpressure"
+```
 
 ## 3. Required Output per Stage
 
@@ -94,6 +121,12 @@ When a session is interrupted:
 3. Read latest entries in `docs/development-memory.md`
 4. Continue only from "Next" field in checkpoint
 
+Optional: create compact packet before resuming to reduce context setup time.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\generate-compact-packet.ps1
+```
+
 ## 6. Anti-Drift Rules
 
 1. Never skip stage checkpoint on milestone completion.
@@ -102,3 +135,37 @@ When a session is interrupted:
 4. Keep one checkpoint per meaningful stage result, not per tiny commit.
 5. If no Git remote is configured, checkpoint locally first, then add remote and re-run with `-Push`.
 
+## 7. Hook Setup
+
+Install repository hooks once:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\install-dev-hooks.ps1
+```
+
+This enables post-commit durable state updates:
+
+1. Append commit trace to `.checkpoints/commit-timeline.local.md`.
+2. Refresh `.checkpoints/latest-commit.json`.
+
+## 8. Context Compaction Policy
+
+Generate compact packet on demand:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\generate-compact-packet.ps1
+```
+
+Start periodic compact reminders for long sessions:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\start-compact-reminder.ps1 `
+  -IntervalMinutes 45 `
+  -MaxRounds 8
+```
+
+When reminder triggers, decide whether to run:
+
+```text
+/compact Continue from docs/workflow/compact-packet-latest.md
+```
