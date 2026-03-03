@@ -175,6 +175,23 @@ $memoryEntry = @"
 "@
 Add-Content -Path $memoryPath -Value $memoryEntry -Encoding UTF8
 
+$checkpointRecordCommit = $null
+if (-not $SkipCommit) {
+  $relativeCheckpointJson = ".checkpoints/$checkpointId.json"
+  $relativeCheckpointMd = ".checkpoints/$checkpointId.md"
+  $relativeLatestJson = ".checkpoints/latest.json"
+  $relativeMemoryPath = "docs/development-memory.md"
+
+  Invoke-Git @("add", $relativeCheckpointJson, $relativeCheckpointMd, $relativeLatestJson, $relativeMemoryPath) | Out-Null
+
+  $metaDirty = @(Invoke-Git @("status", "--porcelain") | Where-Object { $_.Trim().Length -gt 0 }).Count -gt 0
+  if ($metaDirty) {
+    $metaCommitMessage = "chore(checkpoint-meta): $Stage - record $checkpointId"
+    Invoke-Git @("commit", "-m", $metaCommitMessage) | Out-Null
+    $checkpointRecordCommit = (Invoke-Git @("rev-parse", "--short", "HEAD") | Select-Object -First 1).Trim()
+  }
+}
+
 if ($Push) {
   $remotes = Invoke-Git @("remote")
   $remote = $remotes | Where-Object { $_.Trim().Length -gt 0 } | Select-Object -First 1
@@ -193,5 +210,8 @@ Write-Host "  id:      $checkpointId"
 Write-Host "  stage:   $Stage"
 Write-Host "  branch:  $branch"
 Write-Host "  commit:  $shortCommit"
+if ($checkpointRecordCommit) {
+  Write-Host "  record:  $checkpointRecordCommit"
+}
 Write-Host "  tag:     $tagText"
 Write-Host "  file:    $checkpointMdPath"
