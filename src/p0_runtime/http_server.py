@@ -10,6 +10,19 @@ from urllib.parse import urlparse
 from src.p0_runtime.runtime import P0Runtime
 
 
+def _ok(data: dict, meta: dict | None = None) -> dict:
+    return {"success": True, "data": data, "error": None, "meta": meta or {}}
+
+
+def _err(code: str, message: str, details: dict | None = None, meta: dict | None = None) -> dict:
+    return {
+        "success": False,
+        "data": None,
+        "error": {"code": code, "message": message, "details": details or {}},
+        "meta": meta or {},
+    }
+
+
 def _json_response(handler: BaseHTTPRequestHandler, status: int, payload: dict) -> None:
     body = json.dumps(payload).encode("utf-8")
     handler.send_response(status)
@@ -45,84 +58,99 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         if parsed.path == "/api/v1/runtime/snapshot":
-            _json_response(self, 200, self.runtime.snapshot())
+            _json_response(self, 200, _ok(self.runtime.snapshot()))
             return
 
         if parsed.path == "/api/v1/metrics":
-            _json_response(self, 200, self.runtime.get_metrics())
+            _json_response(self, 200, _ok(self.runtime.get_metrics()))
             return
 
         if parsed.path == "/api/v1/devices":
-            _json_response(self, 200, {"items": self.runtime.list_devices()})
+            _json_response(self, 200, _ok({"items": self.runtime.list_devices()}))
             return
 
         if parsed.path == "/api/v1/push/worker/status":
-            _json_response(self, 200, self.runtime.push_worker_status())
+            _json_response(self, 200, _ok(self.runtime.push_worker_status()))
             return
 
-        _json_response(self, 404, {"error": "not_found"})
+        _json_response(self, 404, _err("not_found", "endpoint not found"))
 
     def do_POST(self) -> None:
-        parsed = urlparse(self.path)
-        length = int(self.headers.get("Content-Length", "0"))
-        raw_body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
-        body = json.loads(raw_body or "{}")
+        try:
+            parsed = urlparse(self.path)
+            length = int(self.headers.get("Content-Length", "0"))
+            raw_body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
+            body = json.loads(raw_body or "{}")
 
-        if parsed.path == "/api/v1/auth/token":
-            res = self.runtime.issue_token(
-                user_id=str(body.get("user_id", "")),
-                role=str(body.get("role", "viewer")),
-                now=_parse_time(body.get("now")),
-            )
-            _json_response(self, 200, res)
-            return
+            if parsed.path == "/api/v1/auth/token":
+                res = self.runtime.issue_token(
+                    user_id=str(body.get("user_id", "")),
+                    role=str(body.get("role", "viewer")),
+                    now=_parse_time(body.get("now")),
+                )
+                _json_response(self, 200, _ok(res))
+                return
 
-        if parsed.path == "/api/v1/devices/register":
-            res = self.runtime.register_device(dict(body))
-            _json_response(self, 200, res)
-            return
+            if parsed.path == "/api/v1/devices/register":
+                res = self.runtime.register_device(dict(body))
+                _json_response(self, 200, _ok(res))
+                return
 
-        if parsed.path.startswith("/api/v1/viewer-sessions/") and parsed.path.endswith("/join"):
-            stream_id = parsed.path[len("/api/v1/viewer-sessions/") : -len("/join")]
-            res = self.runtime.viewer_join(stream_id=stream_id, now=_parse_time(body.get("now")))
-            _json_response(self, 200, res)
-            return
+            if parsed.path.startswith("/api/v1/viewer-sessions/") and parsed.path.endswith("/join"):
+                stream_id = parsed.path[len("/api/v1/viewer-sessions/") : -len("/join")]
+                res = self.runtime.viewer_join(stream_id=stream_id, now=_parse_time(body.get("now")))
+                _json_response(self, 200, _ok(res))
+                return
 
-        if parsed.path.startswith("/api/v1/viewer-sessions/") and parsed.path.endswith("/leave"):
-            stream_id = parsed.path[len("/api/v1/viewer-sessions/") : -len("/leave")]
-            res = self.runtime.viewer_leave(stream_id=stream_id, now=_parse_time(body.get("now")))
-            _json_response(self, 200, res)
-            return
+            if parsed.path.startswith("/api/v1/viewer-sessions/") and parsed.path.endswith("/leave"):
+                stream_id = parsed.path[len("/api/v1/viewer-sessions/") : -len("/leave")]
+                res = self.runtime.viewer_leave(stream_id=stream_id, now=_parse_time(body.get("now")))
+                _json_response(self, 200, _ok(res))
+                return
 
-        if parsed.path == "/api/v1/events":
-            event_raw = dict(body.get("event", {}))
-            res = self.runtime.ingest_event(event_raw, now=_parse_time(body.get("now")))
-            _json_response(self, int(res.get("status", 202)), res)
-            return
+            if parsed.path == "/api/v1/events":
+                event_raw = dict(body.get("event", {}))
+                res = self.runtime.ingest_event(event_raw, now=_parse_time(body.get("now")))
+                status = int(res.get("status", 202))
+                if status >= 400:
+                    _json_response(self, status, _err("event_rejected", str(res.get("reason", "event_rejected")), details=res))
+                else:
+                    _json_response(self, status, _ok(res))
+                return
 
-        if parsed.path == "/api/v1/push/dispatch":
-            limit = int(body.get("limit", 20))
-            mode = str(body.get("mode", "real"))
-            sender = _sender_for_mode(mode)
-            res = self.runtime.dispatch_pushes(now=_parse_time(body.get("now")), sender=sender, max_items=limit)
-            _json_response(self, 200, res)
-            return
+            if parsed.path == "/api/v1/push/dispatch":
+                limit = int(body.get("limit", 20))
+                mode = str(body.get("mode", "real"))
+                sender = _sender_for_mode(mode)
+                res = self.runtime.dispatch_pushes(now=_parse_time(body.get("now")), sender=sender, max_items=limit)
+                _json_response(self, 200, _ok(res))
+                return
 
-        if parsed.path == "/api/v1/push/worker/start":
-            interval_ms = int(body.get("interval_ms", 500))
-            limit = int(body.get("limit", 20))
-            mode = str(body.get("mode", "real"))
-            sender = _sender_for_mode(mode)
-            res = self.runtime.start_push_worker(interval_seconds=max(0.01, interval_ms / 1000.0), max_items=limit, sender=sender)
-            _json_response(self, 200, res)
-            return
+            if parsed.path == "/api/v1/push/worker/start":
+                interval_ms = int(body.get("interval_ms", 500))
+                limit = int(body.get("limit", 20))
+                mode = str(body.get("mode", "real"))
+                sender = _sender_for_mode(mode)
+                res = self.runtime.start_push_worker(
+                    interval_seconds=max(0.01, interval_ms / 1000.0),
+                    max_items=limit,
+                    sender=sender,
+                )
+                _json_response(self, 200, _ok(res))
+                return
 
-        if parsed.path == "/api/v1/push/worker/stop":
-            res = self.runtime.stop_push_worker()
-            _json_response(self, 200, res)
-            return
+            if parsed.path == "/api/v1/push/worker/stop":
+                res = self.runtime.stop_push_worker()
+                _json_response(self, 200, _ok(res))
+                return
 
-        _json_response(self, 404, {"error": "not_found"})
+            _json_response(self, 404, _err("not_found", "endpoint not found"))
+        except json.JSONDecodeError:
+            _json_response(self, 400, _err("invalid_json", "request body must be valid JSON"))
+        except ValueError as exc:
+            _json_response(self, 400, _err("bad_request", str(exc)))
+        except Exception:
+            _json_response(self, 500, _err("internal_error", "unexpected server error"))
 
 
 def create_server(host: str = "127.0.0.1", port: int = 18080, storage_db_path: str | None = None) -> ThreadingHTTPServer:

@@ -6,6 +6,23 @@ from typing import Any
 from urllib.request import Request, urlopen
 
 
+def _unwrap_response(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        return payload
+
+    if "success" not in payload:
+        return payload
+
+    if bool(payload.get("success")):
+        data = payload.get("data", {})
+        return data if isinstance(data, dict) else {"value": data}
+
+    err = payload.get("error", {}) if isinstance(payload.get("error"), dict) else {}
+    code = str(err.get("code", "unknown_error"))
+    message = str(err.get("message", "request failed"))
+    raise RuntimeError(f"{code}: {message}")
+
+
 def _post_json(url: str, payload: dict, timeout_seconds: float = 3.0) -> dict:
     body = json.dumps(payload).encode("utf-8")
     req = Request(
@@ -15,7 +32,8 @@ def _post_json(url: str, payload: dict, timeout_seconds: float = 3.0) -> dict:
         headers={"Content-Type": "application/json"},
     )
     with urlopen(req, timeout=timeout_seconds) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+        raw = json.loads(resp.read().decode("utf-8"))
+        return _unwrap_response(raw)
 
 
 def _now_iso() -> str:
@@ -56,7 +74,8 @@ def stop_worker(base_url: str, timeout_seconds: float = 3.0) -> dict:
 def get_json(url: str, timeout_seconds: float = 3.0) -> dict:
     req = Request(url=url, method="GET")
     with urlopen(req, timeout=timeout_seconds) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+        raw = json.loads(resp.read().decode("utf-8"))
+        return _unwrap_response(raw)
 
 
 def get_metrics(base_url: str, timeout_seconds: float = 3.0) -> dict:

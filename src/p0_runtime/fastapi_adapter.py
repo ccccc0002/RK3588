@@ -10,6 +10,19 @@ def is_fastapi_available() -> bool:
     return bool(importlib.util.find_spec("fastapi") and importlib.util.find_spec("pydantic"))
 
 
+def _ok(data: dict, meta: dict | None = None) -> dict:
+    return {"success": True, "data": data, "error": None, "meta": meta or {}}
+
+
+def _err(code: str, message: str, details: dict | None = None, meta: dict | None = None) -> dict:
+    return {
+        "success": False,
+        "data": None,
+        "error": {"code": code, "message": message, "details": details or {}},
+        "meta": meta or {},
+    }
+
+
 def create_fastapi_app(runtime: P0Runtime | None = None) -> Any:
     if not is_fastapi_available():
         raise RuntimeError("fastapi/pydantic not installed")
@@ -21,24 +34,24 @@ def create_fastapi_app(runtime: P0Runtime | None = None) -> Any:
 
     @app.get("/api/v1/runtime/snapshot")
     def runtime_snapshot() -> dict:
-        return rt.snapshot()
+        return _ok(rt.snapshot())
 
     @app.get("/api/v1/metrics")
     def runtime_metrics() -> dict:
-        return rt.get_metrics()
+        return _ok(rt.get_metrics())
 
     @app.post("/api/v1/auth/token")
     def issue_token_ep(payload: dict = Body(default_factory=dict)) -> dict:
         user_id = str(payload.get("user_id", ""))
         role = str(payload.get("role", "viewer"))
-        return rt.issue_token(user_id=user_id, role=role)
+        return _ok(rt.issue_token(user_id=user_id, role=role))
 
     @app.post("/api/v1/events")
     def ingest_event_ep(payload: dict = Body(default_factory=dict)) -> dict:
         event = dict(payload.get("event", {}))
         result = rt.ingest_event(event)
         if int(result.get("status", 202)) >= 400:
-            raise HTTPException(status_code=int(result["status"]), detail=result)
-        return result
+            raise HTTPException(status_code=int(result["status"]), detail=_err("event_rejected", "event rejected", result))
+        return _ok(result)
 
     return app

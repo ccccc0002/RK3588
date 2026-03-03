@@ -41,12 +41,14 @@ class P0HttpApiTests(unittest.TestCase):
     def test_issue_token_endpoint(self) -> None:
         status, payload = self._post("/api/v1/auth/token", {"user_id": "u1", "role": "admin"})
         self.assertEqual(200, status)
-        self.assertIn("token", payload)
+        self.assertTrue(payload["success"])
+        self.assertIn("token", payload["data"])
 
     def test_join_endpoint(self) -> None:
         status, payload = self._post("/api/v1/viewer-sessions/cam-1/join", {"now": datetime.now(timezone.utc).isoformat()})
         self.assertEqual(200, status)
-        self.assertIn("state", payload)
+        self.assertTrue(payload["success"])
+        self.assertIn("state", payload["data"])
 
     def test_event_endpoint(self) -> None:
         status, payload = self._post(
@@ -65,7 +67,8 @@ class P0HttpApiTests(unittest.TestCase):
             },
         )
         self.assertEqual(202, status)
-        self.assertIn("event_id", payload)
+        self.assertTrue(payload["success"])
+        self.assertIn("event_id", payload["data"])
 
     def test_register_and_list_devices_endpoints(self) -> None:
         reg_status, reg_payload = self._post(
@@ -81,11 +84,13 @@ class P0HttpApiTests(unittest.TestCase):
             },
         )
         self.assertEqual(200, reg_status)
-        self.assertEqual("cam-2", reg_payload["device_id"])
+        self.assertTrue(reg_payload["success"])
+        self.assertEqual("cam-2", reg_payload["data"]["device_id"])
 
         list_status, list_payload = self._get("/api/v1/devices")
         self.assertEqual(200, list_status)
-        self.assertTrue(any(item["device_id"] == "cam-2" for item in list_payload["items"]))
+        self.assertTrue(list_payload["success"])
+        self.assertTrue(any(item["device_id"] == "cam-2" for item in list_payload["data"]["items"]))
 
     def test_push_worker_and_metrics_endpoints(self) -> None:
         self._post(
@@ -109,13 +114,14 @@ class P0HttpApiTests(unittest.TestCase):
             {"interval_ms": 30, "limit": 10, "mode": "always_success"},
         )
         self.assertEqual(200, start_status)
-        self.assertIn("started", start_payload)
+        self.assertTrue(start_payload["success"])
+        self.assertIn("started", start_payload["data"])
 
         deadline = time.time() + 1.0
         processed = False
         while time.time() < deadline:
             _, metrics = self._get("/api/v1/metrics")
-            if metrics["dispatch_sent"] >= 1:
+            if metrics["data"]["dispatch_sent"] >= 1:
                 processed = True
                 break
             time.sleep(0.05)
@@ -124,9 +130,11 @@ class P0HttpApiTests(unittest.TestCase):
         status_code, worker_status = self._get("/api/v1/push/worker/status")
 
         self.assertEqual(200, stop_status)
+        self.assertTrue(stop_payload["success"])
         self.assertTrue(processed)
         self.assertEqual(200, status_code)
-        self.assertFalse(worker_status["running"])
+        self.assertTrue(worker_status["success"])
+        self.assertFalse(worker_status["data"]["running"])
 
 
 if __name__ == "__main__":
