@@ -17,7 +17,6 @@ class P0HttpApiTests(unittest.TestCase):
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
         time.sleep(0.1)
-        cls.admin_token = cls._issue_token("admin")
         cls.viewer_token = cls._issue_token("viewer")
         cls.operator_token = cls._issue_token("operator")
 
@@ -39,11 +38,13 @@ class P0HttpApiTests(unittest.TestCase):
             payload = json.loads(resp.read().decode("utf-8"))
         return str(payload["data"]["token"])
 
-    def _post(self, path: str, data: dict, token: str = ""):
+    def _post(self, path: str, data: dict, token: str = "", extra_headers=None):
         body = json.dumps(data).encode("utf-8")
         headers = {"Content-Type": "application/json"}
         if token:
             headers["Authorization"] = f"Bearer {token}"
+        if extra_headers:
+            headers.update(extra_headers)
         req = Request(
             url=f"http://127.0.0.1:{self.port}{path}",
             data=body,
@@ -68,10 +69,16 @@ class P0HttpApiTests(unittest.TestCase):
             return exc.code, json.loads(exc.read().decode("utf-8"))
 
     def test_issue_token_endpoint(self) -> None:
-        status, payload = self._post("/api/v1/auth/token", {"user_id": "u1", "role": "admin"})
+        status, payload = self._post("/api/v1/auth/token", {"user_id": "u1", "role": "operator"})
         self.assertEqual(200, status)
         self.assertTrue(payload["success"])
         self.assertIn("token", payload["data"])
+
+    def test_issue_admin_token_requires_bootstrap(self) -> None:
+        status, payload = self._post("/api/v1/auth/token", {"user_id": "u1", "role": "admin"})
+        self.assertEqual(403, status)
+        self.assertFalse(payload["success"])
+        self.assertEqual("forbidden", payload["error"]["code"])
 
     def test_join_endpoint(self) -> None:
         status, payload = self._post(

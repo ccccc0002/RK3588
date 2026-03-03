@@ -23,6 +23,15 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run-p0-runtime.ps1 `
   -DbPath .\data\p0-runtime.db
 ```
 
+Admin bootstrap token (optional, required for issuing `admin` role token):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run-p0-runtime.ps1 `
+  -Host 127.0.0.1 `
+  -Port 18080 `
+  -BootstrapToken "change-me"
+```
+
 Default bind address:
 - Host: `127.0.0.1`
 - Port: `18080`
@@ -54,6 +63,8 @@ Error example:
 ## Auth Guardrails
 
 - `POST /api/v1/auth/token` is open (issues runtime token).
+- Supported role values: `viewer`, `operator`, `admin`.
+- `admin` token issuance requires `X-Bootstrap-Token` header matching server bootstrap token.
 - Other endpoints require `Authorization: Bearer <token>`.
 - RBAC actions:
   - Read endpoints: `device:read` or `alert:read`

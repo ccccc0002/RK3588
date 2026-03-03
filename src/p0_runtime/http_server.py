@@ -81,6 +81,7 @@ def _required_post_action(path: str) -> str | None:
 
 class _RuntimeHandler(BaseHTTPRequestHandler):
     runtime: P0Runtime
+    bootstrap_token: str = ""
 
     def log_message(self, format: str, *args: Any) -> None:
         return
@@ -156,9 +157,26 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             body = json.loads(raw_body or "{}")
 
             if parsed.path == "/api/v1/auth/token":
+                role = str(body.get("role", "viewer"))
+                allowed_roles = {"admin", "operator", "viewer"}
+                if role not in allowed_roles:
+                    _json_response(self, 400, _err("bad_request", f"unsupported role: {role}"))
+                    return
+
+                if role == "admin":
+                    expected = str(self.bootstrap_token or "").strip()
+                    provided = str(self.headers.get("X-Bootstrap-Token", "")).strip()
+                    if not expected or provided != expected:
+                        _json_response(
+                            self,
+                            403,
+                            _err("forbidden", "admin token issuance requires valid bootstrap token"),
+                        )
+                        return
+
                 res = self.runtime.issue_token(
                     user_id=str(body.get("user_id", "")),
-                    role=str(body.get("role", "viewer")),
+                    role=role,
                     now=_parse_time(body.get("now")),
                 )
                 _json_response(self, 200, _ok(res))
@@ -226,13 +244,19 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             _json_response(self, 500, _err("internal_error", "unexpected server error"))
 
 
-def create_server(host: str = "127.0.0.1", port: int = 18080, storage_db_path: str | None = None) -> ThreadingHTTPServer:
+def create_server(
+    host: str = "127.0.0.1",
+    port: int = 18080,
+    storage_db_path: str | None = None,
+    bootstrap_token: str = "",
+) -> ThreadingHTTPServer:
     runtime = P0Runtime(webhook_url="https://example.com/hook", webhook_token="token", storage_db_path=storage_db_path)
 
     class Handler(_RuntimeHandler):
         pass
 
     Handler.runtime = runtime
+    Handler.bootstrap_token = str(bootstrap_token or "")
     return ThreadingHTTPServer((host, port), Handler)
 
 
@@ -240,7 +264,8 @@ def main() -> None:
     host = os.getenv("P0_RUNTIME_HOST", "127.0.0.1")
     port = int(os.getenv("P0_RUNTIME_PORT", "18080"))
     db_path = os.getenv("P0_RUNTIME_DB_PATH", "").strip() or None
-    server = create_server(host=host, port=port, storage_db_path=db_path)
+    bootstrap_token = os.getenv("P0_RUNTIME_BOOTSTRAP_TOKEN", "")
+    server = create_server(host=host, port=port, storage_db_path=db_path, bootstrap_token=bootstrap_token)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
