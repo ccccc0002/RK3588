@@ -14,9 +14,9 @@ if (-not (Test-Path $hooksDir)) {
 
 $postCommitPath = Join-Path $hooksDir "post-commit"
 $postCommit = @'
-#!/usr/bin/env sh
+#!/bin/sh
 REPO_ROOT=$(git rev-parse --show-toplevel)
-powershell -NoProfile -ExecutionPolicy Bypass -File "$REPO_ROOT/scripts/post-commit-sync.ps1" >/dev/null 2>&1 || true
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$REPO_ROOT/scripts/post-commit-sync.ps1" >/dev/null 2>&1 || true
 '@
 Set-Content -Path $postCommitPath -Value $postCommit -Encoding ASCII
 
