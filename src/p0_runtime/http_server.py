@@ -49,14 +49,79 @@ def _sender_for_mode(mode: str | None) -> Callable[[object], bool] | None:
     return None
 
 
+def _required_get_action(path: str) -> str | None:
+    if path == "/api/v1/runtime/snapshot":
+        return "alert:read"
+    if path == "/api/v1/metrics":
+        return "alert:read"
+    if path == "/api/v1/devices":
+        return "device:read"
+    if path == "/api/v1/push/worker/status":
+        return "device:read"
+    return None
+
+
+def _required_post_action(path: str) -> str | None:
+    if path == "/api/v1/devices/register":
+        return "device:write"
+    if path.startswith("/api/v1/viewer-sessions/") and path.endswith("/join"):
+        return "device:read"
+    if path.startswith("/api/v1/viewer-sessions/") and path.endswith("/leave"):
+        return "device:read"
+    if path == "/api/v1/events":
+        return "device:write"
+    if path == "/api/v1/push/dispatch":
+        return "device:write"
+    if path == "/api/v1/push/worker/start":
+        return "device:write"
+    if path == "/api/v1/push/worker/stop":
+        return "device:write"
+    return None
+
+
 class _RuntimeHandler(BaseHTTPRequestHandler):
     runtime: P0Runtime
 
     def log_message(self, format: str, *args: Any) -> None:
         return
 
+    def _bearer_token(self) -> str | None:
+        auth_value = str(self.headers.get("Authorization", ""))
+        if not auth_value.startswith("Bearer "):
+            return None
+        token = auth_value[len("Bearer ") :].strip()
+        if not token:
+            return None
+        return token
+
+    def _authorize(self, required_action: str) -> tuple[int | None, dict | None]:
+        token = self._bearer_token()
+        if token is None:
+            return 401, _err("unauthorized", "missing bearer token")
+
+        ok, context = self.runtime.authorize(token=token, required_action=required_action)
+        if ok:
+            return None, None
+        if context and context.get("reason") == "forbidden":
+            return (
+                403,
+                _err(
+                    "forbidden",
+                    "action not allowed for current role",
+                    details={"required_action": required_action, "role": context.get("role")},
+                ),
+            )
+        return 401, _err("invalid_token", "token invalid or expired")
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        required_action = _required_get_action(parsed.path)
+        if required_action is not None:
+            denied_status, denied_payload = self._authorize(required_action)
+            if denied_status is not None:
+                _json_response(self, denied_status, denied_payload or _err("unauthorized", "unauthorized"))
+                return
+
         if parsed.path == "/api/v1/runtime/snapshot":
             _json_response(self, 200, _ok(self.runtime.snapshot()))
             return
@@ -78,6 +143,14 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         try:
             parsed = urlparse(self.path)
+            if parsed.path != "/api/v1/auth/token":
+                required_action = _required_post_action(parsed.path)
+                if required_action is not None:
+                    denied_status, denied_payload = self._authorize(required_action)
+                    if denied_status is not None:
+                        _json_response(self, denied_status, denied_payload or _err("unauthorized", "unauthorized"))
+                        return
+
             length = int(self.headers.get("Content-Length", "0"))
             raw_body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
             body = json.loads(raw_body or "{}")

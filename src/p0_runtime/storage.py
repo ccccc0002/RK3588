@@ -242,6 +242,20 @@ class RuntimeStorage:
                 )
             self._conn.commit()
 
+    def stats(self) -> dict:
+        with self._lock:
+            device_count = int(self._conn.execute("SELECT COUNT(1) FROM devices").fetchone()[0])
+            push_queue_count = int(self._conn.execute("SELECT COUNT(1) FROM push_queue").fetchone()[0])
+            dead_letter_count = int(self._conn.execute("SELECT COUNT(1) FROM push_dead_letters").fetchone()[0])
+            event_seen_count = int(self._conn.execute("SELECT COUNT(1) FROM event_seen_keys").fetchone()[0])
+        return {
+            "db_path": self._db_path,
+            "device_count": device_count,
+            "push_queue_count": push_queue_count,
+            "dead_letter_count": dead_letter_count,
+            "event_seen_count": event_seen_count,
+        }
+
     def close(self) -> None:
         with self._lock:
             if self._closed:

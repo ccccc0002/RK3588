@@ -263,11 +263,17 @@ class P0Runtime:
                 self._sessions[stream_id] = on_tick(snapshot, at)
 
     def get_metrics(self) -> dict:
+        storage = self._storage
         with self._lock:
             data = dict(self._metrics)
             data["queue_current"] = len(self._push_state.tasks)
             data["dead_letter_current"] = len(self._push_state.dead_letters)
             data["device_count"] = len(self._devices)
+            data["storage_enabled"] = bool(storage is not None)
+        if storage is not None:
+            data["storage"] = storage.stats()
+        else:
+            data["storage"] = None
         return data
 
     def snapshot(self) -> dict:

@@ -110,6 +110,32 @@ class P0RuntimePersistenceTests(unittest.TestCase):
                 if rt2 is not None:
                     rt2.close()
 
+    def test_metrics_expose_storage_stats(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "runtime.db")
+            rt = self._runtime(db_path)
+            try:
+                rt.register_device(
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "device_id": "cam-metrics",
+                        "protocol": "rtsp",
+                        "stream_url": "rtsp://10.0.0.10/live",
+                        "enabled": True,
+                    }
+                )
+                rt.ingest_event(self.event, now=self.now)
+
+                metrics = rt.get_metrics()
+                self.assertTrue(metrics["storage_enabled"])
+                self.assertIsNotNone(metrics["storage"])
+                self.assertEqual(1, metrics["storage"]["device_count"])
+                self.assertEqual(1, metrics["storage"]["push_queue_count"])
+            finally:
+                rt.close()
+
 
 if __name__ == "__main__":
     unittest.main()

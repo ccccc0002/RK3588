@@ -14,9 +14,52 @@ Or use helper script:
 powershell -ExecutionPolicy Bypass -File .\scripts\run-p0-runtime.ps1 -Host 127.0.0.1 -Port 18080
 ```
 
+SQLite persistence (optional):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run-p0-runtime.ps1 `
+  -Host 127.0.0.1 `
+  -Port 18080 `
+  -DbPath .\data\p0-runtime.db
+```
+
 Default bind address:
 - Host: `127.0.0.1`
 - Port: `18080`
+
+## Response Envelope
+
+All runtime APIs use a unified envelope:
+
+```json
+{
+  "success": true,
+  "data": {},
+  "error": null,
+  "meta": {}
+}
+```
+
+Error example:
+
+```json
+{
+  "success": false,
+  "data": null,
+  "error": { "code": "forbidden", "message": "action not allowed for current role", "details": {} },
+  "meta": {}
+}
+```
+
+## Auth Guardrails
+
+- `POST /api/v1/auth/token` is open (issues runtime token).
+- Other endpoints require `Authorization: Bearer <token>`.
+- RBAC actions:
+  - Read endpoints: `device:read` or `alert:read`
+  - Write endpoints: `device:write`
+- Unauthorized/invalid token returns `401`.
+- Forbidden action for role returns `403`.
 
 ## Worker Modes
 
@@ -39,7 +82,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run-p0-push-process-worker.ps
 
 - `POST /api/v1/auth/token`
   - body: `{ "user_id": "u1", "role": "admin", "now": "2026-03-03T08:00:00+00:00" }`
-  - 200: `{ "token": "...", "issued_at": "..." }`
+  - 200: envelope with `{ "token": "...", "issued_at": "..." }`
 
 ### Device ingest registry
 
@@ -58,20 +101,20 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run-p0-push-process-worker.ps
     }
     ```
   - protocol adapters supported: `rtsp`, `rtmp`, `onvif`
-  - 200: registered record with `ingest_spec`
+  - 200: envelope with registered record and `ingest_spec`
 
 - `GET /api/v1/devices`
-  - 200: `{ "items": [ ... ] }`
+  - 200: envelope with `{ "items": [ ... ] }`
 
 ### Viewer sessions
 
 - `POST /api/v1/viewer-sessions/{streamId}/join`
   - body: `{ "now": "2026-03-03T08:00:00+00:00" }`
-  - 200: `{ "stream_id": "cam-1", "state": "RESUMING", "viewer_count": 1 }`
+  - 200: envelope with `{ "stream_id": "cam-1", "state": "RESUMING", "viewer_count": 1 }`
 
 - `POST /api/v1/viewer-sessions/{streamId}/leave`
   - body: `{ "now": "2026-03-03T08:00:08+00:00" }`
-  - 200: `{ "stream_id": "cam-1", "state": "IDLE_PENDING", "viewer_count": 0 }`
+  - 200: envelope with `{ "stream_id": "cam-1", "state": "IDLE_PENDING", "viewer_count": 0 }`
 
 ### Event and push
 
@@ -91,31 +134,31 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run-p0-push-process-worker.ps
       }
     }
     ```
-  - 202 accepted or 409 duplicate
+  - 202 accepted (envelope) or 409 duplicate (envelope)
 
 - `POST /api/v1/push/dispatch`
   - body: `{ "now": "2026-03-03T08:00:00+00:00", "limit": 20, "mode": "real|always_success|always_fail" }`
-  - 200: `{ "sent": 1, "failed": 0, "processed": 1 }`
+  - 200: envelope with `{ "sent": 1, "failed": 0, "processed": 1 }`
 
 ### Async push worker
 
 - `POST /api/v1/push/worker/start`
   - body: `{ "interval_ms": 500, "limit": 20, "mode": "real|always_success|always_fail" }`
-  - 200: `{ "started": true, "interval_seconds": 0.5, "max_items": 20 }`
+  - 200: envelope with `{ "started": true, "interval_seconds": 0.5, "max_items": 20 }`
 
 - `POST /api/v1/push/worker/stop`
-  - 200: `{ "stopped": true }`
+  - 200: envelope with `{ "stopped": true }`
 
 - `GET /api/v1/push/worker/status`
-  - 200: `{ "running": true, "interval_seconds": 0.5 }`
+  - 200: envelope with `{ "running": true, "interval_seconds": 0.5 }`
 
 ### Runtime snapshot and metrics
 
 - `GET /api/v1/runtime/snapshot`
-  - 200 runtime in-memory snapshot
+  - 200 envelope with runtime snapshot
 
 - `GET /api/v1/metrics`
-  - 200 dispatch and worker metrics
+  - 200 envelope with dispatch/worker metrics and storage stats (`storage_enabled`, `storage`)
 
 ## FastAPI Compatibility Layer
 
