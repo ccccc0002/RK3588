@@ -1,0 +1,78 @@
+﻿openapi: 3.0.3
+info:
+  title: RK3588 AI Box P0 API
+  version: 0.1.0
+  description: >-
+    P0 closed-loop contract for ingest, viewer session, event center, and push gateway.
+servers:
+  - url: /api/v1
+paths:
+  /viewer-sessions/{streamId}/join:
+    post:
+      summary: register viewer join and trigger stream warmup if needed
+      parameters:
+        - in: path
+          name: streamId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: current viewer session state
+  /viewer-sessions/{streamId}/leave:
+    post:
+      summary: register viewer leave and possibly enter idle pending
+      parameters:
+        - in: path
+          name: streamId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: current viewer session state
+  /events:
+    post:
+      summary: ingest normalized alert event
+      responses:
+        '202':
+          description: accepted
+        '409':
+          description: duplicate in dedupe window
+  /push/webhook:
+    post:
+      summary: enqueue webhook push task (idempotent)
+      responses:
+        '202':
+          description: queued
+components:
+  schemas:
+    ViewerSessionState:
+      type: object
+      required: [state, viewer_count]
+      properties:
+        state:
+          type: string
+          enum: [ACTIVE, IDLE_PENDING, STOPPED, RESUMING]
+        viewer_count:
+          type: integer
+          minimum: 0
+    AlertEvent:
+      type: object
+      required: [event_id, tenant_id, site_id, box_id, source_id, event_type, occurred_at]
+      properties:
+        event_id:
+          type: string
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        source_id:
+          type: string
+        event_type:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
