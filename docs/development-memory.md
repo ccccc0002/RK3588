@@ -72,3 +72,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P0-iteration-6-sqlite-persistence/20260303-180001
 - Summary: runtime sqlite persistence with restart recovery tests and remote py3.8 validation
 - Next: start P0 API envelope standardization and persistence hardening
+
+## [2026-03-03T18:04:22+08:00] P0-iteration-7-api-envelope
+- Branch: stage/P0-closed-loop
+- Commit: 0cbc692
+- Tag: checkpoint/P0-iteration-7-api-envelope/20260303-180422
+- Summary: standardized runtime API success/data/error/meta envelope with client compatibility
+- Next: implement API auth guardrails and persistence observability
