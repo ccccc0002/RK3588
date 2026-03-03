@@ -44,3 +44,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P0-iteration-2-runtime/20260303-165817
 - Summary: added zero-dependency runtime API endpoints with integration tests and remote validation pass
 - Next: replace stdlib http layer with FastAPI adapter and connect real ingest/push workers
+
+## [2026-03-03T17:06:12+08:00] P0-iteration-3-dispatch
+- Branch: stage/P0-closed-loop
+- Commit: 055acd5
+- Tag: checkpoint/P0-iteration-3-dispatch/20260303-170612
+- Summary: added device registry and push dispatch executor endpoints with 31 passing tests local+remote
+- Next: integrate runtime with real ingest adapters and async push worker process
