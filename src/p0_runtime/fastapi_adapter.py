@@ -1,7 +1,7 @@
 ﻿from __future__ import annotations
 
 import importlib.util
-from typing import Any
+from typing import Any, Optional
 
 from src.p0_runtime.runtime import P0Runtime
 
@@ -23,10 +23,10 @@ def create_fastapi_app(runtime: P0Runtime | None = None) -> Any:
     class TokenReq(BaseModel):
         user_id: str
         role: str = "viewer"
-        now: str | None = None
+        now: Optional[str] = None
 
     class EventReq(BaseModel):
-        now: str | None = None
+        now: Optional[str] = None
         event: dict
 
     @app.get("/api/v1/runtime/snapshot")
