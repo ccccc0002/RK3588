@@ -8,3 +8,5 @@ coverage/
 .worktrees/
 .checkpoints/latest-commit.json
 .checkpoints/commit-timeline.local.md
+__pycache__/
+*.pyc
