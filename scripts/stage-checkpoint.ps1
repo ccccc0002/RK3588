@@ -73,8 +73,8 @@ if (-not (Test-Path $checkpointsDir)) {
   New-Item -Path $checkpointsDir -ItemType Directory -Force | Out-Null
 }
 
-$dirtyStatus = Invoke-Git @("status", "--porcelain")
-$hasChanges = ($dirtyStatus | Where-Object { $_.Trim().Length -gt 0 }).Count -gt 0
+$dirtyStatus = @(Invoke-Git @("status", "--porcelain"))
+$hasChanges = @($dirtyStatus | Where-Object { $_.Trim().Length -gt 0 }).Count -gt 0
 $committedNow = $false
 
 if ($hasChanges -and -not $SkipCommit) {
@@ -100,13 +100,13 @@ if (-not $SkipTag) {
 
 $changedFiles = @()
 if ($committedNow) {
-  $changedFiles = Invoke-Git @("diff-tree", "--no-commit-id", "--name-only", "-r", $commit) |
+  $changedFiles = @(Invoke-Git @("diff-tree", "--no-commit-id", "--name-only", "-r", $commit) |
     Where-Object { $_.Trim().Length -gt 0 } |
-    ForEach-Object { $_.Trim() }
+    ForEach-Object { $_.Trim() })
 } elseif ($hasChanges) {
-  $changedFiles = Invoke-Git @("status", "--porcelain") |
+  $changedFiles = @(Invoke-Git @("status", "--porcelain") |
     Where-Object { $_.Length -ge 4 } |
-    ForEach-Object { $_.Substring(3).Trim() }
+    ForEach-Object { $_.Substring(3).Trim() })
 }
 
 $checkpointId = "$timestamp-$safeStage"
@@ -133,7 +133,7 @@ $metadata = [ordered]@{
 $metadata | ConvertTo-Json -Depth 8 | Set-Content -Path $checkpointJsonPath -Encoding UTF8
 $metadata | ConvertTo-Json -Depth 8 | Set-Content -Path $latestJsonPath -Encoding UTF8
 
-$changedSection = if ($changedFiles.Count -gt 0) {
+$changedSection = if (@($changedFiles).Count -gt 0) {
   ($changedFiles | ForEach-Object { "- $_" }) -join "`n"
 } else {
   "- (no file changes in this checkpoint)"

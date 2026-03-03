@@ -1,0 +1,16 @@
+﻿{
+    "checkpoint_id":  "20260303-155730-bootstrap",
+    "created_at":  "2026-03-03T15:57:30+08:00",
+    "stage":  "bootstrap",
+    "summary":  "add multi-agent checkpoint workflow scripts",
+    "next":  "configure GitHub remote and start P0 lane branches",
+    "branch":  "master",
+    "commit":  "394640f8a1eec869c61ae71e82db317443e02bcf",
+    "short_commit":  "394640f",
+    "tag":  "checkpoint/bootstrap/20260303-155730",
+    "committed_now":  true,
+    "had_uncommitted_changes":  true,
+    "changed_files":  {
+
+                      }
+}
