@@ -37,3 +37,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P0-iteration-1-verified/20260303-165100
 - Summary: p0 prototypes validated on local py3.11 and remote py3.8 with 20 passing tests
 - Next: implement FastAPI runtime endpoints and integrate with real services
+
+## [2026-03-03T16:58:17+08:00] P0-iteration-2-runtime
+- Branch: stage/P0-closed-loop
+- Commit: 2883677
+- Tag: checkpoint/P0-iteration-2-runtime/20260303-165817
+- Summary: added zero-dependency runtime API endpoints with integration tests and remote validation pass
+- Next: replace stdlib http layer with FastAPI adapter and connect real ingest/push workers
