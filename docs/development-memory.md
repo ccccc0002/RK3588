@@ -93,3 +93,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P0-iteration-9-auth-bootstrap/20260303-182638
 - Summary: hardened admin token issuance via bootstrap guard with local+remote validation
 - Next: align fastapi adapter route parity with http server auth envelope
+
+## [2026-03-03T19:02:33+08:00] P0-iteration-10-fastapi-parity
+- Branch: stage/P0-closed-loop
+- Commit: 6891948
+- Tag: checkpoint/P0-iteration-10-fastapi-parity/20260303-190233
+- Summary: aligned fastapi adapter with stdlib auth/envelope endpoints and fixed py3.8 forward-ref compatibility
+- Next: prepare P0 closure review and residual security hardening
