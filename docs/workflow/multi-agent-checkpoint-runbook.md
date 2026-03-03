@@ -148,6 +148,14 @@ This enables post-commit durable state updates:
 1. Append commit trace to `.checkpoints/commit-timeline.local.md`.
 2. Refresh `.checkpoints/latest-commit.json`.
 
+If your Git runtime blocks shell hooks, use commit wrapper instead:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\commit-with-sync.ps1 `
+  -Message "feat(scope): your change" `
+  -AddAll
+```
+
 ## 8. Context Compaction Policy
 
 Generate compact packet on demand:
