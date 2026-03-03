@@ -11,20 +11,28 @@ from src.p0_core.push_gateway import PushState, due_tasks, enqueue_push, initial
 from src.p0_core.viewer_session import SessionSnapshot, new_snapshot, on_tick, on_viewer_join, on_viewer_leave
 from src.p0_runtime.ingest_adapters import adapter_for
 from src.p0_runtime.push_worker import PushWorker
+from src.p0_runtime.storage import RuntimeStorage
 from src.p0_runtime.webhook_sender import send_webhook
 
 
 class P0Runtime:
-    def __init__(self, webhook_url: str, webhook_token: str, token_secret: str = "rk3588-secret") -> None:
+    def __init__(
+        self,
+        webhook_url: str,
+        webhook_token: str,
+        token_secret: str = "rk3588-secret",
+        storage_db_path: str | None = None,
+    ) -> None:
         self._webhook_url = webhook_url
         self._webhook_token = webhook_token
         self._token_secret = token_secret
+        self._storage = RuntimeStorage(storage_db_path) if storage_db_path else None
 
         self._lock = threading.RLock()
         self._sessions: Dict[str, SessionSnapshot] = {}
-        self._event_state: EventState = initial_event_state()
-        self._push_state: PushState = initial_push_state()
-        self._devices: Dict[tuple[str, str, str, str], dict] = {}
+        self._event_state: EventState = self._storage.load_event_state() if self._storage else initial_event_state()
+        self._push_state: PushState = self._storage.load_push_state() if self._storage else initial_push_state()
+        self._devices: Dict[tuple[str, str, str, str], dict] = self._storage.load_devices() if self._storage else {}
         self._push_worker: PushWorker | None = None
 
         self._metrics = {
@@ -32,11 +40,25 @@ class P0Runtime:
             "dispatch_processed": 0,
             "dispatch_sent": 0,
             "dispatch_failed": 0,
-            "queue_peak": 0,
+            "queue_peak": len(self._push_state.tasks),
             "worker_start_count": 0,
             "worker_stop_count": 0,
             "last_dispatch_at": None,
         }
+
+    def close(self) -> None:
+        worker = None
+        with self._lock:
+            if self._push_worker and self._push_worker.is_running:
+                worker = self._push_worker
+        if worker is not None:
+            worker.stop()
+
+        with self._lock:
+            self._push_worker = None
+            if self._storage is not None:
+                self._storage.close()
+                self._storage = None
 
     def _now_or(self, now: datetime | None) -> datetime:
         if now is None:
@@ -49,6 +71,16 @@ class P0Runtime:
         queue_now = len(self._push_state.tasks)
         if queue_now > int(self._metrics["queue_peak"]):
             self._metrics["queue_peak"] = queue_now
+
+    def _persist_event_state_locked(self) -> None:
+        if self._storage is None:
+            return
+        self._storage.replace_event_state(self._event_state)
+
+    def _persist_push_state_locked(self) -> None:
+        if self._storage is None:
+            return
+        self._storage.replace_push_state(self._push_state)
 
     def issue_token(self, user_id: str, role: str, now: datetime | None = None) -> dict:
         at = self._now_or(now)
@@ -77,6 +109,8 @@ class P0Runtime:
         key = (record["tenant_id"], record["site_id"], record["box_id"], record["device_id"])
         with self._lock:
             self._devices[key] = record
+            if self._storage:
+                self._storage.upsert_device(record)
         return dict(record)
 
     def list_devices(self) -> list[dict]:
@@ -118,6 +152,7 @@ class P0Runtime:
         with self._lock:
             state, accepted = process_event(self._event_state, event, now=at)
             self._event_state = state
+            self._persist_event_state_locked()
             if not accepted:
                 return {"status": 409, "reason": "duplicate_event", "dedupe_key": event.dedupe_key}
 
@@ -139,6 +174,7 @@ class P0Runtime:
                 now=at,
             )
             self._update_queue_peak_locked()
+            self._persist_push_state_locked()
 
         return {"status": 202, "event_id": event.event_id, "dedupe_key": event.dedupe_key}
 
@@ -158,6 +194,7 @@ class P0Runtime:
         sent = 0
         failed = 0
         processed = 0
+        state_changed = False
         for task in ready:
             if processed >= max_items:
                 break
@@ -166,12 +203,15 @@ class P0Runtime:
             with self._lock:
                 self._push_state = mark_delivery_result(self._push_state, task_id=task.task_id, success=ok, now=at)
                 self._update_queue_peak_locked()
+                state_changed = True
             if ok:
                 sent += 1
             else:
                 failed += 1
 
         with self._lock:
+            if state_changed:
+                self._persist_push_state_locked()
             self._metrics["dispatch_runs"] = int(self._metrics["dispatch_runs"]) + 1
             self._metrics["dispatch_processed"] = int(self._metrics["dispatch_processed"]) + processed
             self._metrics["dispatch_sent"] = int(self._metrics["dispatch_sent"]) + sent

@@ -125,8 +125,8 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
         _json_response(self, 404, {"error": "not_found"})
 
 
-def create_server(host: str = "127.0.0.1", port: int = 18080) -> ThreadingHTTPServer:
-    runtime = P0Runtime(webhook_url="https://example.com/hook", webhook_token="token")
+def create_server(host: str = "127.0.0.1", port: int = 18080, storage_db_path: str | None = None) -> ThreadingHTTPServer:
+    runtime = P0Runtime(webhook_url="https://example.com/hook", webhook_token="token", storage_db_path=storage_db_path)
 
     class Handler(_RuntimeHandler):
         pass
@@ -138,11 +138,18 @@ def create_server(host: str = "127.0.0.1", port: int = 18080) -> ThreadingHTTPSe
 def main() -> None:
     host = os.getenv("P0_RUNTIME_HOST", "127.0.0.1")
     port = int(os.getenv("P0_RUNTIME_PORT", "18080"))
-    server = create_server(host=host, port=port)
+    db_path = os.getenv("P0_RUNTIME_DB_PATH", "").strip() or None
+    server = create_server(host=host, port=port, storage_db_path=db_path)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
+        pass
+    finally:
         server.shutdown()
+        server.server_close()
+        runtime = getattr(server.RequestHandlerClass, "runtime", None)
+        if runtime is not None:
+            runtime.close()
 
 
 if __name__ == "__main__":
