@@ -23,3 +23,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/workflow-governance/20260303-161649
 - Summary: phased plan, sync scripts, compact packet, workstream isolation ready
 - Next: start P0 implementation in isolated lane worktrees and commit via commit-with-sync
+
+## [2026-03-03T16:47:08+08:00] P0-iteration-1
+- Branch: stage/P0-closed-loop
+- Commit: 747c186
+- Tag: checkpoint/P0-iteration-1/20260303-164708
+- Summary: implemented p0 core prototypes across lanes A-D with 20 passing unit tests
+- Next: wire FastAPI endpoints and connect runtime pipelines for ingest/event/push/auth
