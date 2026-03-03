@@ -18,6 +18,21 @@ Default bind address:
 - Host: `127.0.0.1`
 - Port: `18080`
 
+## Worker Modes
+
+- In-process thread worker: runtime-managed via API (`/push/worker/start|stop`)
+- Standalone process worker: separate process calling dispatch endpoint
+
+Standalone worker launch:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run-p0-push-process-worker.ps1 `
+  -BaseUrl http://127.0.0.1:18080 `
+  -IntervalMs 500 `
+  -Limit 20 `
+  -Mode real
+```
+
 ## Endpoints
 
 ### Auth
@@ -102,9 +117,16 @@ Default bind address:
 - `GET /api/v1/metrics`
   - 200 dispatch and worker metrics
 
+## FastAPI Compatibility Layer
+
+File: `src/p0_runtime/fastapi_adapter.py`
+
+- `is_fastapi_available()` checks optional dependency presence
+- `create_fastapi_app()` builds a compatibility app when dependencies exist
+- If `fastapi/pydantic` are not installed, it raises runtime error by design
+
 ## Test Commands
 
 ```powershell
-python -m unittest tests/p0_runtime/test_runtime.py tests/p0_runtime/test_http_api.py
 python -m unittest discover -s tests -p 'test_*.py'
 ```
