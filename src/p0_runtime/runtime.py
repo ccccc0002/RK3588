@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 from datetime import datetime, timezone
+import threading
 from typing import Callable, Dict, Tuple
 
 from src.p0_core.auth_license import is_action_allowed
@@ -8,6 +9,8 @@ from src.p0_core.auth_service import issue_token, verify_token
 from src.p0_core.event_center import EventState, initial_event_state, normalize_raw_event, process_event
 from src.p0_core.push_gateway import PushState, due_tasks, enqueue_push, initial_push_state, mark_delivery_result
 from src.p0_core.viewer_session import SessionSnapshot, new_snapshot, on_tick, on_viewer_join, on_viewer_leave
+from src.p0_runtime.ingest_adapters import adapter_for
+from src.p0_runtime.push_worker import PushWorker
 from src.p0_runtime.webhook_sender import send_webhook
 
 
@@ -17,10 +20,23 @@ class P0Runtime:
         self._webhook_token = webhook_token
         self._token_secret = token_secret
 
+        self._lock = threading.RLock()
         self._sessions: Dict[str, SessionSnapshot] = {}
         self._event_state: EventState = initial_event_state()
         self._push_state: PushState = initial_push_state()
         self._devices: Dict[tuple[str, str, str, str], dict] = {}
+        self._push_worker: PushWorker | None = None
+
+        self._metrics = {
+            "dispatch_runs": 0,
+            "dispatch_processed": 0,
+            "dispatch_sent": 0,
+            "dispatch_failed": 0,
+            "queue_peak": 0,
+            "worker_start_count": 0,
+            "worker_stop_count": 0,
+            "last_dispatch_at": None,
+        }
 
     def _now_or(self, now: datetime | None) -> datetime:
         if now is None:
@@ -28,6 +44,11 @@ class P0Runtime:
         if now.tzinfo is None:
             return now.replace(tzinfo=timezone.utc)
         return now
+
+    def _update_queue_peak_locked(self) -> None:
+        queue_now = len(self._push_state.tasks)
+        if queue_now > int(self._metrics["queue_peak"]):
+            self._metrics["queue_peak"] = queue_now
 
     def issue_token(self, user_id: str, role: str, now: datetime | None = None) -> dict:
         at = self._now_or(now)
@@ -40,21 +61,27 @@ class P0Runtime:
             if field not in payload:
                 raise ValueError(f"missing required field: {field}")
 
+        adapter = adapter_for(str(payload["protocol"]))
+        ingest_spec = adapter.build_ingest_spec(payload)
+
         record = {
             "tenant_id": str(payload["tenant_id"]),
             "site_id": str(payload["site_id"]),
             "box_id": str(payload["box_id"]),
             "device_id": str(payload["device_id"]),
-            "protocol": str(payload["protocol"]),
+            "protocol": str(payload["protocol"]).lower(),
             "stream_url": str(payload["stream_url"]),
             "enabled": bool(payload.get("enabled", True)),
+            "ingest_spec": ingest_spec,
         }
         key = (record["tenant_id"], record["site_id"], record["box_id"], record["device_id"])
-        self._devices[key] = record
+        with self._lock:
+            self._devices[key] = record
         return dict(record)
 
     def list_devices(self) -> list[dict]:
-        items = [dict(item) for item in self._devices.values()]
+        with self._lock:
+            items = [dict(item) for item in self._devices.values()]
         items.sort(key=lambda item: (item["tenant_id"], item["site_id"], item["box_id"], item["device_id"]))
         return items
 
@@ -71,43 +98,47 @@ class P0Runtime:
 
     def viewer_join(self, stream_id: str, now: datetime | None = None) -> dict:
         at = self._now_or(now)
-        snapshot = self._sessions.get(stream_id, new_snapshot(at))
-        updated = on_viewer_join(snapshot, at)
-        self._sessions[stream_id] = updated
+        with self._lock:
+            snapshot = self._sessions.get(stream_id, new_snapshot(at))
+            updated = on_viewer_join(snapshot, at)
+            self._sessions[stream_id] = updated
         return {"stream_id": stream_id, "state": updated.state.value, "viewer_count": updated.viewer_count}
 
     def viewer_leave(self, stream_id: str, now: datetime | None = None) -> dict:
         at = self._now_or(now)
-        snapshot = self._sessions.get(stream_id, new_snapshot(at))
-        updated = on_viewer_leave(snapshot, at)
-        self._sessions[stream_id] = updated
+        with self._lock:
+            snapshot = self._sessions.get(stream_id, new_snapshot(at))
+            updated = on_viewer_leave(snapshot, at)
+            self._sessions[stream_id] = updated
         return {"stream_id": stream_id, "state": updated.state.value, "viewer_count": updated.viewer_count}
 
     def ingest_event(self, raw_event: dict, now: datetime | None = None) -> dict:
         at = self._now_or(now)
         event = normalize_raw_event(raw_event, occurred_at=at)
-        state, accepted = process_event(self._event_state, event, now=at)
-        self._event_state = state
-        if not accepted:
-            return {"status": 409, "reason": "duplicate_event", "dedupe_key": event.dedupe_key}
+        with self._lock:
+            state, accepted = process_event(self._event_state, event, now=at)
+            self._event_state = state
+            if not accepted:
+                return {"status": 409, "reason": "duplicate_event", "dedupe_key": event.dedupe_key}
 
-        self._push_state = enqueue_push(
-            self._push_state,
-            idempotency_key=event.event_id,
-            target_url=self._webhook_url,
-            bearer_token=self._webhook_token,
-            payload={
-                "event_id": event.event_id,
-                "tenant_id": event.tenant_id,
-                "site_id": event.site_id,
-                "box_id": event.box_id,
-                "source_id": event.source_id,
-                "event_type": event.event_type,
-                "occurred_at": event.occurred_at.isoformat(),
-                "payload": event.payload,
-            },
-            now=at,
-        )
+            self._push_state = enqueue_push(
+                self._push_state,
+                idempotency_key=event.event_id,
+                target_url=self._webhook_url,
+                bearer_token=self._webhook_token,
+                payload={
+                    "event_id": event.event_id,
+                    "tenant_id": event.tenant_id,
+                    "site_id": event.site_id,
+                    "box_id": event.box_id,
+                    "source_id": event.source_id,
+                    "event_type": event.event_type,
+                    "occurred_at": event.occurred_at.isoformat(),
+                    "payload": event.payload,
+                },
+                now=at,
+            )
+            self._update_queue_peak_locked()
 
         return {"status": 202, "event_id": event.event_id, "dedupe_key": event.dedupe_key}
 
@@ -121,7 +152,9 @@ class P0Runtime:
         if sender is None:
             sender = send_webhook
 
-        ready = list(due_tasks(self._push_state, now=at))
+        with self._lock:
+            ready = list(due_tasks(self._push_state, now=at))
+
         sent = 0
         failed = 0
         processed = 0
@@ -130,32 +163,87 @@ class P0Runtime:
                 break
             processed += 1
             ok = bool(sender(task))
-            self._push_state = mark_delivery_result(self._push_state, task_id=task.task_id, success=ok, now=at)
+            with self._lock:
+                self._push_state = mark_delivery_result(self._push_state, task_id=task.task_id, success=ok, now=at)
+                self._update_queue_peak_locked()
             if ok:
                 sent += 1
             else:
                 failed += 1
 
+        with self._lock:
+            self._metrics["dispatch_runs"] = int(self._metrics["dispatch_runs"]) + 1
+            self._metrics["dispatch_processed"] = int(self._metrics["dispatch_processed"]) + processed
+            self._metrics["dispatch_sent"] = int(self._metrics["dispatch_sent"]) + sent
+            self._metrics["dispatch_failed"] = int(self._metrics["dispatch_failed"]) + failed
+            self._metrics["last_dispatch_at"] = at.isoformat()
+
         return {"sent": sent, "failed": failed, "processed": processed}
+
+    def start_push_worker(
+        self,
+        interval_seconds: float = 0.5,
+        max_items: int = 20,
+        sender: Callable[[object], bool] | None = None,
+    ) -> dict:
+        with self._lock:
+            if self._push_worker and self._push_worker.is_running:
+                return {"started": False, "reason": "already_running"}
+
+            def _dispatch_once() -> None:
+                self.dispatch_pushes(now=datetime.now(timezone.utc), sender=sender, max_items=max_items)
+
+            worker = PushWorker(dispatch_once=_dispatch_once, interval_seconds=interval_seconds)
+            self._push_worker = worker
+            self._metrics["worker_start_count"] = int(self._metrics["worker_start_count"]) + 1
+            worker.start()
+            return {"started": True, "interval_seconds": interval_seconds, "max_items": max_items}
+
+    def stop_push_worker(self) -> dict:
+        with self._lock:
+            if not self._push_worker or not self._push_worker.is_running:
+                return {"stopped": False, "reason": "not_running"}
+            worker = self._push_worker
+
+        worker.stop()
+        with self._lock:
+            self._metrics["worker_stop_count"] = int(self._metrics["worker_stop_count"]) + 1
+        return {"stopped": True}
+
+    def push_worker_status(self) -> dict:
+        with self._lock:
+            running = bool(self._push_worker and self._push_worker.is_running)
+            interval = self._push_worker.interval_seconds if self._push_worker else None
+        return {"running": running, "interval_seconds": interval}
 
     def tick(self, now: datetime | None = None) -> None:
         at = self._now_or(now)
-        for stream_id, snapshot in list(self._sessions.items()):
-            self._sessions[stream_id] = on_tick(snapshot, at)
+        with self._lock:
+            for stream_id, snapshot in list(self._sessions.items()):
+                self._sessions[stream_id] = on_tick(snapshot, at)
+
+    def get_metrics(self) -> dict:
+        with self._lock:
+            data = dict(self._metrics)
+            data["queue_current"] = len(self._push_state.tasks)
+            data["dead_letter_current"] = len(self._push_state.dead_letters)
+            data["device_count"] = len(self._devices)
+        return data
 
     def snapshot(self) -> dict:
-        sessions = {
-            stream_id: {
-                "state": item.state.value,
-                "viewer_count": item.viewer_count,
-                "last_transition_at": item.last_transition_at.isoformat(),
+        with self._lock:
+            sessions = {
+                stream_id: {
+                    "state": item.state.value,
+                    "viewer_count": item.viewer_count,
+                    "last_transition_at": item.last_transition_at.isoformat(),
+                }
+                for stream_id, item in self._sessions.items()
             }
-            for stream_id, item in self._sessions.items()
-        }
-        return {
-            "sessions": sessions,
-            "device_count": len(self._devices),
-            "event_dedupe_size": len(self._event_state.seen_keys),
-            "push_queue_size": len(self._push_state.tasks),
-            "dead_letter_size": len(self._push_state.dead_letters),
-        }
+            return {
+                "sessions": sessions,
+                "device_count": len(self._devices),
+                "event_dedupe_size": len(self._event_state.seen_keys),
+                "push_queue_size": len(self._push_state.tasks),
+                "dead_letter_size": len(self._push_state.dead_letters),
+            }

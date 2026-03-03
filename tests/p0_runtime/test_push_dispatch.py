@@ -1,4 +1,5 @@
-﻿import unittest
+﻿import time
+import unittest
 from datetime import datetime, timedelta, timezone
 
 from src.p0_runtime.runtime import P0Runtime
@@ -35,6 +36,10 @@ class P0PushDispatchTests(unittest.TestCase):
         snap = self.runtime.snapshot()
         self.assertEqual(0, snap["push_queue_size"])
 
+        metrics = self.runtime.get_metrics()
+        self.assertGreaterEqual(metrics["dispatch_runs"], 1)
+        self.assertGreaterEqual(metrics["dispatch_sent"], 1)
+
     def test_dispatch_failure_retries_then_dead_letter(self) -> None:
         self.runtime.ingest_event(self.event, now=self.now)
 
@@ -48,6 +53,26 @@ class P0PushDispatchTests(unittest.TestCase):
         snap = self.runtime.snapshot()
         self.assertEqual(0, snap["push_queue_size"])
         self.assertEqual(1, snap["dead_letter_size"])
+
+    def test_background_worker_drains_queue(self) -> None:
+        self.runtime.ingest_event(self.event, now=self.now)
+
+        started = self.runtime.start_push_worker(interval_seconds=0.05, max_items=10, sender=lambda _task: True)
+        self.assertTrue(started["started"])
+
+        deadline = time.time() + 1.0
+        drained = False
+        while time.time() < deadline:
+            if self.runtime.snapshot()["push_queue_size"] == 0:
+                drained = True
+                break
+            time.sleep(0.05)
+
+        stopped = self.runtime.stop_push_worker()
+
+        self.assertTrue(drained)
+        self.assertTrue(stopped["stopped"])
+        self.assertFalse(self.runtime.push_worker_status()["running"])
 
 
 if __name__ == "__main__":

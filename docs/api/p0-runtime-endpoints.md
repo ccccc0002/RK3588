@@ -38,10 +38,12 @@ Default bind address:
       "device_id": "cam-1",
       "protocol": "rtsp",
       "stream_url": "rtsp://10.0.0.2/live",
-      "enabled": true
+      "enabled": true,
+      "transport": "tcp"
     }
     ```
-  - 200: registered record (upsert behavior)
+  - protocol adapters supported: `rtsp`, `rtmp`, `onvif`
+  - 200: registered record with `ingest_spec`
 
 - `GET /api/v1/devices`
   - 200: `{ "items": [ ... ] }`
@@ -77,13 +79,28 @@ Default bind address:
   - 202 accepted or 409 duplicate
 
 - `POST /api/v1/push/dispatch`
-  - body: `{ "now": "2026-03-03T08:00:00+00:00", "limit": 20 }`
+  - body: `{ "now": "2026-03-03T08:00:00+00:00", "limit": 20, "mode": "real|always_success|always_fail" }`
   - 200: `{ "sent": 1, "failed": 0, "processed": 1 }`
 
-### Runtime snapshot
+### Async push worker
+
+- `POST /api/v1/push/worker/start`
+  - body: `{ "interval_ms": 500, "limit": 20, "mode": "real|always_success|always_fail" }`
+  - 200: `{ "started": true, "interval_seconds": 0.5, "max_items": 20 }`
+
+- `POST /api/v1/push/worker/stop`
+  - 200: `{ "stopped": true }`
+
+- `GET /api/v1/push/worker/status`
+  - 200: `{ "running": true, "interval_seconds": 0.5 }`
+
+### Runtime snapshot and metrics
 
 - `GET /api/v1/runtime/snapshot`
   - 200 runtime in-memory snapshot
+
+- `GET /api/v1/metrics`
+  - 200 dispatch and worker metrics
 
 ## Test Commands
 

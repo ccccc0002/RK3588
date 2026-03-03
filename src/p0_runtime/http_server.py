@@ -4,7 +4,7 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import urlparse
 
 from src.p0_runtime.runtime import P0Runtime
@@ -25,6 +25,17 @@ def _parse_time(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value)
 
 
+def _sender_for_mode(mode: str | None) -> Callable[[object], bool] | None:
+    normalized = (mode or "real").strip().lower()
+    if normalized == "real":
+        return None
+    if normalized == "always_success":
+        return lambda _task: True
+    if normalized == "always_fail":
+        return lambda _task: False
+    return None
+
+
 class _RuntimeHandler(BaseHTTPRequestHandler):
     runtime: P0Runtime
 
@@ -37,8 +48,16 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             _json_response(self, 200, self.runtime.snapshot())
             return
 
+        if parsed.path == "/api/v1/metrics":
+            _json_response(self, 200, self.runtime.get_metrics())
+            return
+
         if parsed.path == "/api/v1/devices":
             _json_response(self, 200, {"items": self.runtime.list_devices()})
+            return
+
+        if parsed.path == "/api/v1/push/worker/status":
+            _json_response(self, 200, self.runtime.push_worker_status())
             return
 
         _json_response(self, 404, {"error": "not_found"})
@@ -83,7 +102,23 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/v1/push/dispatch":
             limit = int(body.get("limit", 20))
-            res = self.runtime.dispatch_pushes(now=_parse_time(body.get("now")), max_items=limit)
+            mode = str(body.get("mode", "real"))
+            sender = _sender_for_mode(mode)
+            res = self.runtime.dispatch_pushes(now=_parse_time(body.get("now")), sender=sender, max_items=limit)
+            _json_response(self, 200, res)
+            return
+
+        if parsed.path == "/api/v1/push/worker/start":
+            interval_ms = int(body.get("interval_ms", 500))
+            limit = int(body.get("limit", 20))
+            mode = str(body.get("mode", "real"))
+            sender = _sender_for_mode(mode)
+            res = self.runtime.start_push_worker(interval_seconds=max(0.01, interval_ms / 1000.0), max_items=limit, sender=sender)
+            _json_response(self, 200, res)
+            return
+
+        if parsed.path == "/api/v1/push/worker/stop":
+            res = self.runtime.stop_push_worker()
             _json_response(self, 200, res)
             return
 
