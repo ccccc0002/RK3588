@@ -1,0 +1,104 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RK3588 P0 Dashboard</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --text: #13212d;
+      --accent: #0f6d5f;
+      --warn: #d97706;
+      --danger: #c2410c;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top right, #d6efe9 0%, var(--bg) 45%);
+    }
+
+    .wrap {
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 0 16px;
+    }
+
+    .title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--panel);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 6px 20px rgba(16, 24, 40, 0.08);
+    }
+
+    .label {
+      font-size: 12px;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .value {
+      margin-top: 8px;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .status {
+      margin-top: 8px;
+      font-size: 13px;
+    }
+
+    .ok { color: var(--accent); }
+    .warn { color: var(--warn); }
+    .danger { color: var(--danger); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">
+      <h1>RK3588 AI Box P0 Dashboard</h1>
+      <small>Prototype static status board</small>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="label">Ingest Streams</div>
+        <div class="value">12</div>
+        <div class="status ok">RTSP/RTMP active</div>
+      </div>
+      <div class="card">
+        <div class="label">Viewer Sessions</div>
+        <div class="value">37</div>
+        <div class="status ok">on-demand state machine running</div>
+      </div>
+      <div class="card">
+        <div class="label">AI Load</div>
+        <div class="value">74%</div>
+        <div class="status warn">dynamic frame scheduler in degraded mode</div>
+      </div>
+      <div class="card">
+        <div class="label">Push Queue</div>
+        <div class="value">5</div>
+        <div class="status danger">1 dead-letter task</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
