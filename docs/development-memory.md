@@ -79,3 +79,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P0-iteration-7-api-envelope/20260303-180422
 - Summary: standardized runtime API success/data/error/meta envelope with client compatibility
 - Next: implement API auth guardrails and persistence observability
+
+## [2026-03-03T18:15:55+08:00] P0-iteration-8-security-observability
+- Branch: stage/P0-closed-loop
+- Commit: 0df79d8
+- Tag: checkpoint/P0-iteration-8-security-observability/20260303-181555
+- Summary: enforced bearer rbac guardrails and added runtime storage observability metrics with py3.8 validation
+- Next: harden auth token issuance policy and align fastapi adapter parity
