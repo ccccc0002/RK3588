@@ -58,3 +58,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P0-iteration-4-worker-adapter/20260303-171705
 - Summary: implemented async push worker with metrics and ingest adapter contracts with 35 passing tests local+remote
 - Next: extract webhook dispatcher into standalone process and start FastAPI compatibility layer
+
+## [2026-03-03T17:47:31+08:00] P0-iteration-5-process-fastapi
+- Branch: stage/P0-closed-loop
+- Commit: 464ac88
+- Tag: checkpoint/P0-iteration-5-process-fastapi/20260303-174731
+- Summary: added standalone process worker client and optional fastapi adapter with py3.8 compatibility and 38 passing tests
+- Next: start extracting push execution to independent service process and add persistence for device registry
