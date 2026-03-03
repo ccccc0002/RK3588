@@ -37,6 +37,10 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             _json_response(self, 200, self.runtime.snapshot())
             return
 
+        if parsed.path == "/api/v1/devices":
+            _json_response(self, 200, {"items": self.runtime.list_devices()})
+            return
+
         _json_response(self, 404, {"error": "not_found"})
 
     def do_POST(self) -> None:
@@ -51,6 +55,11 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                 role=str(body.get("role", "viewer")),
                 now=_parse_time(body.get("now")),
             )
+            _json_response(self, 200, res)
+            return
+
+        if parsed.path == "/api/v1/devices/register":
+            res = self.runtime.register_device(dict(body))
             _json_response(self, 200, res)
             return
 
@@ -70,6 +79,12 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             event_raw = dict(body.get("event", {}))
             res = self.runtime.ingest_event(event_raw, now=_parse_time(body.get("now")))
             _json_response(self, int(res.get("status", 202)), res)
+            return
+
+        if parsed.path == "/api/v1/push/dispatch":
+            limit = int(body.get("limit", 20))
+            res = self.runtime.dispatch_pushes(now=_parse_time(body.get("now")), max_items=limit)
+            _json_response(self, 200, res)
             return
 
         _json_response(self, 404, {"error": "not_found"})

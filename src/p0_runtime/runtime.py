@@ -1,14 +1,14 @@
 ﻿from __future__ import annotations
 
-from dataclasses import asdict
 from datetime import datetime, timezone
-from typing import Dict, Tuple
+from typing import Callable, Dict, Tuple
 
 from src.p0_core.auth_license import is_action_allowed
 from src.p0_core.auth_service import issue_token, verify_token
 from src.p0_core.event_center import EventState, initial_event_state, normalize_raw_event, process_event
-from src.p0_core.push_gateway import PushState, enqueue_push, initial_push_state
+from src.p0_core.push_gateway import PushState, due_tasks, enqueue_push, initial_push_state, mark_delivery_result
 from src.p0_core.viewer_session import SessionSnapshot, new_snapshot, on_tick, on_viewer_join, on_viewer_leave
+from src.p0_runtime.webhook_sender import send_webhook
 
 
 class P0Runtime:
@@ -20,6 +20,7 @@ class P0Runtime:
         self._sessions: Dict[str, SessionSnapshot] = {}
         self._event_state: EventState = initial_event_state()
         self._push_state: PushState = initial_push_state()
+        self._devices: Dict[tuple[str, str, str, str], dict] = {}
 
     def _now_or(self, now: datetime | None) -> datetime:
         if now is None:
@@ -32,6 +33,30 @@ class P0Runtime:
         at = self._now_or(now)
         token = issue_token(user_id=user_id, role=role, issued_at=at, secret=self._token_secret)
         return {"token": token, "issued_at": at.isoformat()}
+
+    def register_device(self, payload: dict) -> dict:
+        required = ("tenant_id", "site_id", "box_id", "device_id", "protocol", "stream_url")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        record = {
+            "tenant_id": str(payload["tenant_id"]),
+            "site_id": str(payload["site_id"]),
+            "box_id": str(payload["box_id"]),
+            "device_id": str(payload["device_id"]),
+            "protocol": str(payload["protocol"]),
+            "stream_url": str(payload["stream_url"]),
+            "enabled": bool(payload.get("enabled", True)),
+        }
+        key = (record["tenant_id"], record["site_id"], record["box_id"], record["device_id"])
+        self._devices[key] = record
+        return dict(record)
+
+    def list_devices(self) -> list[dict]:
+        items = [dict(item) for item in self._devices.values()]
+        items.sort(key=lambda item: (item["tenant_id"], item["site_id"], item["box_id"], item["device_id"]))
+        return items
 
     def authorize(self, token: str, required_action: str, now: datetime | None = None) -> Tuple[bool, dict | None]:
         at = self._now_or(now)
@@ -86,6 +111,33 @@ class P0Runtime:
 
         return {"status": 202, "event_id": event.event_id, "dedupe_key": event.dedupe_key}
 
+    def dispatch_pushes(
+        self,
+        now: datetime | None = None,
+        sender: Callable[[object], bool] | None = None,
+        max_items: int = 20,
+    ) -> dict:
+        at = self._now_or(now)
+        if sender is None:
+            sender = send_webhook
+
+        ready = list(due_tasks(self._push_state, now=at))
+        sent = 0
+        failed = 0
+        processed = 0
+        for task in ready:
+            if processed >= max_items:
+                break
+            processed += 1
+            ok = bool(sender(task))
+            self._push_state = mark_delivery_result(self._push_state, task_id=task.task_id, success=ok, now=at)
+            if ok:
+                sent += 1
+            else:
+                failed += 1
+
+        return {"sent": sent, "failed": failed, "processed": processed}
+
     def tick(self, now: datetime | None = None) -> None:
         at = self._now_or(now)
         for stream_id, snapshot in list(self._sessions.items()):
@@ -102,6 +154,7 @@ class P0Runtime:
         }
         return {
             "sessions": sessions,
+            "device_count": len(self._devices),
             "event_dedupe_size": len(self._event_state.seen_keys),
             "push_queue_size": len(self._push_state.tasks),
             "dead_letter_size": len(self._push_state.dead_letters),
