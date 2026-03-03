@@ -75,15 +75,15 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
     if not is_fastapi_available():
         raise RuntimeError("fastapi/pydantic not installed")
 
-    from fastapi import Body, FastAPI, Request
+    from fastapi import Body, FastAPI, Header
     from fastapi.responses import JSONResponse
 
     app = FastAPI(title="RK3588 P0 FastAPI Adapter", version="0.1.0")
     rt = runtime or P0Runtime(webhook_url="https://example.com/hook", webhook_token="token")
     bootstrap_secret = str(bootstrap_token or "").strip()
 
-    def _authorize_request(request: Request, required_action: str) -> JSONResponse | None:
-        auth_value = str(request.headers.get("authorization", ""))
+    def _authorize_request(authorization: str, required_action: str) -> JSONResponse | None:
+        auth_value = str(authorization or "")
         if not auth_value.startswith("Bearer "):
             return JSONResponse(status_code=401, content=_err("unauthorized", "missing bearer token"))
         token = auth_value[len("Bearer ") :].strip()
@@ -105,42 +105,45 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         return JSONResponse(status_code=401, content=_err("invalid_token", "token invalid or expired"))
 
     @app.get("/api/v1/runtime/snapshot")
-    def runtime_snapshot(request: Request):
-        denied = _authorize_request(request, _required_get_action("/api/v1/runtime/snapshot") or "alert:read")
+    def runtime_snapshot(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(authorization, _required_get_action("/api/v1/runtime/snapshot") or "alert:read")
         if denied is not None:
             return denied
         return _ok(rt.snapshot())
 
     @app.get("/api/v1/metrics")
-    def runtime_metrics(request: Request):
-        denied = _authorize_request(request, _required_get_action("/api/v1/metrics") or "alert:read")
+    def runtime_metrics(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(authorization, _required_get_action("/api/v1/metrics") or "alert:read")
         if denied is not None:
             return denied
         return _ok(rt.get_metrics())
 
     @app.get("/api/v1/devices")
-    def list_devices(request: Request):
-        denied = _authorize_request(request, _required_get_action("/api/v1/devices") or "device:read")
+    def list_devices(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(authorization, _required_get_action("/api/v1/devices") or "device:read")
         if denied is not None:
             return denied
         return _ok({"items": rt.list_devices()})
 
     @app.get("/api/v1/push/worker/status")
-    def push_worker_status(request: Request):
-        denied = _authorize_request(request, _required_get_action("/api/v1/push/worker/status") or "device:read")
+    def push_worker_status(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(authorization, _required_get_action("/api/v1/push/worker/status") or "device:read")
         if denied is not None:
             return denied
         return _ok(rt.push_worker_status())
 
     @app.post("/api/v1/auth/token")
-    def issue_token_ep(request: Request, payload: dict = Body(default_factory=dict)):
+    def issue_token_ep(
+        payload: dict = Body(default_factory=dict),
+        x_bootstrap_token: str = Header(default="", alias="X-Bootstrap-Token"),
+    ):
         role = str(payload.get("role", "viewer"))
         allowed_roles = {"admin", "operator", "viewer"}
         if role not in allowed_roles:
             return JSONResponse(status_code=400, content=_err("bad_request", f"unsupported role: {role}"))
 
         if role == "admin":
-            provided = str((request.headers.get("x-bootstrap-token") if request else "") or "").strip()
+            provided = str(x_bootstrap_token or "").strip()
             if not bootstrap_secret or provided != bootstrap_secret:
                 return JSONResponse(
                     status_code=403,
@@ -152,8 +155,11 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         return _ok(rt.issue_token(user_id=user_id, role=role, now=now))
 
     @app.post("/api/v1/devices/register")
-    def register_device_ep(request: Request, payload: dict = Body(default_factory=dict)):
-        denied = _authorize_request(request, _required_post_action("/api/v1/devices/register") or "device:write")
+    def register_device_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, _required_post_action("/api/v1/devices/register") or "device:write")
         if denied is not None:
             return denied
         try:
@@ -162,22 +168,39 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return JSONResponse(status_code=400, content=_err("bad_request", str(exc)))
 
     @app.post("/api/v1/viewer-sessions/{stream_id}/join")
-    def viewer_join_ep(stream_id: str, request: Request, payload: dict = Body(default_factory=dict)):
-        denied = _authorize_request(request, _required_post_action(f"/api/v1/viewer-sessions/{stream_id}/join") or "device:read")
+    def viewer_join_ep(
+        stream_id: str,
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(
+            authorization,
+            _required_post_action(f"/api/v1/viewer-sessions/{stream_id}/join") or "device:read",
+        )
         if denied is not None:
             return denied
         return _ok(rt.viewer_join(stream_id=stream_id, now=_parse_time(payload.get("now"))))
 
     @app.post("/api/v1/viewer-sessions/{stream_id}/leave")
-    def viewer_leave_ep(stream_id: str, request: Request, payload: dict = Body(default_factory=dict)):
-        denied = _authorize_request(request, _required_post_action(f"/api/v1/viewer-sessions/{stream_id}/leave") or "device:read")
+    def viewer_leave_ep(
+        stream_id: str,
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(
+            authorization,
+            _required_post_action(f"/api/v1/viewer-sessions/{stream_id}/leave") or "device:read",
+        )
         if denied is not None:
             return denied
         return _ok(rt.viewer_leave(stream_id=stream_id, now=_parse_time(payload.get("now"))))
 
     @app.post("/api/v1/events")
-    def ingest_event_ep(request: Request, payload: dict = Body(default_factory=dict)):
-        denied = _authorize_request(request, _required_post_action("/api/v1/events") or "device:write")
+    def ingest_event_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, _required_post_action("/api/v1/events") or "device:write")
         if denied is not None:
             return denied
         try:
@@ -194,8 +217,11 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return JSONResponse(status_code=400, content=_err("bad_request", str(exc)))
 
     @app.post("/api/v1/push/dispatch")
-    def dispatch_push_ep(request: Request, payload: dict = Body(default_factory=dict)):
-        denied = _authorize_request(request, _required_post_action("/api/v1/push/dispatch") or "device:write")
+    def dispatch_push_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, _required_post_action("/api/v1/push/dispatch") or "device:write")
         if denied is not None:
             return denied
         limit = int(payload.get("limit", 20))
@@ -205,8 +231,11 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         return _ok(result)
 
     @app.post("/api/v1/push/worker/start")
-    def start_push_worker_ep(request: Request, payload: dict = Body(default_factory=dict)):
-        denied = _authorize_request(request, _required_post_action("/api/v1/push/worker/start") or "device:write")
+    def start_push_worker_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, _required_post_action("/api/v1/push/worker/start") or "device:write")
         if denied is not None:
             return denied
         interval_ms = int(payload.get("interval_ms", 500))
@@ -221,8 +250,11 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         return _ok(result)
 
     @app.post("/api/v1/push/worker/stop")
-    def stop_push_worker_ep(request: Request, payload: dict = Body(default_factory=dict)):
-        denied = _authorize_request(request, _required_post_action("/api/v1/push/worker/stop") or "device:write")
+    def stop_push_worker_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, _required_post_action("/api/v1/push/worker/stop") or "device:write")
         if denied is not None:
             return denied
         _ = payload
