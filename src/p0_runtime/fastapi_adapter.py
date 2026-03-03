@@ -1,5 +1,6 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
+from datetime import datetime
 import importlib.util
 from typing import Any
 
@@ -23,35 +24,208 @@ def _err(code: str, message: str, details: dict | None = None, meta: dict | None
     }
 
 
-def create_fastapi_app(runtime: P0Runtime | None = None) -> Any:
+def _parse_time(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    return datetime.fromisoformat(value)
+
+
+def _sender_for_mode(mode: str | None):
+    normalized = (mode or "real").strip().lower()
+    if normalized == "real":
+        return None
+    if normalized == "always_success":
+        return lambda _task: True
+    if normalized == "always_fail":
+        return lambda _task: False
+    return None
+
+
+def _required_get_action(path: str) -> str | None:
+    if path == "/api/v1/runtime/snapshot":
+        return "alert:read"
+    if path == "/api/v1/metrics":
+        return "alert:read"
+    if path == "/api/v1/devices":
+        return "device:read"
+    if path == "/api/v1/push/worker/status":
+        return "device:read"
+    return None
+
+
+def _required_post_action(path: str) -> str | None:
+    if path == "/api/v1/devices/register":
+        return "device:write"
+    if path.startswith("/api/v1/viewer-sessions/") and path.endswith("/join"):
+        return "device:read"
+    if path.startswith("/api/v1/viewer-sessions/") and path.endswith("/leave"):
+        return "device:read"
+    if path == "/api/v1/events":
+        return "device:write"
+    if path == "/api/v1/push/dispatch":
+        return "device:write"
+    if path == "/api/v1/push/worker/start":
+        return "device:write"
+    if path == "/api/v1/push/worker/stop":
+        return "device:write"
+    return None
+
+
+def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = "") -> Any:
     if not is_fastapi_available():
         raise RuntimeError("fastapi/pydantic not installed")
 
-    from fastapi import Body, FastAPI, HTTPException
+    from fastapi import Body, FastAPI, Request
+    from fastapi.responses import JSONResponse
 
     app = FastAPI(title="RK3588 P0 FastAPI Adapter", version="0.1.0")
     rt = runtime or P0Runtime(webhook_url="https://example.com/hook", webhook_token="token")
+    bootstrap_secret = str(bootstrap_token or "").strip()
+
+    def _authorize_request(request: Request, required_action: str) -> JSONResponse | None:
+        auth_value = str(request.headers.get("authorization", ""))
+        if not auth_value.startswith("Bearer "):
+            return JSONResponse(status_code=401, content=_err("unauthorized", "missing bearer token"))
+        token = auth_value[len("Bearer ") :].strip()
+        if not token:
+            return JSONResponse(status_code=401, content=_err("unauthorized", "missing bearer token"))
+
+        ok, context = rt.authorize(token=token, required_action=required_action)
+        if ok:
+            return None
+        if context and context.get("reason") == "forbidden":
+            return JSONResponse(
+                status_code=403,
+                content=_err(
+                    "forbidden",
+                    "action not allowed for current role",
+                    details={"required_action": required_action, "role": context.get("role")},
+                ),
+            )
+        return JSONResponse(status_code=401, content=_err("invalid_token", "token invalid or expired"))
 
     @app.get("/api/v1/runtime/snapshot")
-    def runtime_snapshot() -> dict:
+    def runtime_snapshot(request: Request):
+        denied = _authorize_request(request, _required_get_action("/api/v1/runtime/snapshot") or "alert:read")
+        if denied is not None:
+            return denied
         return _ok(rt.snapshot())
 
     @app.get("/api/v1/metrics")
-    def runtime_metrics() -> dict:
+    def runtime_metrics(request: Request):
+        denied = _authorize_request(request, _required_get_action("/api/v1/metrics") or "alert:read")
+        if denied is not None:
+            return denied
         return _ok(rt.get_metrics())
 
+    @app.get("/api/v1/devices")
+    def list_devices(request: Request):
+        denied = _authorize_request(request, _required_get_action("/api/v1/devices") or "device:read")
+        if denied is not None:
+            return denied
+        return _ok({"items": rt.list_devices()})
+
+    @app.get("/api/v1/push/worker/status")
+    def push_worker_status(request: Request):
+        denied = _authorize_request(request, _required_get_action("/api/v1/push/worker/status") or "device:read")
+        if denied is not None:
+            return denied
+        return _ok(rt.push_worker_status())
+
     @app.post("/api/v1/auth/token")
-    def issue_token_ep(payload: dict = Body(default_factory=dict)) -> dict:
-        user_id = str(payload.get("user_id", ""))
+    def issue_token_ep(request: Request, payload: dict = Body(default_factory=dict)):
         role = str(payload.get("role", "viewer"))
-        return _ok(rt.issue_token(user_id=user_id, role=role))
+        allowed_roles = {"admin", "operator", "viewer"}
+        if role not in allowed_roles:
+            return JSONResponse(status_code=400, content=_err("bad_request", f"unsupported role: {role}"))
+
+        if role == "admin":
+            provided = str((request.headers.get("x-bootstrap-token") if request else "") or "").strip()
+            if not bootstrap_secret or provided != bootstrap_secret:
+                return JSONResponse(
+                    status_code=403,
+                    content=_err("forbidden", "admin token issuance requires valid bootstrap token"),
+                )
+
+        user_id = str(payload.get("user_id", ""))
+        now = _parse_time(payload.get("now"))
+        return _ok(rt.issue_token(user_id=user_id, role=role, now=now))
+
+    @app.post("/api/v1/devices/register")
+    def register_device_ep(request: Request, payload: dict = Body(default_factory=dict)):
+        denied = _authorize_request(request, _required_post_action("/api/v1/devices/register") or "device:write")
+        if denied is not None:
+            return denied
+        try:
+            return _ok(rt.register_device(dict(payload)))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=_err("bad_request", str(exc)))
+
+    @app.post("/api/v1/viewer-sessions/{stream_id}/join")
+    def viewer_join_ep(stream_id: str, request: Request, payload: dict = Body(default_factory=dict)):
+        denied = _authorize_request(request, _required_post_action(f"/api/v1/viewer-sessions/{stream_id}/join") or "device:read")
+        if denied is not None:
+            return denied
+        return _ok(rt.viewer_join(stream_id=stream_id, now=_parse_time(payload.get("now"))))
+
+    @app.post("/api/v1/viewer-sessions/{stream_id}/leave")
+    def viewer_leave_ep(stream_id: str, request: Request, payload: dict = Body(default_factory=dict)):
+        denied = _authorize_request(request, _required_post_action(f"/api/v1/viewer-sessions/{stream_id}/leave") or "device:read")
+        if denied is not None:
+            return denied
+        return _ok(rt.viewer_leave(stream_id=stream_id, now=_parse_time(payload.get("now"))))
 
     @app.post("/api/v1/events")
-    def ingest_event_ep(payload: dict = Body(default_factory=dict)) -> dict:
-        event = dict(payload.get("event", {}))
-        result = rt.ingest_event(event)
-        if int(result.get("status", 202)) >= 400:
-            raise HTTPException(status_code=int(result["status"]), detail=_err("event_rejected", "event rejected", result))
+    def ingest_event_ep(request: Request, payload: dict = Body(default_factory=dict)):
+        denied = _authorize_request(request, _required_post_action("/api/v1/events") or "device:write")
+        if denied is not None:
+            return denied
+        try:
+            event = dict(payload.get("event", {}))
+            result = rt.ingest_event(event, now=_parse_time(payload.get("now")))
+            status = int(result.get("status", 202))
+            if status >= 400:
+                return JSONResponse(
+                    status_code=status,
+                    content=_err("event_rejected", str(result.get("reason", "event_rejected")), details=result),
+                )
+            return JSONResponse(status_code=status, content=_ok(result))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=_err("bad_request", str(exc)))
+
+    @app.post("/api/v1/push/dispatch")
+    def dispatch_push_ep(request: Request, payload: dict = Body(default_factory=dict)):
+        denied = _authorize_request(request, _required_post_action("/api/v1/push/dispatch") or "device:write")
+        if denied is not None:
+            return denied
+        limit = int(payload.get("limit", 20))
+        mode = str(payload.get("mode", "real"))
+        sender = _sender_for_mode(mode)
+        result = rt.dispatch_pushes(now=_parse_time(payload.get("now")), sender=sender, max_items=limit)
         return _ok(result)
+
+    @app.post("/api/v1/push/worker/start")
+    def start_push_worker_ep(request: Request, payload: dict = Body(default_factory=dict)):
+        denied = _authorize_request(request, _required_post_action("/api/v1/push/worker/start") or "device:write")
+        if denied is not None:
+            return denied
+        interval_ms = int(payload.get("interval_ms", 500))
+        limit = int(payload.get("limit", 20))
+        mode = str(payload.get("mode", "real"))
+        sender = _sender_for_mode(mode)
+        result = rt.start_push_worker(
+            interval_seconds=max(0.01, interval_ms / 1000.0),
+            max_items=limit,
+            sender=sender,
+        )
+        return _ok(result)
+
+    @app.post("/api/v1/push/worker/stop")
+    def stop_push_worker_ep(request: Request, payload: dict = Body(default_factory=dict)):
+        denied = _authorize_request(request, _required_post_action("/api/v1/push/worker/stop") or "device:write")
+        if denied is not None:
+            return denied
+        _ = payload
+        return _ok(rt.stop_push_worker())
 
     return app

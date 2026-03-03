@@ -7,10 +7,16 @@ class FastApiAdapterTests(unittest.TestCase):
     def test_create_fastapi_app_behavior(self) -> None:
         available = is_fastapi_available()
         if available:
-            app = create_fastapi_app()
+            app = create_fastapi_app(bootstrap_token="bootstrap")
             paths = {route.path for route in app.routes}
             self.assertIn("/api/v1/runtime/snapshot", paths)
             self.assertIn("/api/v1/auth/token", paths)
+            self.assertIn("/api/v1/devices/register", paths)
+            self.assertIn("/api/v1/devices", paths)
+            self.assertIn("/api/v1/events", paths)
+            self.assertIn("/api/v1/push/dispatch", paths)
+            self.assertIn("/api/v1/push/worker/start", paths)
+            self.assertIn("/api/v1/push/worker/stop", paths)
         else:
             with self.assertRaises(RuntimeError):
                 create_fastapi_app()

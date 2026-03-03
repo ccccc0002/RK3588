@@ -176,7 +176,11 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run-p0-push-process-worker.ps
 File: `src/p0_runtime/fastapi_adapter.py`
 
 - `is_fastapi_available()` checks optional dependency presence
-- `create_fastapi_app()` builds a compatibility app when dependencies exist
+- `create_fastapi_app(runtime=None, bootstrap_token="")` builds a compatibility app when dependencies exist
+- Adapter now aligns with stdlib server behavior for:
+  - response envelope (`success/data/error/meta`)
+  - bearer + RBAC guardrails on protected endpoints
+  - admin token issuance bootstrap guard
 - If `fastapi/pydantic` are not installed, it raises runtime error by design
 
 ## Test Commands
