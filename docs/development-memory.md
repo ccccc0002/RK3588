@@ -16,3 +16,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/bootstrap-fix/20260303-155903
 - Summary: fix checkpoint script and persist metadata commit
 - Next: add GitHub remote then use -Push for each stage
+
+## [2026-03-03T16:16:49+08:00] workflow-governance
+- Branch: master
+- Commit: 59ab195
+- Tag: checkpoint/workflow-governance/20260303-161649
+- Summary: phased plan, sync scripts, compact packet, workstream isolation ready
+- Next: start P0 implementation in isolated lane worktrees and commit via commit-with-sync
