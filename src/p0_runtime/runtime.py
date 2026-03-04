@@ -88,12 +88,14 @@ class P0Runtime:
         return {"token": token, "issued_at": at.isoformat()}
 
     def register_device(self, payload: dict) -> dict:
-        required = ("tenant_id", "site_id", "box_id", "device_id", "protocol", "stream_url")
+        required = ("tenant_id", "site_id", "box_id", "device_id", "protocol")
         for field in required:
             if field not in payload:
                 raise ValueError(f"missing required field: {field}")
 
         adapter = adapter_for(str(payload["protocol"]))
+        if adapter.requires_stream_url and "stream_url" not in payload:
+            raise ValueError("missing required field: stream_url")
         ingest_spec = adapter.build_ingest_spec(payload)
 
         record = {
@@ -102,7 +104,7 @@ class P0Runtime:
             "box_id": str(payload["box_id"]),
             "device_id": str(payload["device_id"]),
             "protocol": str(payload["protocol"]).lower(),
-            "stream_url": str(payload["stream_url"]),
+            "stream_url": str(payload.get("stream_url", "")),
             "enabled": bool(payload.get("enabled", True)),
             "ingest_spec": ingest_spec,
         }

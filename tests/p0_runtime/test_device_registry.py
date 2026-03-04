@@ -14,10 +14,11 @@ class P0DeviceRegistryTests(unittest.TestCase):
         self.assertEqual("rtsp", adapter_for("rtsp").protocol)
         self.assertEqual("rtmp", adapter_for("RTMP").protocol)
         self.assertEqual("onvif", adapter_for("onvif").protocol)
+        self.assertEqual("gb28181", adapter_for("gb28181").protocol)
 
     def test_unknown_protocol_raises(self) -> None:
         with self.assertRaises(UnsupportedProtocolError):
-            adapter_for("gb28181")
+            adapter_for("unsupported-protocol")
 
     def test_register_and_list_devices(self) -> None:
         reg = self.runtime.register_device(
@@ -70,6 +71,28 @@ class P0DeviceRegistryTests(unittest.TestCase):
         self.assertEqual("onvif", listed[0]["protocol"])
         self.assertFalse(listed[0]["enabled"])
         self.assertTrue(listed[0]["ingest_spec"]["discovery"])
+
+    def test_register_gb28181_device(self) -> None:
+        reg = self.runtime.register_device(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-gb",
+                "protocol": "gb28181",
+                "sip_server": "10.0.0.8",
+                "sip_port": 5060,
+                "channel_id": "34020000001320000001",
+                "transport": "udp",
+                "enabled": True,
+            }
+        )
+
+        self.assertEqual("gb28181", reg["protocol"])
+        self.assertEqual("", reg["stream_url"])
+        self.assertEqual("10.0.0.8", reg["ingest_spec"]["sip_server"])
+        self.assertEqual(5060, reg["ingest_spec"]["sip_port"])
+        self.assertEqual("34020000001320000001", reg["ingest_spec"]["channel_id"])
 
 
 if __name__ == "__main__":
