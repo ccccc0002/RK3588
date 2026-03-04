@@ -2645,19 +2645,47 @@ components:
       type: object
       required: [items]
       properties:
+        continue_on_error:
+          type: boolean
+          default: false
         items:
           type: array
           items:
             $ref: '#/components/schemas/GrayRolloutEvaluateRequest'
 
+    GrayRolloutBatchErrorData:
+      type: object
+      required: [index, error]
+      properties:
+        index:
+          type: integer
+          minimum: 0
+        error:
+          type: string
+
     GrayRolloutPlanBatchData:
       type: object
-      required: [items]
+      required: [items, errors, continue_on_error, total, success_count, error_count]
       properties:
         items:
           type: array
           items:
             $ref: '#/components/schemas/GrayRolloutPlanData'
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrayRolloutBatchErrorData'
+        continue_on_error:
+          type: boolean
+        total:
+          type: integer
+          minimum: 0
+        success_count:
+          type: integer
+          minimum: 0
+        error_count:
+          type: integer
+          minimum: 0
 
     MetricsData:
       type: object

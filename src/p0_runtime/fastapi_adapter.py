@@ -681,7 +681,13 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         if denied is not None:
             return denied
         try:
-            return ok_payload({"items": rt.batch_plan_gray_rollout_dependencies(dict(payload))})
+            result = rt.batch_plan_gray_rollout_dependencies_report(dict(payload))
+            if int(result.get("error_count", 0)) > 0 and not bool(result.get("continue_on_error", False)):
+                first_error = dict(result.get("errors", [{}])[0])
+                idx = int(first_error.get("index", 0))
+                message = str(first_error.get("error", "batch item invalid"))
+                raise ValueError(f"items[{idx}]: {message}")
+            return ok_payload(result)
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 

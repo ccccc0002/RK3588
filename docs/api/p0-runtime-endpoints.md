@@ -733,6 +733,7 @@ GB28181 example:
   - body:
     ```json
     {
+      "continue_on_error": true,
       "items": [
         {
           "tenant_id": "t1",
@@ -759,8 +760,12 @@ GB28181 example:
     }
     ```
   - 200 envelope:
-    - `items[]` list of per-scope plan results, each with full `plan` fields (`execution_order[]`, `nodes[]`, `blocked_by[]`, `missing_status[]`, `enabled`)
-  - batch rule: if any item is invalid, request returns `400` with indexed error message (`items[i]: ...`)
+    - `items[]` list of successful per-scope plan results
+    - `errors[]` list of item-level errors with `index` and `error`
+    - `continue_on_error`, `total`, `success_count`, `error_count`
+  - batch rule:
+    - default (`continue_on_error=false`): any invalid item fails entire request with `400` (`items[i]: ...`)
+    - tolerant mode (`continue_on_error=true`): request returns `200` with partial successes in `items[]` and failures in `errors[]`
 
 ## FastAPI Compatibility Layer
 

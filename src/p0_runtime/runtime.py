@@ -1690,20 +1690,46 @@ class P0Runtime:
         }
 
     def batch_plan_gray_rollout_dependencies(self, payload: dict) -> list[dict]:
+        report = self.batch_plan_gray_rollout_dependencies_report(payload)
+        errors = [dict(item) for item in report.get("errors", [])]
+        if errors:
+            first = errors[0]
+            idx = int(first.get("index", 0))
+            msg = str(first.get("error", "batch item invalid"))
+            raise ValueError(f"items[{idx}]: {msg}")
+        return [dict(item) for item in report.get("items", [])]
+
+    def batch_plan_gray_rollout_dependencies_report(self, payload: dict) -> dict:
         items_raw = payload.get("items", [])
         if not isinstance(items_raw, list):
             raise ValueError("items must be a list")
+        continue_on_error = bool(payload.get("continue_on_error", False))
 
         results: list[dict] = []
+        errors: list[dict] = []
         for idx, item in enumerate(items_raw):
             if not isinstance(item, dict):
-                raise ValueError(f"items[{idx}] must be an object")
+                message = "must be an object"
+                if continue_on_error:
+                    errors.append({"index": idx, "error": message})
+                    continue
+                raise ValueError(f"items[{idx}] {message}")
             try:
                 planned = self.plan_gray_rollout_dependencies(dict(item))
             except ValueError as exc:
+                if continue_on_error:
+                    errors.append({"index": idx, "error": str(exc)})
+                    continue
                 raise ValueError(f"items[{idx}]: {exc}") from exc
             results.append(planned)
-        return results
+        return {
+            "items": [dict(item) for item in results],
+            "errors": [dict(item) for item in errors],
+            "continue_on_error": continue_on_error,
+            "total": len(items_raw),
+            "success_count": len(results),
+            "error_count": len(errors),
+        }
 
     def evaluate_gray_rollout(self, payload: dict) -> dict:
         planned = self.plan_gray_rollout_dependencies(payload)

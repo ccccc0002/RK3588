@@ -335,8 +335,13 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                 return
 
             if parsed.path == "/api/v1/gray-rollout/plan/batch":
-                res = self.runtime.batch_plan_gray_rollout_dependencies(dict(body))
-                _json_response(self, 200, ok_payload({"items": res}))
+                res = self.runtime.batch_plan_gray_rollout_dependencies_report(dict(body))
+                if int(res.get("error_count", 0)) > 0 and not bool(res.get("continue_on_error", False)):
+                    first_error = dict(res.get("errors", [{}])[0])
+                    idx = int(first_error.get("index", 0))
+                    message = str(first_error.get("error", "batch item invalid"))
+                    raise ValueError(f"items[{idx}]: {message}")
+                _json_response(self, 200, ok_payload(res))
                 return
 
             if parsed.path == "/api/v1/audit/policy":
