@@ -408,3 +408,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P3-iteration-5-lease-lifecycle-validated/20260304-143818
 - Summary: validated lease-lifecycle iteration on local py3.11 and remote py3.8.10 with isolated bundle clone
 - Next: Push stage/P3-phase2-readiness and new checkpoint tags to GitHub, then continue P3 closure hardening
+
+## [2026-03-04T14:43:57+08:00] P3-iteration-6-lease-start-local-gate
+- Branch: stage/P3-phase2-readiness
+- Commit: 3b43f4d
+- Tag: checkpoint/P3-iteration-6-lease-start-local-gate/20260304-144357
+- Summary: added edge lease-start contract with queued-to-running transition guarded by lease token ownership
+- Next: Run remote py3.8.10 validation on current commit via isolated bundle clone, then create validated checkpoint and push branch/tags
