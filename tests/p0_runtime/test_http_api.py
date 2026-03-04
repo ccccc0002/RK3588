@@ -1092,6 +1092,66 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual("bad_request", batch_plan_fail_payload["error"]["code"])
         self.assertIn("items[0]", batch_plan_fail_payload["error"]["message"])
 
+    def test_gray_rollout_batch_cache_clear_endpoint(self) -> None:
+        self._post(
+            "/api/v1/gray-rollout/policy",
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {},
+                "overrides": [],
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "idempotency_key": "http-clear-idem-001",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "http-clear-idem-001",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
+        clear_forbidden_status, clear_forbidden_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch/cache/clear",
+            {"reset_counters": True},
+            token=self.viewer_token,
+        )
+        self.assertEqual(403, clear_forbidden_status)
+        self.assertFalse(clear_forbidden_payload["success"])
+        self.assertEqual("forbidden", clear_forbidden_payload["error"]["code"])
+
+        clear_status, clear_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch/cache/clear",
+            {"reset_counters": True},
+            token=self.operator_token,
+        )
+        self.assertEqual(200, clear_status)
+        self.assertTrue(clear_payload["success"])
+        self.assertTrue(clear_payload["data"]["reset_counters"])
+        self.assertGreaterEqual(int(clear_payload["data"]["cleared_entries"]), 1)
+        self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_entries"])
+        self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_hits"])
+        self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_misses"])
+        self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_conflicts"])
+
+        metrics_status, metrics_payload = self._get("/api/v1/metrics", token=self.viewer_token)
+        self.assertEqual(200, metrics_status)
+        self.assertTrue(metrics_payload["success"])
+        self.assertEqual(0, int(metrics_payload["data"]["gray_batch_plan_cache_entries"]))
+        self.assertEqual(0, int(metrics_payload["data"]["gray_batch_plan_cache_hits"]))
+        self.assertEqual(0, int(metrics_payload["data"]["gray_batch_plan_cache_misses"]))
+        self.assertEqual(0, int(metrics_payload["data"]["gray_batch_plan_cache_conflicts"]))
+
     def test_offline_jobs_endpoints(self) -> None:
         self._post(
             "/api/v1/offline-executors/upsert",

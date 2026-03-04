@@ -1181,6 +1181,32 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/gray-rollout/plan/batch/cache/clear:
+    post:
+      tags: [runtime]
+      summary: Clear in-memory gray rollout batch-plan idempotency cache
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GrayRolloutPlanBatchCacheClearRequest'
+      responses:
+        '200':
+          description: Gray rollout batch-plan cache cleared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrayRolloutPlanBatchCacheClearEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/runtime/snapshot:
     get:
       tags: [runtime]
@@ -2816,6 +2842,80 @@ components:
           type: integer
           minimum: 0
 
+    GrayRolloutPlanBatchCacheClearRequest:
+      type: object
+      additionalProperties: true
+      properties:
+        reset_counters:
+          type: boolean
+          default: false
+          description: Whether to reset cumulative cache metrics counters after clearing.
+
+    GrayRolloutPlanBatchCacheClearData:
+      type: object
+      required:
+        - cleared_entries
+        - cleared_events
+        - reset_counters
+        - cleared_at
+        - gray_batch_plan_cache_entries
+        - gray_batch_plan_cache_hits
+        - gray_batch_plan_cache_misses
+        - gray_batch_plan_cache_conflicts
+        - gray_batch_plan_cache_evicted_expired
+        - gray_batch_plan_cache_evicted_overflow
+        - gray_batch_plan_cache_last_minute_requests
+        - gray_batch_plan_cache_last_minute_hits
+        - gray_batch_plan_cache_last_minute_misses
+        - gray_batch_plan_cache_last_minute_conflicts
+        - gray_batch_plan_cache_last_minute_hit_rate_percent
+      properties:
+        cleared_entries:
+          type: integer
+          minimum: 0
+        cleared_events:
+          type: integer
+          minimum: 0
+        reset_counters:
+          type: boolean
+        cleared_at:
+          type: string
+          format: date-time
+        gray_batch_plan_cache_entries:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_hits:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_misses:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_conflicts:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_evicted_expired:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_evicted_overflow:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_last_minute_requests:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_last_minute_hits:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_last_minute_misses:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_last_minute_conflicts:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_last_minute_hit_rate_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+
     MetricsData:
       type: object
       required:
@@ -3249,6 +3349,14 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/GrayRolloutPlanBatchData'
+
+    GrayRolloutPlanBatchCacheClearEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/GrayRolloutPlanBatchCacheClearData'
 
     MetricsEnvelope:
       allOf:

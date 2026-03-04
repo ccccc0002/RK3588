@@ -1957,6 +1957,68 @@ class P0Runtime:
             self._evict_gray_batch_plan_cache_locked()
         return cached_report
 
+    def clear_gray_rollout_batch_plan_cache(self, payload: dict | None = None) -> dict:
+        source = dict(payload or {})
+        reset_counters = bool(source.get("reset_counters", False))
+        with self._lock:
+            self._evict_gray_batch_plan_cache_locked()
+            cleared_entries = len(self._gray_rollout_batch_plan_cache)
+            cleared_events = len(self._gray_rollout_batch_plan_cache_events)
+            self._gray_rollout_batch_plan_cache.clear()
+            self._gray_rollout_batch_plan_cache_events.clear()
+            if reset_counters:
+                for key in (
+                    "gray_batch_plan_cache_hits",
+                    "gray_batch_plan_cache_misses",
+                    "gray_batch_plan_cache_conflicts",
+                    "gray_batch_plan_cache_evicted_expired",
+                    "gray_batch_plan_cache_evicted_overflow",
+                ):
+                    self._metrics[key] = 0
+            cache_last_minute = self._gray_batch_plan_cache_last_minute_stats_locked()
+            cleared_at = self._now_or(None).isoformat()
+            result = {
+                "cleared_entries": cleared_entries,
+                "cleared_events": cleared_events,
+                "reset_counters": reset_counters,
+                "cleared_at": cleared_at,
+                "gray_batch_plan_cache_entries": len(self._gray_rollout_batch_plan_cache),
+                "gray_batch_plan_cache_hits": int(self._metrics.get("gray_batch_plan_cache_hits", 0)),
+                "gray_batch_plan_cache_misses": int(self._metrics.get("gray_batch_plan_cache_misses", 0)),
+                "gray_batch_plan_cache_conflicts": int(self._metrics.get("gray_batch_plan_cache_conflicts", 0)),
+                "gray_batch_plan_cache_evicted_expired": int(
+                    self._metrics.get("gray_batch_plan_cache_evicted_expired", 0)
+                ),
+                "gray_batch_plan_cache_evicted_overflow": int(
+                    self._metrics.get("gray_batch_plan_cache_evicted_overflow", 0)
+                ),
+                "gray_batch_plan_cache_last_minute_requests": int(
+                    cache_last_minute.get("gray_batch_plan_cache_last_minute_requests", 0)
+                ),
+                "gray_batch_plan_cache_last_minute_hits": int(
+                    cache_last_minute.get("gray_batch_plan_cache_last_minute_hits", 0)
+                ),
+                "gray_batch_plan_cache_last_minute_misses": int(
+                    cache_last_minute.get("gray_batch_plan_cache_last_minute_misses", 0)
+                ),
+                "gray_batch_plan_cache_last_minute_conflicts": int(
+                    cache_last_minute.get("gray_batch_plan_cache_last_minute_conflicts", 0)
+                ),
+                "gray_batch_plan_cache_last_minute_hit_rate_percent": int(
+                    cache_last_minute.get("gray_batch_plan_cache_last_minute_hit_rate_percent", 0)
+                ),
+            }
+            self._append_audit_locked(
+                "gray_rollout.plan_batch.cache.clear",
+                {
+                    "cleared_entries": cleared_entries,
+                    "cleared_events": cleared_events,
+                    "reset_counters": reset_counters,
+                    "cleared_at": cleared_at,
+                },
+            )
+            return result
+
     def evaluate_gray_rollout(self, payload: dict) -> dict:
         planned = self.plan_gray_rollout_dependencies(payload)
         return {

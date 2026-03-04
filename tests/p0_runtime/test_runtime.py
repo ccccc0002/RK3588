@@ -1567,6 +1567,80 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(1, snap["gray_batch_plan_cache_last_minute_conflicts"])
         self.assertEqual(50, snap["gray_batch_plan_cache_last_minute_hit_rate_percent"])
 
+    def test_clear_gray_rollout_batch_plan_cache(self) -> None:
+        self.runtime.update_gray_rollout_policy(
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "overrides": [],
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {},
+            }
+        )
+        payload = {
+            "idempotency_key": "plan-batch-clear-001",
+            "continue_on_error": True,
+            "items": [
+                {
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "seed": "plan-clear-seed-001",
+                    "dependency_status": {"gray_ready": True},
+                },
+            ],
+        }
+        self.runtime.batch_plan_gray_rollout_dependencies_report(dict(payload))
+        self.runtime.batch_plan_gray_rollout_dependencies_report(dict(payload))
+        with self.assertRaisesRegex(ValueError, "idempotency_key conflict with different payload"):
+            self.runtime.batch_plan_gray_rollout_dependencies_report(
+                {
+                    "idempotency_key": "plan-batch-clear-001",
+                    "continue_on_error": True,
+                    "items": [
+                        {
+                            "tenant_id": "t9",
+                            "site_id": "s9",
+                            "box_id": "b9",
+                            "seed": "plan-clear-seed-conflict",
+                            "dependency_status": {"gray_ready": True},
+                        },
+                    ],
+                }
+            )
+        cleared_no_reset = self.runtime.clear_gray_rollout_batch_plan_cache({"reset_counters": False})
+        self.assertEqual(1, cleared_no_reset["cleared_entries"])
+        self.assertGreaterEqual(cleared_no_reset["cleared_events"], 3)
+        self.assertFalse(cleared_no_reset["reset_counters"])
+        self.assertEqual(0, cleared_no_reset["gray_batch_plan_cache_entries"])
+        self.assertEqual(1, cleared_no_reset["gray_batch_plan_cache_hits"])
+        self.assertEqual(1, cleared_no_reset["gray_batch_plan_cache_misses"])
+        self.assertEqual(1, cleared_no_reset["gray_batch_plan_cache_conflicts"])
+
+        self.runtime.batch_plan_gray_rollout_dependencies_report(
+            {
+                "idempotency_key": "plan-batch-clear-002",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t2",
+                        "site_id": "s2",
+                        "box_id": "b2",
+                        "seed": "plan-clear-seed-002",
+                        "dependency_status": {"gray_ready": True},
+                    },
+                ],
+            }
+        )
+        cleared_with_reset = self.runtime.clear_gray_rollout_batch_plan_cache({"reset_counters": True})
+        self.assertTrue(cleared_with_reset["reset_counters"])
+        self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_entries"])
+        self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_hits"])
+        self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_misses"])
+        self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_conflicts"])
+        self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_evicted_expired"])
+        self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_evicted_overflow"])
+
     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
         self.runtime.register_device(
             {

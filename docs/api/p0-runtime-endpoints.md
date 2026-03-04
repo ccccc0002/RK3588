@@ -809,6 +809,32 @@ GB28181 example:
     - `cache_ttl_seconds` is optional and only valid when `idempotency_key` is provided
     - `cache_ttl_seconds` must be within `[1, 3600]` when provided
 
+- `POST /api/v1/gray-rollout/plan/batch/cache/clear`
+  - RBAC: requires `device:write`
+  - body (optional):
+    ```json
+    {
+      "reset_counters": true
+    }
+    ```
+  - 200 envelope:
+    - `cleared_entries`, `cleared_events`, `reset_counters`, `cleared_at`
+    - post-clear cache counters:
+      - `gray_batch_plan_cache_entries`
+      - `gray_batch_plan_cache_hits`
+      - `gray_batch_plan_cache_misses`
+      - `gray_batch_plan_cache_conflicts`
+      - `gray_batch_plan_cache_evicted_expired`
+      - `gray_batch_plan_cache_evicted_overflow`
+      - `gray_batch_plan_cache_last_minute_requests`
+      - `gray_batch_plan_cache_last_minute_hits`
+      - `gray_batch_plan_cache_last_minute_misses`
+      - `gray_batch_plan_cache_last_minute_conflicts`
+      - `gray_batch_plan_cache_last_minute_hit_rate_percent`
+  - clear rule:
+    - always clears in-memory idempotency cache entries and minute-window cache events
+    - when `reset_counters=true`, cumulative cache metrics counters are reset to `0`
+
 ## FastAPI Compatibility Layer
 
 File: `src/p0_runtime/fastapi_adapter.py`

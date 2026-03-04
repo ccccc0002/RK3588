@@ -1,0 +1,479 @@
+diff --git a/docs/api/p0-openapi.yaml b/docs/api/p0-openapi.yaml
+index 2bbfed6..84cad9e 100644
+--- a/docs/api/p0-openapi.yaml
++++ b/docs/api/p0-openapi.yaml
+@@ -1181,6 +1181,32 @@ paths:
+         '403':
+           $ref: '#/components/responses/ForbiddenError'
+ 
++  /api/v1/gray-rollout/plan/batch/cache/clear:
++    post:
++      tags: [runtime]
++      summary: Clear in-memory gray rollout batch-plan idempotency cache
++      security:
++        - BearerAuth: []
++      requestBody:
++        required: false
++        content:
++          application/json:
++            schema:
++              $ref: '#/components/schemas/GrayRolloutPlanBatchCacheClearRequest'
++      responses:
++        '200':
++          description: Gray rollout batch-plan cache cleared
++          content:
++            application/json:
++              schema:
++                $ref: '#/components/schemas/GrayRolloutPlanBatchCacheClearEnvelope'
++        '400':
++          $ref: '#/components/responses/BadRequestError'
++        '401':
++          $ref: '#/components/responses/UnauthorizedError'
++        '403':
++          $ref: '#/components/responses/ForbiddenError'
++
+   /api/v1/runtime/snapshot:
+     get:
+       tags: [runtime]
+@@ -2816,6 +2842,80 @@ components:
+           type: integer
+           minimum: 0
+ 
++    GrayRolloutPlanBatchCacheClearRequest:
++      type: object
++      additionalProperties: true
++      properties:
++        reset_counters:
++          type: boolean
++          default: false
++          description: Whether to reset cumulative cache metrics counters after clearing.
++
++    GrayRolloutPlanBatchCacheClearData:
++      type: object
++      required:
++        - cleared_entries
++        - cleared_events
++        - reset_counters
++        - cleared_at
++        - gray_batch_plan_cache_entries
++        - gray_batch_plan_cache_hits
++        - gray_batch_plan_cache_misses
++        - gray_batch_plan_cache_conflicts
++        - gray_batch_plan_cache_evicted_expired
++        - gray_batch_plan_cache_evicted_overflow
++        - gray_batch_plan_cache_last_minute_requests
++        - gray_batch_plan_cache_last_minute_hits
++        - gray_batch_plan_cache_last_minute_misses
++        - gray_batch_plan_cache_last_minute_conflicts
++        - gray_batch_plan_cache_last_minute_hit_rate_percent
++      properties:
++        cleared_entries:
++          type: integer
++          minimum: 0
++        cleared_events:
++          type: integer
++          minimum: 0
++        reset_counters:
++          type: boolean
++        cleared_at:
++          type: string
++          format: date-time
++        gray_batch_plan_cache_entries:
++          type: integer
++          minimum: 0
++        gray_batch_plan_cache_hits:
++          type: integer
++          minimum: 0
++        gray_batch_plan_cache_misses:
++          type: integer
++          minimum: 0
++        gray_batch_plan_cache_conflicts:
++          type: integer
++          minimum: 0
++        gray_batch_plan_cache_evicted_expired:
++          type: integer
++          minimum: 0
++        gray_batch_plan_cache_evicted_overflow:
++          type: integer
++          minimum: 0
++        gray_batch_plan_cache_last_minute_requests:
++          type: integer
++          minimum: 0
++        gray_batch_plan_cache_last_minute_hits:
++          type: integer
++          minimum: 0
++        gray_batch_plan_cache_last_minute_misses:
++          type: integer
++          minimum: 0
++        gray_batch_plan_cache_last_minute_conflicts:
++          type: integer
++          minimum: 0
++        gray_batch_plan_cache_last_minute_hit_rate_percent:
++          type: integer
++          minimum: 0
++          maximum: 100
++
+     MetricsData:
+       type: object
+       required:
+@@ -3250,6 +3350,14 @@ components:
+             data:
+               $ref: '#/components/schemas/GrayRolloutPlanBatchData'
+ 
++    GrayRolloutPlanBatchCacheClearEnvelope:
++      allOf:
++        - $ref: '#/components/schemas/ApiSuccessEnvelope'
++        - type: object
++          properties:
++            data:
++              $ref: '#/components/schemas/GrayRolloutPlanBatchCacheClearData'
++
+     MetricsEnvelope:
+       allOf:
+         - $ref: '#/components/schemas/ApiSuccessEnvelope'
+diff --git a/docs/api/p0-runtime-endpoints.md b/docs/api/p0-runtime-endpoints.md
+index b7948b4..fee7dd0 100644
+--- a/docs/api/p0-runtime-endpoints.md
++++ b/docs/api/p0-runtime-endpoints.md
+@@ -809,6 +809,32 @@ GB28181 example:
+     - `cache_ttl_seconds` is optional and only valid when `idempotency_key` is provided
+     - `cache_ttl_seconds` must be within `[1, 3600]` when provided
+ 
++- `POST /api/v1/gray-rollout/plan/batch/cache/clear`
++  - RBAC: requires `device:write`
++  - body (optional):
++    ```json
++    {
++      "reset_counters": true
++    }
++    ```
++  - 200 envelope:
++    - `cleared_entries`, `cleared_events`, `reset_counters`, `cleared_at`
++    - post-clear cache counters:
++      - `gray_batch_plan_cache_entries`
++      - `gray_batch_plan_cache_hits`
++      - `gray_batch_plan_cache_misses`
++      - `gray_batch_plan_cache_conflicts`
++      - `gray_batch_plan_cache_evicted_expired`
++      - `gray_batch_plan_cache_evicted_overflow`
++      - `gray_batch_plan_cache_last_minute_requests`
++      - `gray_batch_plan_cache_last_minute_hits`
++      - `gray_batch_plan_cache_last_minute_misses`
++      - `gray_batch_plan_cache_last_minute_conflicts`
++      - `gray_batch_plan_cache_last_minute_hit_rate_percent`
++  - clear rule:
++    - always clears in-memory idempotency cache entries and minute-window cache events
++    - when `reset_counters=true`, cumulative cache metrics counters are reset to `0`
++
+ ## FastAPI Compatibility Layer
+ 
+ File: `src/p0_runtime/fastapi_adapter.py`
+diff --git a/src/p0_runtime/api_policy.py b/src/p0_runtime/api_policy.py
+index 368563c..ded0e22 100644
+--- a/src/p0_runtime/api_policy.py
++++ b/src/p0_runtime/api_policy.py
+@@ -99,6 +99,8 @@ def required_post_action(path: str) -> str | None:
+         return "device:read"
+     if path == "/api/v1/gray-rollout/plan/batch":
+         return "device:read"
++    if path == "/api/v1/gray-rollout/plan/batch/cache/clear":
++        return "device:write"
+     if path == "/api/v1/runtime/schedule":
+         return "device:read"
+     if path == "/api/v1/audit/policy":
+diff --git a/src/p0_runtime/fastapi_adapter.py b/src/p0_runtime/fastapi_adapter.py
+index eb04b55..56b2182 100644
+--- a/src/p0_runtime/fastapi_adapter.py
++++ b/src/p0_runtime/fastapi_adapter.py
+@@ -691,6 +691,22 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str =
+         except ValueError as exc:
+             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+ 
++    @app.post("/api/v1/gray-rollout/plan/batch/cache/clear")
++    def clear_gray_rollout_batch_cache_ep(
++        payload: dict = Body(default_factory=dict),
++        authorization: str = Header(default="", alias="Authorization"),
++    ):
++        denied = _authorize_request(
++            authorization,
++            required_post_action("/api/v1/gray-rollout/plan/batch/cache/clear") or "device:write",
++        )
++        if denied is not None:
++            return denied
++        try:
++            return ok_payload(rt.clear_gray_rollout_batch_plan_cache(dict(payload)))
++        except ValueError as exc:
++            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
++
+     @app.post("/api/v1/push/dispatch")
+     def dispatch_push_ep(
+         payload: dict = Body(default_factory=dict),
+diff --git a/src/p0_runtime/http_server.py b/src/p0_runtime/http_server.py
+index d7af362..d680b8f 100644
+--- a/src/p0_runtime/http_server.py
++++ b/src/p0_runtime/http_server.py
+@@ -344,6 +344,11 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
+                 _json_response(self, 200, ok_payload(res))
+                 return
+ 
++            if parsed.path == "/api/v1/gray-rollout/plan/batch/cache/clear":
++                res = self.runtime.clear_gray_rollout_batch_plan_cache(dict(body))
++                _json_response(self, 200, ok_payload(res))
++                return
++
+             if parsed.path == "/api/v1/audit/policy":
+                 res = self.runtime.update_audit_policy(dict(body))
+                 _json_response(self, 200, ok_payload(res))
+diff --git a/src/p0_runtime/runtime.py b/src/p0_runtime/runtime.py
+index 5d0343e..57d543b 100644
+--- a/src/p0_runtime/runtime.py
++++ b/src/p0_runtime/runtime.py
+@@ -1957,6 +1957,68 @@ class P0Runtime:
+             self._evict_gray_batch_plan_cache_locked()
+         return cached_report
+ 
++    def clear_gray_rollout_batch_plan_cache(self, payload: dict | None = None) -> dict:
++        source = dict(payload or {})
++        reset_counters = bool(source.get("reset_counters", False))
++        with self._lock:
++            self._evict_gray_batch_plan_cache_locked()
++            cleared_entries = len(self._gray_rollout_batch_plan_cache)
++            cleared_events = len(self._gray_rollout_batch_plan_cache_events)
++            self._gray_rollout_batch_plan_cache.clear()
++            self._gray_rollout_batch_plan_cache_events.clear()
++            if reset_counters:
++                for key in (
++                    "gray_batch_plan_cache_hits",
++                    "gray_batch_plan_cache_misses",
++                    "gray_batch_plan_cache_conflicts",
++                    "gray_batch_plan_cache_evicted_expired",
++                    "gray_batch_plan_cache_evicted_overflow",
++                ):
++                    self._metrics[key] = 0
++            cache_last_minute = self._gray_batch_plan_cache_last_minute_stats_locked()
++            cleared_at = self._now_or(None).isoformat()
++            result = {
++                "cleared_entries": cleared_entries,
++                "cleared_events": cleared_events,
++                "reset_counters": reset_counters,
++                "cleared_at": cleared_at,
++                "gray_batch_plan_cache_entries": len(self._gray_rollout_batch_plan_cache),
++                "gray_batch_plan_cache_hits": int(self._metrics.get("gray_batch_plan_cache_hits", 0)),
++                "gray_batch_plan_cache_misses": int(self._metrics.get("gray_batch_plan_cache_misses", 0)),
++                "gray_batch_plan_cache_conflicts": int(self._metrics.get("gray_batch_plan_cache_conflicts", 0)),
++                "gray_batch_plan_cache_evicted_expired": int(
++                    self._metrics.get("gray_batch_plan_cache_evicted_expired", 0)
++                ),
++                "gray_batch_plan_cache_evicted_overflow": int(
++                    self._metrics.get("gray_batch_plan_cache_evicted_overflow", 0)
++                ),
++                "gray_batch_plan_cache_last_minute_requests": int(
++                    cache_last_minute.get("gray_batch_plan_cache_last_minute_requests", 0)
++                ),
++                "gray_batch_plan_cache_last_minute_hits": int(
++                    cache_last_minute.get("gray_batch_plan_cache_last_minute_hits", 0)
++                ),
++                "gray_batch_plan_cache_last_minute_misses": int(
++                    cache_last_minute.get("gray_batch_plan_cache_last_minute_misses", 0)
++                ),
++                "gray_batch_plan_cache_last_minute_conflicts": int(
++                    cache_last_minute.get("gray_batch_plan_cache_last_minute_conflicts", 0)
++                ),
++                "gray_batch_plan_cache_last_minute_hit_rate_percent": int(
++                    cache_last_minute.get("gray_batch_plan_cache_last_minute_hit_rate_percent", 0)
++                ),
++            }
++            self._append_audit_locked(
++                "gray_rollout.plan_batch.cache.clear",
++                {
++                    "cleared_entries": cleared_entries,
++                    "cleared_events": cleared_events,
++                    "reset_counters": reset_counters,
++                    "cleared_at": cleared_at,
++                },
++            )
++            return result
++
+     def evaluate_gray_rollout(self, payload: dict) -> dict:
+         planned = self.plan_gray_rollout_dependencies(payload)
+         return {
+diff --git a/tests/p0_runtime/test_api_policy.py b/tests/p0_runtime/test_api_policy.py
+index fa9996a..954f5cd 100644
+--- a/tests/p0_runtime/test_api_policy.py
++++ b/tests/p0_runtime/test_api_policy.py
+@@ -57,6 +57,7 @@ class ApiPolicyTests(unittest.TestCase):
+         self.assertEqual("device:read", required_post_action("/api/v1/gray-rollout/evaluate"))
+         self.assertEqual("device:read", required_post_action("/api/v1/gray-rollout/plan"))
+         self.assertEqual("device:read", required_post_action("/api/v1/gray-rollout/plan/batch"))
++        self.assertEqual("device:write", required_post_action("/api/v1/gray-rollout/plan/batch/cache/clear"))
+         self.assertEqual("device:read", required_post_action("/api/v1/runtime/schedule"))
+         self.assertEqual("device:write", required_post_action("/api/v1/audit/policy"))
+         self.assertEqual("device:write", required_post_action("/api/v1/runtime/telemetry"))
+diff --git a/tests/p0_runtime/test_fastapi_adapter.py b/tests/p0_runtime/test_fastapi_adapter.py
+index ab18634..45419ac 100644
+--- a/tests/p0_runtime/test_fastapi_adapter.py
++++ b/tests/p0_runtime/test_fastapi_adapter.py
+@@ -45,6 +45,7 @@ class FastApiAdapterTests(unittest.TestCase):
+             self.assertIn("/api/v1/gray-rollout/evaluate", paths)
+             self.assertIn("/api/v1/gray-rollout/plan", paths)
+             self.assertIn("/api/v1/gray-rollout/plan/batch", paths)
++            self.assertIn("/api/v1/gray-rollout/plan/batch/cache/clear", paths)
+             self.assertIn("/api/v1/runtime/schedule", paths)
+             self.assertIn("/api/v1/runtime/telemetry", paths)
+             self.assertIn("/api/v1/audit/recent", paths)
+diff --git a/tests/p0_runtime/test_http_api.py b/tests/p0_runtime/test_http_api.py
+index 4e037e6..2629fc2 100644
+--- a/tests/p0_runtime/test_http_api.py
++++ b/tests/p0_runtime/test_http_api.py
+@@ -1092,6 +1092,66 @@ class P0HttpApiTests(unittest.TestCase):
+         self.assertEqual("bad_request", batch_plan_fail_payload["error"]["code"])
+         self.assertIn("items[0]", batch_plan_fail_payload["error"]["message"])
+ 
++    def test_gray_rollout_batch_cache_clear_endpoint(self) -> None:
++        self._post(
++            "/api/v1/gray-rollout/policy",
++            {
++                "enabled": True,
++                "default_percent": 100,
++                "dependencies": ["gray_ready"],
++                "dependency_graph": {},
++                "overrides": [],
++            },
++            token=self.operator_token,
++        )
++        self._post(
++            "/api/v1/gray-rollout/plan/batch",
++            {
++                "idempotency_key": "http-clear-idem-001",
++                "continue_on_error": True,
++                "items": [
++                    {
++                        "tenant_id": "t1",
++                        "site_id": "s1",
++                        "box_id": "b1",
++                        "seed": "http-clear-idem-001",
++                        "dependency_status": {"gray_ready": True},
++                    }
++                ],
++            },
++            token=self.viewer_token,
++        )
++        clear_forbidden_status, clear_forbidden_payload = self._post(
++            "/api/v1/gray-rollout/plan/batch/cache/clear",
++            {"reset_counters": True},
++            token=self.viewer_token,
++        )
++        self.assertEqual(403, clear_forbidden_status)
++        self.assertFalse(clear_forbidden_payload["success"])
++        self.assertEqual("forbidden", clear_forbidden_payload["error"]["code"])
++
++        clear_status, clear_payload = self._post(
++            "/api/v1/gray-rollout/plan/batch/cache/clear",
++            {"reset_counters": True},
++            token=self.operator_token,
++        )
++        self.assertEqual(200, clear_status)
++        self.assertTrue(clear_payload["success"])
++        self.assertTrue(clear_payload["data"]["reset_counters"])
++        self.assertGreaterEqual(int(clear_payload["data"]["cleared_entries"]), 1)
++        self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_entries"])
++        self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_hits"])
++        self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_misses"])
++        self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_conflicts"])
++
++        metrics_status, metrics_payload = self._get("/api/v1/metrics", token=self.viewer_token)
++        self.assertEqual(200, metrics_status)
++        self.assertTrue(metrics_payload["success"])
++        self.assertEqual(0, int(metrics_payload["data"]["gray_batch_plan_cache_entries"]))
++        self.assertEqual(0, int(metrics_payload["data"]["gray_batch_plan_cache_hits"]))
++        self.assertEqual(0, int(metrics_payload["data"]["gray_batch_plan_cache_misses"]))
++        self.assertEqual(0, int(metrics_payload["data"]["gray_batch_plan_cache_conflicts"]))
++
+     def test_offline_jobs_endpoints(self) -> None:
+         self._post(
+             "/api/v1/offline-executors/upsert",
+diff --git a/tests/p0_runtime/test_runtime.py b/tests/p0_runtime/test_runtime.py
+index c993bdb..f4a7aca 100644
+--- a/tests/p0_runtime/test_runtime.py
++++ b/tests/p0_runtime/test_runtime.py
+@@ -1567,6 +1567,80 @@ class P0RuntimeTests(unittest.TestCase):
+         self.assertEqual(1, snap["gray_batch_plan_cache_last_minute_conflicts"])
+         self.assertEqual(50, snap["gray_batch_plan_cache_last_minute_hit_rate_percent"])
+ 
++    def test_clear_gray_rollout_batch_plan_cache(self) -> None:
++        self.runtime.update_gray_rollout_policy(
++            {
++                "enabled": True,
++                "default_percent": 100,
++                "overrides": [],
++                "dependencies": ["gray_ready"],
++                "dependency_graph": {},
++            }
++        )
++        payload = {
++            "idempotency_key": "plan-batch-clear-001",
++            "continue_on_error": True,
++            "items": [
++                {
++                    "tenant_id": "t1",
++                    "site_id": "s1",
++                    "box_id": "b1",
++                    "seed": "plan-clear-seed-001",
++                    "dependency_status": {"gray_ready": True},
++                },
++            ],
++        }
++        self.runtime.batch_plan_gray_rollout_dependencies_report(dict(payload))
++        self.runtime.batch_plan_gray_rollout_dependencies_report(dict(payload))
++        with self.assertRaisesRegex(ValueError, "idempotency_key conflict with different payload"):
++            self.runtime.batch_plan_gray_rollout_dependencies_report(
++                {
++                    "idempotency_key": "plan-batch-clear-001",
++                    "continue_on_error": True,
++                    "items": [
++                        {
++                            "tenant_id": "t9",
++                            "site_id": "s9",
++                            "box_id": "b9",
++                            "seed": "plan-clear-seed-conflict",
++                            "dependency_status": {"gray_ready": True},
++                        },
++                    ],
++                }
++            )
++        cleared_no_reset = self.runtime.clear_gray_rollout_batch_plan_cache({"reset_counters": False})
++        self.assertEqual(1, cleared_no_reset["cleared_entries"])
++        self.assertGreaterEqual(cleared_no_reset["cleared_events"], 3)
++        self.assertFalse(cleared_no_reset["reset_counters"])
++        self.assertEqual(0, cleared_no_reset["gray_batch_plan_cache_entries"])
++        self.assertEqual(1, cleared_no_reset["gray_batch_plan_cache_hits"])
++        self.assertEqual(1, cleared_no_reset["gray_batch_plan_cache_misses"])
++        self.assertEqual(1, cleared_no_reset["gray_batch_plan_cache_conflicts"])
++
++        self.runtime.batch_plan_gray_rollout_dependencies_report(
++            {
++                "idempotency_key": "plan-batch-clear-002",
++                "continue_on_error": True,
++                "items": [
++                    {
++                        "tenant_id": "t2",
++                        "site_id": "s2",
++                        "box_id": "b2",
++                        "seed": "plan-clear-seed-002",
++                        "dependency_status": {"gray_ready": True},
++                    },
++                ],
++            }
++        )
++        cleared_with_reset = self.runtime.clear_gray_rollout_batch_plan_cache({"reset_counters": True})
++        self.assertTrue(cleared_with_reset["reset_counters"])
++        self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_entries"])
++        self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_hits"])
++        self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_misses"])
++        self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_conflicts"])
++        self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_evicted_expired"])
++        self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_evicted_overflow"])
++
+     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
+         self.runtime.register_device(
+             {

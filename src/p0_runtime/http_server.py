@@ -344,6 +344,11 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                 _json_response(self, 200, ok_payload(res))
                 return
 
+            if parsed.path == "/api/v1/gray-rollout/plan/batch/cache/clear":
+                res = self.runtime.clear_gray_rollout_batch_plan_cache(dict(body))
+                _json_response(self, 200, ok_payload(res))
+                return
+
             if parsed.path == "/api/v1/audit/policy":
                 res = self.runtime.update_audit_policy(dict(body))
                 _json_response(self, 200, ok_payload(res))
