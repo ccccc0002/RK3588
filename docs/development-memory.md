@@ -380,3 +380,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P3-iteration-3-gray-rollout-validated/20260304-141403
 - Summary: validated gray rollout policy/evaluation iteration on local py3.11 and remote py3.8.10
 - Next: continue P3 edge orchestration contracts and pre-closure checklist
+
+## [2026-03-04T14:27:56+08:00] P3-iteration-4-edge-job-lease-local-gate
+- Branch: stage/P3-phase2-readiness
+- Commit: c51f303
+- Tag: checkpoint/P3-iteration-4-edge-job-lease-local-gate/20260304-142756
+- Summary: added edge-agent offline-job lease baseline contracts with persistence/rbac/docs and passed local unittest gate
+- Next: Run remote py3.8 validation on current commit via isolated bundle clone, then create validated checkpoint and push branch/tags
