@@ -275,3 +275,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-iteration-12-audit-retention-validated/20260304-115700
 - Summary: added configurable persisted audit retention policy and validated local+remote test gates
 - Next: create P1 stage closure checkpoint
+
+## [2026-03-04T11:57:29+08:00] P1-stage-closure
+- Branch: stage/P1-capability-enhancement
+- Commit: 61c5fd4
+- Tag: checkpoint/P1-stage-closure/20260304-115729
+- Summary: closed P1 capability enhancement stage after completing final hardening backlog and passing local+remote gates
+- Next: prepare P2 planning kickoff
