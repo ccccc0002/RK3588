@@ -338,3 +338,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P2-stage-closure/20260304-133607
 - Summary: closed P2 business expansion with validated algorithm/base-library/offline-job governance and py3.8 gate pass
 - Next: start P3 planning for executor heartbeat and semantic compatibility extensions
+
+## [2026-03-04T13:48:28+08:00] P3-iteration-1-heartbeat-semver-local-gate
+- Branch: stage/P3-phase2-readiness
+- Commit: 5f835d0
+- Tag: checkpoint/P3-iteration-1-heartbeat-semver-local-gate/20260304-134828
+- Summary: added executor heartbeat governance and semver compatibility policy with docs parity
+- Next: run remote py3.8 gate and create validated iteration checkpoint
