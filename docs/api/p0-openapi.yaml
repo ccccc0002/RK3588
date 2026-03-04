@@ -1,68 +1,499 @@
 ﻿openapi: 3.0.3
 info:
-  title: RK3588 AI Box P0 API
+  title: RK3588 AI Box P0 Runtime API
   version: 0.1.0
   description: >-
-    P0 closed-loop contract for ingest, viewer session, event center, and push gateway.
+    P0 closed-loop runtime contract for device ingest registry, viewer sessions,
+    event ingest, webhook push dispatch, worker controls, auth token issuance,
+    metrics, and runtime snapshot.
 servers:
-  - url: /api/v1
+  - url: http://127.0.0.1:18080
+tags:
+  - name: auth
+  - name: devices
+  - name: viewer
+  - name: events
+  - name: push
+  - name: runtime
 paths:
-  /viewer-sessions/{streamId}/join:
+  /api/v1/auth/token:
     post:
-      summary: register viewer join and trigger stream warmup if needed
+      tags: [auth]
+      summary: Issue runtime access token
+      description: >-
+        Issues token for `viewer`, `operator`, or `admin` role. Issuing `admin`
+        token requires `X-Bootstrap-Token` header value that matches server config.
       parameters:
-        - in: path
-          name: streamId
-          required: true
+        - name: X-Bootstrap-Token
+          in: header
+          required: false
           schema:
             type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueTokenRequest'
       responses:
         '200':
-          description: current viewer session state
-  /viewer-sessions/{streamId}/leave:
+          description: Token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueTokenEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/devices/register:
     post:
-      summary: register viewer leave and possibly enter idle pending
+      tags: [devices]
+      summary: Register or update a device ingest endpoint
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDeviceRequest'
+      responses:
+        '200':
+          description: Device record upserted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/devices:
+    get:
+      tags: [devices]
+      summary: List device ingest records
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Device list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceListEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/viewer-sessions/{streamId}/join:
+    post:
+      tags: [viewer]
+      summary: Register viewer join and warm stream when needed
+      security:
+        - BearerAuth: []
       parameters:
-        - in: path
-          name: streamId
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/StreamId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NowRequest'
       responses:
         '200':
-          description: current viewer session state
-  /events:
+          description: Viewer session state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewerSessionEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/viewer-sessions/{streamId}/leave:
     post:
-      summary: ingest normalized alert event
+      tags: [viewer]
+      summary: Register viewer leave and enter idle pending when applicable
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StreamId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NowRequest'
+      responses:
+        '200':
+          description: Viewer session state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewerSessionEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/events:
+    post:
+      tags: [events]
+      summary: Ingest normalized alert event
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestEventRequest'
       responses:
         '202':
-          description: accepted
+          description: Event accepted and queued for push dispatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventAcceptedEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
         '409':
-          description: duplicate in dedupe window
-  /push/webhook:
+          description: Duplicate event inside dedupe window
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
+
+  /api/v1/push/dispatch:
     post:
-      summary: enqueue webhook push task (idempotent)
+      tags: [push]
+      summary: Dispatch due webhook push tasks immediately
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DispatchPushRequest'
       responses:
-        '202':
-          description: queued
+        '200':
+          description: Dispatch summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushDispatchEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/push/worker/start:
+    post:
+      tags: [push]
+      summary: Start in-process periodic push worker
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartWorkerRequest'
+      responses:
+        '200':
+          description: Worker start result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartWorkerEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/push/worker/stop:
+    post:
+      tags: [push]
+      summary: Stop in-process periodic push worker
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Worker stop result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StopWorkerEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/push/worker/status:
+    get:
+      tags: [push]
+      summary: Read worker running status and interval
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Worker status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkerStatusEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/runtime/snapshot:
+    get:
+      tags: [runtime]
+      summary: Runtime state snapshot
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Runtime snapshot and queue/session counters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeSnapshotEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/metrics:
+    get:
+      tags: [runtime]
+      summary: Runtime metrics and storage observability
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Metrics counters and storage stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    StreamId:
+      name: streamId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    UnauthorizedError:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorEnvelope'
+    ForbiddenError:
+      description: Token is valid but role lacks required action
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorEnvelope'
+    BadRequestError:
+      description: Request payload failed validation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorEnvelope'
+
   schemas:
-    ViewerSessionState:
+    ApiMeta:
       type: object
-      required: [state, viewer_count]
+      additionalProperties: true
+
+    ApiError:
+      type: object
+      required: [code, message, details]
       properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    ApiSuccessEnvelope:
+      type: object
+      required: [success, data, error, meta]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          additionalProperties: true
+        error:
+          type: object
+          nullable: true
+          description: Always null on success responses
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+
+    ApiErrorEnvelope:
+      type: object
+      required: [success, data, error, meta]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        data:
+          nullable: true
+          type: object
+          description: Always null on error responses
+        error:
+          $ref: '#/components/schemas/ApiError'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+
+    IssueTokenRequest:
+      type: object
+      additionalProperties: true
+      properties:
+        user_id:
+          type: string
+          default: ""
+        role:
+          type: string
+          enum: [viewer, operator, admin]
+          default: viewer
+        now:
+          type: string
+          format: date-time
+
+    IssueTokenData:
+      type: object
+      required: [token, issued_at]
+      properties:
+        token:
+          type: string
+        issued_at:
+          type: string
+          format: date-time
+
+    RegisterDeviceRequest:
+      type: object
+      required: [tenant_id, site_id, box_id, device_id, protocol, stream_url]
+      additionalProperties: true
+      properties:
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        device_id:
+          type: string
+        protocol:
+          type: string
+          enum: [rtsp, rtmp, onvif]
+        stream_url:
+          type: string
+        enabled:
+          type: boolean
+
+    DeviceRecord:
+      type: object
+      required: [tenant_id, site_id, box_id, device_id, protocol, stream_url, enabled, ingest_spec]
+      properties:
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        device_id:
+          type: string
+        protocol:
+          type: string
+        stream_url:
+          type: string
+        enabled:
+          type: boolean
+        ingest_spec:
+          type: object
+          additionalProperties: true
+
+    DeviceListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeviceRecord'
+
+    ViewerSessionData:
+      type: object
+      required: [stream_id, state, viewer_count]
+      properties:
+        stream_id:
+          type: string
         state:
           type: string
           enum: [ACTIVE, IDLE_PENDING, STOPPED, RESUMING]
         viewer_count:
           type: integer
           minimum: 0
-    AlertEvent:
+
+    NowRequest:
       type: object
-      required: [event_id, tenant_id, site_id, box_id, source_id, event_type, occurred_at]
+      additionalProperties: true
       properties:
-        event_id:
+        now:
           type: string
+          format: date-time
+
+    EventPayload:
+      type: object
+      additionalProperties: true
+
+    EventInput:
+      type: object
+      required: [tenant_id, site_id, box_id, source_id, event_type]
+      additionalProperties: true
+      properties:
         tenant_id:
           type: string
         site_id:
@@ -73,6 +504,289 @@ components:
           type: string
         event_type:
           type: string
-        occurred_at:
+        object_id:
+          type: string
+        payload:
+          $ref: '#/components/schemas/EventPayload'
+
+    IngestEventRequest:
+      type: object
+      required: [event]
+      additionalProperties: true
+      properties:
+        now:
           type: string
           format: date-time
+        event:
+          $ref: '#/components/schemas/EventInput'
+
+    EventAcceptedData:
+      type: object
+      required: [status, event_id, dedupe_key]
+      properties:
+        status:
+          type: integer
+          enum: [202]
+        event_id:
+          type: string
+        dedupe_key:
+          type: string
+
+    DispatchPushRequest:
+      type: object
+      additionalProperties: true
+      properties:
+        now:
+          type: string
+          format: date-time
+        limit:
+          type: integer
+          minimum: 1
+          default: 20
+        mode:
+          type: string
+          enum: [real, always_success, always_fail]
+          default: real
+
+    PushDispatchData:
+      type: object
+      required: [sent, failed, processed]
+      properties:
+        sent:
+          type: integer
+          minimum: 0
+        failed:
+          type: integer
+          minimum: 0
+        processed:
+          type: integer
+          minimum: 0
+
+    StartWorkerRequest:
+      type: object
+      additionalProperties: true
+      properties:
+        interval_ms:
+          type: integer
+          minimum: 1
+          default: 500
+        limit:
+          type: integer
+          minimum: 1
+          default: 20
+        mode:
+          type: string
+          enum: [real, always_success, always_fail]
+          default: real
+
+    StartWorkerData:
+      type: object
+      required: [started]
+      additionalProperties: true
+      properties:
+        started:
+          type: boolean
+        interval_seconds:
+          type: number
+          nullable: true
+        max_items:
+          type: integer
+          nullable: true
+        reason:
+          type: string
+          nullable: true
+
+    StopWorkerData:
+      type: object
+      required: [stopped]
+      additionalProperties: true
+      properties:
+        stopped:
+          type: boolean
+        reason:
+          type: string
+          nullable: true
+
+    WorkerStatusData:
+      type: object
+      required: [running, interval_seconds]
+      properties:
+        running:
+          type: boolean
+        interval_seconds:
+          type: number
+          nullable: true
+
+    RuntimeSnapshotData:
+      type: object
+      required: [sessions, device_count, event_dedupe_size, push_queue_size, dead_letter_size]
+      properties:
+        sessions:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              state:
+                type: string
+              viewer_count:
+                type: integer
+              last_transition_at:
+                type: string
+                format: date-time
+        device_count:
+          type: integer
+          minimum: 0
+        event_dedupe_size:
+          type: integer
+          minimum: 0
+        push_queue_size:
+          type: integer
+          minimum: 0
+        dead_letter_size:
+          type: integer
+          minimum: 0
+
+    MetricsData:
+      type: object
+      required:
+        - dispatch_runs
+        - dispatch_processed
+        - dispatch_sent
+        - dispatch_failed
+        - queue_peak
+        - worker_start_count
+        - worker_stop_count
+        - queue_current
+        - dead_letter_current
+        - device_count
+        - storage_enabled
+        - storage
+      properties:
+        dispatch_runs:
+          type: integer
+          minimum: 0
+        dispatch_processed:
+          type: integer
+          minimum: 0
+        dispatch_sent:
+          type: integer
+          minimum: 0
+        dispatch_failed:
+          type: integer
+          minimum: 0
+        queue_peak:
+          type: integer
+          minimum: 0
+        worker_start_count:
+          type: integer
+          minimum: 0
+        worker_stop_count:
+          type: integer
+          minimum: 0
+        last_dispatch_at:
+          type: string
+          nullable: true
+          format: date-time
+        queue_current:
+          type: integer
+          minimum: 0
+        dead_letter_current:
+          type: integer
+          minimum: 0
+        device_count:
+          type: integer
+          minimum: 0
+        storage_enabled:
+          type: boolean
+        storage:
+          nullable: true
+          type: object
+          additionalProperties: true
+
+    IssueTokenEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/IssueTokenData'
+
+    DeviceEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/DeviceRecord'
+
+    DeviceListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/DeviceListData'
+
+    ViewerSessionEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ViewerSessionData'
+
+    EventAcceptedEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/EventAcceptedData'
+
+    PushDispatchEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/PushDispatchData'
+
+    StartWorkerEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StartWorkerData'
+
+    StopWorkerEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StopWorkerData'
+
+    WorkerStatusEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/WorkerStatusData'
+
+    RuntimeSnapshotEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/RuntimeSnapshotData'
+
+    MetricsEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/MetricsData'
