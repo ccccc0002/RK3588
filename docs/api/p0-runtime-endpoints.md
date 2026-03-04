@@ -586,6 +586,8 @@ GB28181 example:
     - `gray_batch_plan_cache_hits`
     - `gray_batch_plan_cache_misses`
     - `gray_batch_plan_cache_conflicts`
+    - `gray_batch_plan_cache_evicted_expired`
+    - `gray_batch_plan_cache_evicted_overflow`
 
 - `POST /api/v1/runtime/schedule`
   - body: `{ "budget": 10.0 }`

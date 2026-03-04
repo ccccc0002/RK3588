@@ -992,6 +992,8 @@ class P0HttpApiTests(unittest.TestCase):
             cache_conflicts_before + 1,
         )
         self.assertGreaterEqual(int(metrics_after_payload["data"]["gray_batch_plan_cache_entries"]), 1)
+        self.assertIn("gray_batch_plan_cache_evicted_expired", metrics_after_payload["data"])
+        self.assertIn("gray_batch_plan_cache_evicted_overflow", metrics_after_payload["data"])
 
         batch_plan_ttl_requires_key_status, batch_plan_ttl_requires_key_payload = self._post(
             "/api/v1/gray-rollout/plan/batch",

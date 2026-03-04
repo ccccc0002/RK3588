@@ -1422,6 +1422,91 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(1, metrics["gray_batch_plan_cache_misses"])
         self.assertEqual(1, metrics["gray_batch_plan_cache_conflicts"])
 
+    def test_gray_rollout_dependency_plan_batch_cache_evicted_expired_metric(self) -> None:
+        self.runtime.update_gray_rollout_policy(
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "overrides": [],
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {},
+            }
+        )
+        self.runtime.batch_plan_gray_rollout_dependencies_report(
+            {
+                "idempotency_key": "plan-batch-evict-expired-001",
+                "cache_ttl_seconds": 60,
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "plan-evict-expired-seed-001",
+                        "dependency_status": {"gray_ready": True},
+                    },
+                ],
+            }
+        )
+        with self.runtime._lock:
+            self.runtime._gray_rollout_batch_plan_cache["plan-batch-evict-expired-001"]["expires_at"] = (
+                self.now - timedelta(seconds=1)
+            )
+
+        metrics = self.runtime.get_metrics()
+        self.assertEqual(0, metrics["gray_batch_plan_cache_entries"])
+        self.assertGreaterEqual(metrics["gray_batch_plan_cache_evicted_expired"], 1)
+
+    def test_gray_rollout_dependency_plan_batch_cache_evicted_overflow_metric(self) -> None:
+        self.runtime.update_gray_rollout_policy(
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "overrides": [],
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {},
+            }
+        )
+        original_limit = self.runtime._GRAY_BATCH_PLAN_CACHE_MAX_ENTRIES
+        self.runtime._GRAY_BATCH_PLAN_CACHE_MAX_ENTRIES = 1
+        try:
+            self.runtime.batch_plan_gray_rollout_dependencies_report(
+                {
+                    "idempotency_key": "plan-batch-evict-overflow-001",
+                    "continue_on_error": True,
+                    "items": [
+                        {
+                            "tenant_id": "t1",
+                            "site_id": "s1",
+                            "box_id": "b1",
+                            "seed": "plan-evict-overflow-seed-001",
+                            "dependency_status": {"gray_ready": True},
+                        },
+                    ],
+                }
+            )
+            self.runtime.batch_plan_gray_rollout_dependencies_report(
+                {
+                    "idempotency_key": "plan-batch-evict-overflow-002",
+                    "continue_on_error": True,
+                    "items": [
+                        {
+                            "tenant_id": "t2",
+                            "site_id": "s2",
+                            "box_id": "b2",
+                            "seed": "plan-evict-overflow-seed-002",
+                            "dependency_status": {"gray_ready": True},
+                        },
+                    ],
+                }
+            )
+        finally:
+            self.runtime._GRAY_BATCH_PLAN_CACHE_MAX_ENTRIES = original_limit
+
+        metrics = self.runtime.get_metrics()
+        self.assertEqual(1, metrics["gray_batch_plan_cache_entries"])
+        self.assertGreaterEqual(metrics["gray_batch_plan_cache_evicted_overflow"], 1)
+
     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
         self.runtime.register_device(
             {

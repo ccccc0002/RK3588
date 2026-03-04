@@ -104,6 +104,8 @@ class P0Runtime:
             "gray_batch_plan_cache_hits": 0,
             "gray_batch_plan_cache_misses": 0,
             "gray_batch_plan_cache_conflicts": 0,
+            "gray_batch_plan_cache_evicted_expired": 0,
+            "gray_batch_plan_cache_evicted_overflow": 0,
         }
 
     def close(self) -> None:
@@ -178,6 +180,10 @@ class P0Runtime:
                 expired_keys.append(str(key))
         for key in expired_keys:
             self._gray_rollout_batch_plan_cache.pop(key, None)
+        if expired_keys:
+            self._metrics["gray_batch_plan_cache_evicted_expired"] = (
+                int(self._metrics["gray_batch_plan_cache_evicted_expired"]) + len(expired_keys)
+            )
         overflow = len(self._gray_rollout_batch_plan_cache) - self._GRAY_BATCH_PLAN_CACHE_MAX_ENTRIES
         if overflow <= 0:
             return
@@ -185,8 +191,12 @@ class P0Runtime:
             self._gray_rollout_batch_plan_cache.items(),
             key=lambda item: item[1].get("created_at", at),
         )
-        for key, _ in ordered[:overflow]:
+        overflow_keys = ordered[:overflow]
+        for key, _ in overflow_keys:
             self._gray_rollout_batch_plan_cache.pop(str(key), None)
+        self._metrics["gray_batch_plan_cache_evicted_overflow"] = (
+            int(self._metrics["gray_batch_plan_cache_evicted_overflow"]) + len(overflow_keys)
+        )
 
     def _update_queue_peak_locked(self) -> None:
         queue_now = len(self._push_state.tasks)

@@ -2794,6 +2794,8 @@ components:
         - gray_batch_plan_cache_hits
         - gray_batch_plan_cache_misses
         - gray_batch_plan_cache_conflicts
+        - gray_batch_plan_cache_evicted_expired
+        - gray_batch_plan_cache_evicted_overflow
         - audit_max_records
         - storage_enabled
         - storage
@@ -2860,6 +2862,12 @@ components:
           type: integer
           minimum: 0
         gray_batch_plan_cache_conflicts:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_evicted_expired:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_evicted_overflow:
           type: integer
           minimum: 0
         audit_max_records:
