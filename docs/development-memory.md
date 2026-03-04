@@ -219,3 +219,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-iteration-8-persistence-hardening/20260304-112430
 - Summary: persisted audit and network policy in sqlite with restart recovery tests
 - Next: rerun remote py3.8 validation and then sync latest P1 branch to GitHub
+
+## [2026-03-04T11:25:27+08:00] P1-iteration-8-persistence-hardening-validated
+- Branch: stage/P1-capability-enhancement
+- Commit: 49216e0
+- Tag: checkpoint/P1-iteration-8-persistence-hardening-validated/20260304-112527
+- Summary: validated persistence-hardening iteration on local py3.11 and remote py3.8
+- Next: start P1 pre-closure review and enforcement hardening for outbound policy
