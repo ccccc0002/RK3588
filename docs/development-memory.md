@@ -254,3 +254,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-iteration-10-policy-dead-letter/20260304-114046
 - Summary: short-circuit allowlist-denied dispatch to dead-letter with audit trace; add tests and docs
 - Next: run remote py3.8 validation and closure checkpoint
+
+## [2026-03-04T11:42:44+08:00] P1-iteration-10-policy-dead-letter-validated
+- Branch: stage/P1-capability-enhancement
+- Commit: f9afe59
+- Tag: checkpoint/P1-iteration-10-policy-dead-letter-validated/20260304-114244
+- Summary: validated policy-denied immediate dead-letter behavior on local py3.11 and remote py3.8.10
+- Next: continue P1 closure backlog: telemetry-bound scheduler and configurable audit retention
