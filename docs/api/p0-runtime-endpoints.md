@@ -658,6 +658,7 @@ GB28181 example:
   - 200 envelope with policy:
     - `enabled`
     - `default_percent` (0-100)
+    - `dependencies[]` (required dependency keys that must be ready before rollout can enable)
     - `overrides[]` with `tenant_id/site_id/box_id/percent`
 
 - `POST /api/v1/gray-rollout/policy`
@@ -667,6 +668,7 @@ GB28181 example:
     {
       "enabled": true,
       "default_percent": 10,
+      "dependencies": ["edge_sync_ready", "base_library_ready"],
       "overrides": [
         { "tenant_id": "t1", "site_id": "s1", "box_id": "b1", "percent": 100 }
       ]
@@ -682,12 +684,18 @@ GB28181 example:
       "tenant_id": "t1",
       "site_id": "s1",
       "box_id": "b1",
-      "seed": "fixed-seed-001"
+      "seed": "fixed-seed-001",
+      "dependency_status": {
+        "edge_sync_ready": true,
+        "base_library_ready": false
+      }
     }
     ```
   - 200 envelope with deterministic decision:
     - `percent`, `bucket`, `enabled`
+    - `blocked_by[]` (dependency keys that are not ready)
   - evaluation rule: `enabled=true` only when policy is enabled and `bucket <= percent`
+  - dependency rule: if any policy dependency key is absent/false in `dependency_status`, rollout remains disabled and key appears in `blocked_by`
 
 ## FastAPI Compatibility Layer
 

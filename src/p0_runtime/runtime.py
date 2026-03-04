@@ -80,7 +80,7 @@ class P0Runtime:
         self._gray_rollout_policy: dict = (
             self._storage.load_gray_rollout_policy()
             if self._storage
-            else {"enabled": False, "default_percent": 0, "overrides": []}
+            else {"enabled": False, "default_percent": 0, "overrides": [], "dependencies": []}
         )
         self._gray_rollout_policy = self._normalize_gray_rollout_policy(dict(self._gray_rollout_policy))
         self._stream_telemetry: Dict[tuple[str, str, str, str], dict] = {}
@@ -1424,6 +1424,17 @@ class P0Runtime:
         if default_percent < 0 or default_percent > 100:
             raise ValueError("default_percent must be between 0 and 100")
 
+        dependencies_raw = payload.get("dependencies", [])
+        if not isinstance(dependencies_raw, list):
+            raise ValueError("dependencies must be a list")
+        normalized_dependencies = sorted(
+            {
+                str(item).strip()
+                for item in dependencies_raw
+                if str(item).strip()
+            }
+        )
+
         overrides_raw = payload.get("overrides", [])
         if not isinstance(overrides_raw, list):
             raise ValueError("overrides must be a list")
@@ -1453,6 +1464,7 @@ class P0Runtime:
         return {
             "enabled": bool(payload.get("enabled", False)),
             "default_percent": default_percent,
+            "dependencies": normalized_dependencies,
             "overrides": normalized_overrides,
         }
 
@@ -1460,6 +1472,7 @@ class P0Runtime:
         with self._lock:
             policy = dict(self._gray_rollout_policy)
         policy["overrides"] = [dict(item) for item in policy.get("overrides", [])]
+        policy["dependencies"] = [str(item) for item in policy.get("dependencies", [])]
         return policy
 
     def update_gray_rollout_policy(self, payload: dict) -> dict:
@@ -1502,11 +1515,20 @@ class P0Runtime:
         with self._lock:
             policy = dict(self._gray_rollout_policy)
             policy["overrides"] = [dict(item) for item in policy.get("overrides", [])]
+            policy["dependencies"] = [str(item) for item in policy.get("dependencies", [])]
 
         percent = self._scope_rollout_percent(policy, tenant_id, site_id, box_id)
         digest = hashlib.sha256(seed.encode("utf-8")).hexdigest()
         bucket = (int(digest[:8], 16) % 100) + 1
-        enabled = bool(policy.get("enabled", False)) and bucket <= percent
+        dependency_status_raw = payload.get("dependency_status", {})
+        if dependency_status_raw is None:
+            dependency_status_raw = {}
+        if not isinstance(dependency_status_raw, dict):
+            raise ValueError("dependency_status must be an object")
+
+        dependencies = [str(item) for item in policy.get("dependencies", [])]
+        blocked_by = [dep for dep in dependencies if not bool(dependency_status_raw.get(dep, False))]
+        enabled = bool(policy.get("enabled", False)) and bucket <= percent and not blocked_by
         return {
             "tenant_id": tenant_id,
             "site_id": site_id,
@@ -1514,6 +1536,7 @@ class P0Runtime:
             "seed": seed,
             "percent": percent,
             "bucket": bucket,
+            "blocked_by": blocked_by,
             "enabled": enabled,
         }
 

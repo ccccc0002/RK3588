@@ -565,6 +565,7 @@ class P0RuntimePersistenceTests(unittest.TestCase):
                     {
                         "enabled": True,
                         "default_percent": 15,
+                        "dependencies": ["edge_sync_ready"],
                         "overrides": [
                             {"tenant_id": "t1", "site_id": "s1", "box_id": "b1", "percent": 100},
                         ],
@@ -575,6 +576,7 @@ class P0RuntimePersistenceTests(unittest.TestCase):
                 policy = rt2.get_gray_rollout_policy()
                 self.assertTrue(policy["enabled"])
                 self.assertEqual(15, policy["default_percent"])
+                self.assertEqual(["edge_sync_ready"], policy["dependencies"])
                 self.assertEqual(1, len(policy["overrides"]))
             finally:
                 rt1.close()

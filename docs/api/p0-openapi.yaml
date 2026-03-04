@@ -2460,7 +2460,7 @@ components:
 
     GrayRolloutPolicyData:
       type: object
-      required: [enabled, default_percent, overrides]
+      required: [enabled, default_percent, dependencies, overrides]
       properties:
         enabled:
           type: boolean
@@ -2468,6 +2468,10 @@ components:
           type: integer
           minimum: 0
           maximum: 100
+        dependencies:
+          type: array
+          items:
+            type: string
         overrides:
           type: array
           items:
@@ -2486,10 +2490,14 @@ components:
           type: string
         seed:
           type: string
+        dependency_status:
+          type: object
+          additionalProperties:
+            type: boolean
 
     GrayRolloutEvaluateData:
       type: object
-      required: [tenant_id, site_id, box_id, seed, percent, bucket, enabled]
+      required: [tenant_id, site_id, box_id, seed, percent, bucket, blocked_by, enabled]
       properties:
         tenant_id:
           type: string
@@ -2507,6 +2515,10 @@ components:
           type: integer
           minimum: 1
           maximum: 100
+        blocked_by:
+          type: array
+          items:
+            type: string
         enabled:
           type: boolean
 

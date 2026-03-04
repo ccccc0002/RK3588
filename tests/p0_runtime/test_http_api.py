@@ -630,7 +630,8 @@ class P0HttpApiTests(unittest.TestCase):
             "/api/v1/gray-rollout/policy",
             {
                 "enabled": True,
-                "default_percent": 10,
+                "default_percent": 100,
+                "dependencies": ["edge_sync_ready", "base_library_ready"],
                 "overrides": [
                     {"tenant_id": "t1", "site_id": "s1", "box_id": "b1", "percent": 100},
                 ],
@@ -644,7 +645,8 @@ class P0HttpApiTests(unittest.TestCase):
         get_status, get_payload = self._get("/api/v1/gray-rollout/policy", token=self.viewer_token)
         self.assertEqual(200, get_status)
         self.assertTrue(get_payload["success"])
-        self.assertEqual(10, get_payload["data"]["default_percent"])
+        self.assertEqual(100, get_payload["data"]["default_percent"])
+        self.assertEqual(["base_library_ready", "edge_sync_ready"], get_payload["data"]["dependencies"])
 
         eval_status, eval_payload = self._post(
             "/api/v1/gray-rollout/evaluate",
@@ -653,13 +655,31 @@ class P0HttpApiTests(unittest.TestCase):
                 "site_id": "s1",
                 "box_id": "b1",
                 "seed": "fixed-seed-001",
+                "dependency_status": {"edge_sync_ready": True, "base_library_ready": False},
             },
             token=self.viewer_token,
         )
         self.assertEqual(200, eval_status)
         self.assertTrue(eval_payload["success"])
-        self.assertTrue(eval_payload["data"]["enabled"])
+        self.assertFalse(eval_payload["data"]["enabled"])
         self.assertEqual(100, eval_payload["data"]["percent"])
+        self.assertEqual(["base_library_ready"], eval_payload["data"]["blocked_by"])
+
+        eval_ok_status, eval_ok_payload = self._post(
+            "/api/v1/gray-rollout/evaluate",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "seed": "fixed-seed-001",
+                "dependency_status": {"edge_sync_ready": True, "base_library_ready": True},
+            },
+            token=self.viewer_token,
+        )
+        self.assertEqual(200, eval_ok_status)
+        self.assertTrue(eval_ok_payload["success"])
+        self.assertTrue(eval_ok_payload["data"]["enabled"])
+        self.assertEqual([], eval_ok_payload["data"]["blocked_by"])
 
     def test_offline_jobs_endpoints(self) -> None:
         self._post(

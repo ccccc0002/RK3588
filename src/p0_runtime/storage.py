@@ -710,7 +710,7 @@ class RuntimeStorage:
                 """
             ).fetchone()
         if row is None:
-            return {"enabled": False, "default_percent": 0, "overrides": []}
+            return {"enabled": False, "default_percent": 0, "overrides": [], "dependencies": []}
         return dict(json.loads(str(row["policy_json"])))
 
     def replace_gray_rollout_policy(self, policy: dict) -> None:

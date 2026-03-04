@@ -873,6 +873,41 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertFalse(other["enabled"])
         self.assertEqual(0, other["percent"])
 
+    def test_gray_rollout_evaluation_respects_dependency_status(self) -> None:
+        updated = self.runtime.update_gray_rollout_policy(
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "overrides": [],
+                "dependencies": ["edge_sync_ready", "base_library_ready"],
+            }
+        )
+        self.assertEqual(["base_library_ready", "edge_sync_ready"], updated["dependencies"])
+
+        blocked = self.runtime.evaluate_gray_rollout(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "seed": "dep-seed-001",
+                "dependency_status": {"edge_sync_ready": True, "base_library_ready": False},
+            }
+        )
+        self.assertFalse(blocked["enabled"])
+        self.assertEqual(["base_library_ready"], blocked["blocked_by"])
+
+        allowed = self.runtime.evaluate_gray_rollout(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "seed": "dep-seed-001",
+                "dependency_status": {"edge_sync_ready": True, "base_library_ready": True},
+            }
+        )
+        self.assertTrue(allowed["enabled"])
+        self.assertEqual([], allowed["blocked_by"])
+
     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
         self.runtime.register_device(
             {
