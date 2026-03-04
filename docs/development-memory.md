@@ -450,3 +450,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P3-iteration-8-sync-stream-cursor-validated/20260304-150036
 - Summary: validated sync-stream-cursor iteration on local py3.11 and remote py3.8.10 with isolated bundle clone
 - Next: Push stage/P3-phase2-readiness and new checkpoint tags to GitHub, then decide P3 closure or remaining gray-rollout hardening
+
+## [2026-03-04T15:02:26+08:00] P3-iteration-8-sync-log-refresh
+- Branch: stage/P3-phase2-readiness
+- Commit: 174d56e
+- Tag: checkpoint/P3-iteration-8-sync-log-refresh/20260304-150226
+- Summary: refreshed p3 pre-closure review and agent sync log after iteration-8 validated sync
+- Next: Continue remaining P3 gray-rollout orchestration hardening or execute final closure review
