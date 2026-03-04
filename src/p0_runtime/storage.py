@@ -85,6 +85,25 @@ class RuntimeStorage:
                 )
                 """
             )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS network_policy (
+                  singleton_id INTEGER PRIMARY KEY CHECK (singleton_id = 1),
+                  policy_json TEXT NOT NULL,
+                  updated_at TEXT NOT NULL
+                )
+                """
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS audit_records (
+                  id INTEGER PRIMARY KEY,
+                  at TEXT NOT NULL,
+                  action TEXT NOT NULL,
+                  details_json TEXT NOT NULL
+                )
+                """
+            )
             self._conn.commit()
 
     def load_devices(self) -> Dict[Tuple[str, str, str, str], dict]:
@@ -242,18 +261,88 @@ class RuntimeStorage:
                 )
             self._conn.commit()
 
+    def load_network_policy(self) -> dict:
+        with self._lock:
+            row = self._conn.execute(
+                """
+                SELECT policy_json
+                FROM network_policy
+                WHERE singleton_id = 1
+                """
+            ).fetchone()
+        if row is None:
+            return {"enforce_allowlist": False, "webhook_allowlist": []}
+        return dict(json.loads(str(row["policy_json"])))
+
+    def replace_network_policy(self, policy: dict) -> None:
+        payload = json.dumps(policy, sort_keys=True, separators=(",", ":"))
+        now = datetime.utcnow().isoformat()
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO network_policy
+                (singleton_id, policy_json, updated_at)
+                VALUES (1, ?, ?)
+                """,
+                (payload, now),
+            )
+            self._conn.commit()
+
+    def load_audit_records(self, limit: int = 2000) -> list[dict]:
+        capped = max(1, min(5000, int(limit)))
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT id, at, action, details_json
+                FROM audit_records
+                ORDER BY id ASC
+                LIMIT ?
+                """,
+                (capped,),
+            ).fetchall()
+        return [
+            {
+                "id": int(row["id"]),
+                "at": str(row["at"]),
+                "action": str(row["action"]),
+                "details": dict(json.loads(str(row["details_json"]))),
+            }
+            for row in rows
+        ]
+
+    def append_audit_record(self, record: dict) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO audit_records
+                (id, at, action, details_json)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    int(record["id"]),
+                    str(record["at"]),
+                    str(record["action"]),
+                    json.dumps(record.get("details", {}), sort_keys=True, separators=(",", ":")),
+                ),
+            )
+            self._conn.commit()
+
     def stats(self) -> dict:
         with self._lock:
             device_count = int(self._conn.execute("SELECT COUNT(1) FROM devices").fetchone()[0])
             push_queue_count = int(self._conn.execute("SELECT COUNT(1) FROM push_queue").fetchone()[0])
             dead_letter_count = int(self._conn.execute("SELECT COUNT(1) FROM push_dead_letters").fetchone()[0])
             event_seen_count = int(self._conn.execute("SELECT COUNT(1) FROM event_seen_keys").fetchone()[0])
+            audit_count = int(self._conn.execute("SELECT COUNT(1) FROM audit_records").fetchone()[0])
+            network_policy_count = int(self._conn.execute("SELECT COUNT(1) FROM network_policy").fetchone()[0])
         return {
             "db_path": self._db_path,
             "device_count": device_count,
             "push_queue_count": push_queue_count,
             "dead_letter_count": dead_letter_count,
             "event_seen_count": event_seen_count,
+            "audit_count": audit_count,
+            "network_policy_count": network_policy_count,
         }
 
     def close(self) -> None:

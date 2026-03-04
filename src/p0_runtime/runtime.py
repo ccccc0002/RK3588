@@ -36,9 +36,12 @@ class P0Runtime:
         self._devices: Dict[tuple[str, str, str, str], dict] = self._storage.load_devices() if self._storage else {}
         self._push_worker: PushWorker | None = None
         self._last_capability_schedule: SchedulePlan | None = None
-        self._audit_records: list[dict] = []
-        self._audit_next_id: int = 1
-        self._network_policy: dict = {"enforce_allowlist": False, "webhook_allowlist": []}
+        self._audit_records: list[dict] = self._storage.load_audit_records() if self._storage else []
+        max_audit_id = max((int(item["id"]) for item in self._audit_records), default=0)
+        self._audit_next_id: int = max_audit_id + 1
+        self._network_policy: dict = (
+            self._storage.load_network_policy() if self._storage else {"enforce_allowlist": False, "webhook_allowlist": []}
+        )
 
         self._metrics = {
             "dispatch_runs": 0,
@@ -98,6 +101,8 @@ class P0Runtime:
         self._audit_records.append(record)
         if len(self._audit_records) > 2000:
             self._audit_records = self._audit_records[-2000:]
+        if self._storage is not None:
+            self._storage.append_audit_record(record)
 
     def issue_token(self, user_id: str, role: str, now: datetime | None = None) -> dict:
         at = self._now_or(now)
@@ -226,6 +231,8 @@ class P0Runtime:
         normalized = self._normalize_network_policy(dict(payload))
         with self._lock:
             self._network_policy = normalized
+            if self._storage is not None:
+                self._storage.replace_network_policy(self._network_policy)
             self._append_audit_locked("network.policy.update", {"policy": dict(normalized)})
             return dict(self._network_policy)
 

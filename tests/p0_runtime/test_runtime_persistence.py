@@ -136,6 +136,55 @@ class P0RuntimePersistenceTests(unittest.TestCase):
             finally:
                 rt.close()
 
+    def test_network_policy_recovers_after_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "runtime.db")
+            rt1 = self._runtime(db_path)
+            rt2 = None
+            try:
+                rt1.update_network_policy(
+                    {
+                        "enforce_allowlist": True,
+                        "webhook_allowlist": ["https://hooks.example.com"],
+                    }
+                )
+
+                rt2 = self._runtime(db_path)
+                policy = rt2.get_network_policy()
+                self.assertTrue(policy["enforce_allowlist"])
+                self.assertEqual(["https://hooks.example.com"], policy["webhook_allowlist"])
+            finally:
+                rt1.close()
+                if rt2 is not None:
+                    rt2.close()
+
+    def test_audit_records_recover_after_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "runtime.db")
+            rt1 = self._runtime(db_path)
+            rt2 = None
+            try:
+                rt1.register_device(
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "device_id": "cam-audit-persist",
+                        "protocol": "rtsp",
+                        "stream_url": "rtsp://10.0.0.88/live",
+                        "enabled": True,
+                    }
+                )
+
+                rt2 = self._runtime(db_path)
+                records = rt2.list_audit_records(limit=10)
+                actions = [item["action"] for item in records]
+                self.assertIn("device.register", actions)
+            finally:
+                rt1.close()
+                if rt2 is not None:
+                    rt2.close()
+
 
 if __name__ == "__main__":
     unittest.main()
