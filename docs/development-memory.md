@@ -107,3 +107,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P0-iteration-11-policy-centralization/20260304-091938
 - Summary: centralized runtime API role/action policy shared by stdlib and fastapi adapters
 - Next: P0 closure review with api/openapi documentation alignment
+
+## [2026-03-04T09:44:44+08:00] P0-iteration-12-envelope-policy-shared
+- Branch: stage/P0-closed-loop
+- Commit: f961bbd
+- Tag: checkpoint/P0-iteration-12-envelope-policy-shared/20260304-094444
+- Summary: shared API envelope module and corrected FastAPI policy hook names with local validation
+- Next: P0 closure review with OpenAPI/runtime documentation alignment and residual security hardening
