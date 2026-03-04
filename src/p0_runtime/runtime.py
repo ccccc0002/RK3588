@@ -1705,6 +1705,16 @@ class P0Runtime:
         if not isinstance(items_raw, list):
             raise ValueError("items must be a list")
         continue_on_error = bool(payload.get("continue_on_error", False))
+        start_index_raw = payload.get("start_index", 0)
+        if isinstance(start_index_raw, bool):
+            raise ValueError("start_index must be a non-negative integer")
+        try:
+            start_index = int(start_index_raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("start_index must be a non-negative integer") from exc
+        if start_index < 0:
+            raise ValueError("start_index must be a non-negative integer")
+
         max_errors_raw = payload.get("max_errors", None)
         max_errors: int | None = None
         if max_errors_raw is not None:
@@ -1723,10 +1733,11 @@ class P0Runtime:
         processed_count = 0
         stopped_early = False
         for idx, item in enumerate(items_raw):
+            absolute_idx = start_index + idx
             if not isinstance(item, dict):
                 message = "must be an object"
                 if continue_on_error:
-                    errors.append({"index": idx, "error": message})
+                    errors.append({"index": absolute_idx, "error": message})
                     processed_count += 1
                     if max_errors is not None and len(errors) >= max_errors:
                         stopped_early = processed_count < len(items_raw)
@@ -1737,7 +1748,7 @@ class P0Runtime:
                 planned = self.plan_gray_rollout_dependencies(dict(item))
             except ValueError as exc:
                 if continue_on_error:
-                    errors.append({"index": idx, "error": str(exc)})
+                    errors.append({"index": absolute_idx, "error": str(exc)})
                     processed_count += 1
                     if max_errors is not None and len(errors) >= max_errors:
                         stopped_early = processed_count < len(items_raw)
@@ -1747,15 +1758,20 @@ class P0Runtime:
             results.append(planned)
             processed_count += 1
         duration_ms = int((perf_counter() - started_at) * 1000)
+        failed_indices = sorted({int(item.get("index", 0)) for item in errors})
+        next_start_index = start_index + processed_count if stopped_early else None
         return {
             "items": [dict(item) for item in results],
             "errors": [dict(item) for item in errors],
             "continue_on_error": continue_on_error,
+            "start_index": start_index,
+            "next_start_index": next_start_index,
             "max_errors": max_errors,
             "total": len(items_raw),
             "processed_count": processed_count,
             "success_count": len(results),
             "error_count": len(errors),
+            "failed_indices": failed_indices,
             "stopped_early": stopped_early,
             "duration_ms": max(0, duration_ms),
         }

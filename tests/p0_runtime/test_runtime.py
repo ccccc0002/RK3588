@@ -1091,10 +1091,13 @@ class P0RuntimeTests(unittest.TestCase):
             }
         )
         self.assertTrue(report["continue_on_error"])
+        self.assertEqual(0, report["start_index"])
+        self.assertIsNone(report["next_start_index"])
         self.assertEqual(2, report["total"])
         self.assertEqual(2, report["processed_count"])
         self.assertEqual(1, report["success_count"])
         self.assertEqual(1, report["error_count"])
+        self.assertEqual([0], report["failed_indices"])
         self.assertFalse(report["stopped_early"])
         self.assertIsNone(report["max_errors"])
         self.assertGreaterEqual(report["duration_ms"], 0)
@@ -1143,16 +1146,64 @@ class P0RuntimeTests(unittest.TestCase):
             }
         )
         self.assertTrue(report["continue_on_error"])
+        self.assertEqual(0, report["start_index"])
+        self.assertEqual(1, report["next_start_index"])
         self.assertEqual(1, report["max_errors"])
         self.assertEqual(2, report["total"])
         self.assertEqual(1, report["processed_count"])
         self.assertEqual(0, report["success_count"])
         self.assertEqual(1, report["error_count"])
+        self.assertEqual([0], report["failed_indices"])
         self.assertTrue(report["stopped_early"])
         self.assertGreaterEqual(report["duration_ms"], 0)
         self.assertEqual(0, len(report["items"]))
         self.assertEqual(1, len(report["errors"]))
         self.assertEqual(0, report["errors"][0]["index"])
+
+    def test_gray_rollout_dependency_plan_batch_start_index_offsets_error_indices(self) -> None:
+        self.runtime.update_gray_rollout_policy(
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "overrides": [],
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {
+                    "gray_ready": ["edge_sync_ready"],
+                    "edge_sync_ready": ["base_library_ready"],
+                },
+            }
+        )
+
+        report = self.runtime.batch_plan_gray_rollout_dependencies_report(
+            {
+                "continue_on_error": True,
+                "max_errors": 1,
+                "start_index": 10,
+                "items": [
+                    {
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "dependency_status": {"gray_ready": True},
+                    },
+                    {
+                        "tenant_id": "t2",
+                        "site_id": "s2",
+                        "box_id": "b2",
+                        "seed": "dep-plan-batch-offset-002",
+                        "dependency_status": {
+                            "gray_ready": True,
+                            "edge_sync_ready": True,
+                            "base_library_ready": True,
+                        },
+                    },
+                ],
+            }
+        )
+        self.assertEqual(10, report["start_index"])
+        self.assertEqual(11, report["next_start_index"])
+        self.assertEqual([10], report["failed_indices"])
+        self.assertEqual(1, len(report["errors"]))
+        self.assertEqual(10, report["errors"][0]["index"])
 
     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
         self.runtime.register_device(
