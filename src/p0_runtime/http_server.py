@@ -7,21 +7,9 @@ import os
 from typing import Any, Callable
 from urllib.parse import urlparse
 
+from src.p0_runtime.api_envelope import error_payload, ok_payload
 from src.p0_runtime.api_policy import is_supported_role, required_get_action, required_post_action
 from src.p0_runtime.runtime import P0Runtime
-
-
-def _ok(data: dict, meta: dict | None = None) -> dict:
-    return {"success": True, "data": data, "error": None, "meta": meta or {}}
-
-
-def _err(code: str, message: str, details: dict | None = None, meta: dict | None = None) -> dict:
-    return {
-        "success": False,
-        "data": None,
-        "error": {"code": code, "message": message, "details": details or {}},
-        "meta": meta or {},
-    }
 
 
 def _json_response(handler: BaseHTTPRequestHandler, status: int, payload: dict) -> None:
@@ -69,7 +57,7 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
     def _authorize(self, required_action: str) -> tuple[int | None, dict | None]:
         token = self._bearer_token()
         if token is None:
-            return 401, _err("unauthorized", "missing bearer token")
+            return 401, error_payload("unauthorized", "missing bearer token")
 
         ok, context = self.runtime.authorize(token=token, required_action=required_action)
         if ok:
@@ -77,13 +65,13 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
         if context and context.get("reason") == "forbidden":
             return (
                 403,
-                _err(
+                error_payload(
                     "forbidden",
                     "action not allowed for current role",
                     details={"required_action": required_action, "role": context.get("role")},
                 ),
             )
-        return 401, _err("invalid_token", "token invalid or expired")
+        return 401, error_payload("invalid_token", "token invalid or expired")
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
@@ -91,26 +79,26 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
         if required_action is not None:
             denied_status, denied_payload = self._authorize(required_action)
             if denied_status is not None:
-                _json_response(self, denied_status, denied_payload or _err("unauthorized", "unauthorized"))
+                _json_response(self, denied_status, denied_payload or error_payload("unauthorized", "unauthorized"))
                 return
 
         if parsed.path == "/api/v1/runtime/snapshot":
-            _json_response(self, 200, _ok(self.runtime.snapshot()))
+            _json_response(self, 200, ok_payload(self.runtime.snapshot()))
             return
 
         if parsed.path == "/api/v1/metrics":
-            _json_response(self, 200, _ok(self.runtime.get_metrics()))
+            _json_response(self, 200, ok_payload(self.runtime.get_metrics()))
             return
 
         if parsed.path == "/api/v1/devices":
-            _json_response(self, 200, _ok({"items": self.runtime.list_devices()}))
+            _json_response(self, 200, ok_payload({"items": self.runtime.list_devices()}))
             return
 
         if parsed.path == "/api/v1/push/worker/status":
-            _json_response(self, 200, _ok(self.runtime.push_worker_status()))
+            _json_response(self, 200, ok_payload(self.runtime.push_worker_status()))
             return
 
-        _json_response(self, 404, _err("not_found", "endpoint not found"))
+        _json_response(self, 404, error_payload("not_found", "endpoint not found"))
 
     def do_POST(self) -> None:
         try:
@@ -120,7 +108,7 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                 if required_action is not None:
                     denied_status, denied_payload = self._authorize(required_action)
                     if denied_status is not None:
-                        _json_response(self, denied_status, denied_payload or _err("unauthorized", "unauthorized"))
+                        _json_response(self, denied_status, denied_payload or error_payload("unauthorized", "unauthorized"))
                         return
 
             length = int(self.headers.get("Content-Length", "0"))
@@ -130,7 +118,7 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/v1/auth/token":
                 role = str(body.get("role", "viewer"))
                 if not is_supported_role(role):
-                    _json_response(self, 400, _err("bad_request", f"unsupported role: {role}"))
+                    _json_response(self, 400, error_payload("bad_request", f"unsupported role: {role}"))
                     return
 
                 if role == "admin":
@@ -140,7 +128,7 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                         _json_response(
                             self,
                             403,
-                            _err("forbidden", "admin token issuance requires valid bootstrap token"),
+                            error_payload("forbidden", "admin token issuance requires valid bootstrap token"),
                         )
                         return
 
@@ -149,24 +137,24 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                     role=role,
                     now=_parse_time(body.get("now")),
                 )
-                _json_response(self, 200, _ok(res))
+                _json_response(self, 200, ok_payload(res))
                 return
 
             if parsed.path == "/api/v1/devices/register":
                 res = self.runtime.register_device(dict(body))
-                _json_response(self, 200, _ok(res))
+                _json_response(self, 200, ok_payload(res))
                 return
 
             if parsed.path.startswith("/api/v1/viewer-sessions/") and parsed.path.endswith("/join"):
                 stream_id = parsed.path[len("/api/v1/viewer-sessions/") : -len("/join")]
                 res = self.runtime.viewer_join(stream_id=stream_id, now=_parse_time(body.get("now")))
-                _json_response(self, 200, _ok(res))
+                _json_response(self, 200, ok_payload(res))
                 return
 
             if parsed.path.startswith("/api/v1/viewer-sessions/") and parsed.path.endswith("/leave"):
                 stream_id = parsed.path[len("/api/v1/viewer-sessions/") : -len("/leave")]
                 res = self.runtime.viewer_leave(stream_id=stream_id, now=_parse_time(body.get("now")))
-                _json_response(self, 200, _ok(res))
+                _json_response(self, 200, ok_payload(res))
                 return
 
             if parsed.path == "/api/v1/events":
@@ -174,9 +162,13 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                 res = self.runtime.ingest_event(event_raw, now=_parse_time(body.get("now")))
                 status = int(res.get("status", 202))
                 if status >= 400:
-                    _json_response(self, status, _err("event_rejected", str(res.get("reason", "event_rejected")), details=res))
+                    _json_response(
+                        self,
+                        status,
+                        error_payload("event_rejected", str(res.get("reason", "event_rejected")), details=res),
+                    )
                 else:
-                    _json_response(self, status, _ok(res))
+                    _json_response(self, status, ok_payload(res))
                 return
 
             if parsed.path == "/api/v1/push/dispatch":
@@ -184,7 +176,7 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                 mode = str(body.get("mode", "real"))
                 sender = _sender_for_mode(mode)
                 res = self.runtime.dispatch_pushes(now=_parse_time(body.get("now")), sender=sender, max_items=limit)
-                _json_response(self, 200, _ok(res))
+                _json_response(self, 200, ok_payload(res))
                 return
 
             if parsed.path == "/api/v1/push/worker/start":
@@ -197,21 +189,21 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                     max_items=limit,
                     sender=sender,
                 )
-                _json_response(self, 200, _ok(res))
+                _json_response(self, 200, ok_payload(res))
                 return
 
             if parsed.path == "/api/v1/push/worker/stop":
                 res = self.runtime.stop_push_worker()
-                _json_response(self, 200, _ok(res))
+                _json_response(self, 200, ok_payload(res))
                 return
 
-            _json_response(self, 404, _err("not_found", "endpoint not found"))
+            _json_response(self, 404, error_payload("not_found", "endpoint not found"))
         except json.JSONDecodeError:
-            _json_response(self, 400, _err("invalid_json", "request body must be valid JSON"))
+            _json_response(self, 400, error_payload("invalid_json", "request body must be valid JSON"))
         except ValueError as exc:
-            _json_response(self, 400, _err("bad_request", str(exc)))
+            _json_response(self, 400, error_payload("bad_request", str(exc)))
         except Exception:
-            _json_response(self, 500, _err("internal_error", "unexpected server error"))
+            _json_response(self, 500, error_payload("internal_error", "unexpected server error"))
 
 
 def create_server(
