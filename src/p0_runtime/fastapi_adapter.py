@@ -440,6 +440,22 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 
+    @app.post("/api/v1/edge-agents/offline-jobs/lease/complete")
+    def complete_offline_job_with_lease_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(
+            authorization,
+            required_post_action("/api/v1/edge-agents/offline-jobs/lease/complete") or "device:write",
+        )
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.complete_offline_job_with_lease(dict(payload), now=_parse_time(payload.get("now"))))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
     @app.post("/api/v1/offline-sync/cursors/upsert")
     def upsert_offline_sync_cursor_ep(
         payload: dict = Body(default_factory=dict),

@@ -458,6 +458,31 @@ GB28181 example:
     - clears `lease_agent_id`, `lease_token`, `lease_expires_at`
     - updates `lease_updated_at`
 
+- `POST /api/v1/edge-agents/offline-jobs/lease/complete`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "agent_id": "edge-agent-1",
+      "job_id": "job-001",
+      "lease_token": "abcd1234",
+      "status": "succeeded",
+      "result_ref": "s3://result/job-001.json",
+      "error_reason": "",
+      "now": "2026-03-04T14:33:00+00:00"
+    }
+    ```
+  - 200 envelope with completed offline-job record
+  - validation baseline:
+    - edge agent must exist, be `active`, and not `stale`
+    - job must have an unexpired lease owned by the same `agent_id`
+    - `lease_token` must match current job lease token
+    - completion status must be one of `succeeded|failed|canceled`
+    - job status must be `queued` or `running`
+  - effect:
+    - applies terminal job status and optional `result_ref` / `error_reason`
+    - clears `lease_agent_id`, `lease_token`, `lease_expires_at`
+
 ### Offline Sync Cursor
 
 - `GET /api/v1/offline-sync/cursors`

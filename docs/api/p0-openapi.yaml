@@ -657,6 +657,32 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/edge-agents/offline-jobs/lease/complete:
+    post:
+      tags: [runtime]
+      summary: Complete offline job to terminal status by lease holder
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteOfflineJobWithLeaseRequest'
+      responses:
+        '200':
+          description: Completed offline job lease
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfflineJobEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/offline-sync/cursors:
     get:
       tags: [runtime]
@@ -1705,6 +1731,28 @@ components:
         job_id:
           type: string
         lease_token:
+          type: string
+        now:
+          type: string
+          format: date-time
+
+    CompleteOfflineJobWithLeaseRequest:
+      type: object
+      required: [agent_id, job_id, lease_token, status]
+      additionalProperties: true
+      properties:
+        agent_id:
+          type: string
+        job_id:
+          type: string
+        lease_token:
+          type: string
+        status:
+          type: string
+          enum: [succeeded, failed, canceled]
+        result_ref:
+          type: string
+        error_reason:
           type: string
         now:
           type: string

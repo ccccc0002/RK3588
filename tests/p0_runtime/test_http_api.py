@@ -506,6 +506,89 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual("", release_payload["data"]["lease_agent_id"])
         self.assertEqual("", release_payload["data"]["lease_token"])
 
+    def test_edge_agent_offline_job_lease_complete_endpoint(self) -> None:
+        self._post(
+            "/api/v1/edge-agents/register",
+            {
+                "agent_id": "edge-http-lease-complete",
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "endpoint": "http://edge-agent.local:9512",
+                "status": "active",
+                "capabilities": ["sync"],
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/edge-agents/heartbeat",
+            {
+                "agent_id": "edge-http-lease-complete",
+                "now": datetime.now(timezone.utc).isoformat(),
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/algorithms/upsert",
+            {
+                "algorithm_id": "offline-http-lease-complete",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/offline-jobs/create",
+            {
+                "job_id": "job-http-lease-complete-1",
+                "source_scope": {"tenant_id": "t1", "site_id": "s1", "box_id": "b1"},
+                "algorithm_id": "offline-http-lease-complete",
+                "algorithm_version": "1.0.0",
+            },
+            token=self.operator_token,
+        )
+        lease_status, lease_payload = self._post(
+            "/api/v1/edge-agents/offline-jobs/lease",
+            {
+                "agent_id": "edge-http-lease-complete",
+                "lease_seconds": 120,
+                "now": datetime.now(timezone.utc).isoformat(),
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, lease_status)
+        token = str(lease_payload["data"]["job"]["lease_token"])
+        self._post(
+            "/api/v1/edge-agents/offline-jobs/lease/start",
+            {
+                "agent_id": "edge-http-lease-complete",
+                "job_id": "job-http-lease-complete-1",
+                "lease_token": token,
+                "now": datetime.now(timezone.utc).isoformat(),
+            },
+            token=self.operator_token,
+        )
+
+        complete_status, complete_payload = self._post(
+            "/api/v1/edge-agents/offline-jobs/lease/complete",
+            {
+                "agent_id": "edge-http-lease-complete",
+                "job_id": "job-http-lease-complete-1",
+                "lease_token": token,
+                "status": "succeeded",
+                "result_ref": "s3://result/job-http-lease-complete-1.json",
+                "now": datetime.now(timezone.utc).isoformat(),
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, complete_status)
+        self.assertTrue(complete_payload["success"])
+        self.assertEqual("job-http-lease-complete-1", complete_payload["data"]["job_id"])
+        self.assertEqual("succeeded", complete_payload["data"]["status"])
+        self.assertEqual("", complete_payload["data"]["lease_agent_id"])
+        self.assertEqual("", complete_payload["data"]["lease_token"])
+
     def test_gray_rollout_policy_endpoints(self) -> None:
         update_status, update_payload = self._post(
             "/api/v1/gray-rollout/policy",
@@ -1131,6 +1214,15 @@ class P0HttpApiTests(unittest.TestCase):
                     "agent_id": "edge-forbidden",
                     "job_id": "job-forbidden",
                     "lease_token": "x",
+                },
+            ),
+            (
+                "/api/v1/edge-agents/offline-jobs/lease/complete",
+                {
+                    "agent_id": "edge-forbidden",
+                    "job_id": "job-forbidden",
+                    "lease_token": "x",
+                    "status": "succeeded",
                 },
             ),
             (

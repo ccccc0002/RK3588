@@ -993,6 +993,48 @@ class P0Runtime:
             )
             return dict(updated)
 
+    def complete_offline_job_with_lease(self, payload: dict, now: datetime | None = None) -> dict:
+        required = ("agent_id", "job_id", "lease_token", "status")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        agent_id = str(payload.get("agent_id", "")).strip()
+        job_id = str(payload.get("job_id", "")).strip()
+        lease_token = str(payload.get("lease_token", "")).strip()
+        if not agent_id or not job_id or not lease_token:
+            raise ValueError("agent_id/job_id/lease_token must not be empty")
+
+        target_status = self._normalize_offline_job_status(str(payload.get("status", "")))
+        if target_status not in {"succeeded", "failed", "canceled"}:
+            raise ValueError("status must be one of succeeded/failed/canceled")
+
+        at_dt = self._now_or(now)
+        with self._lock:
+            _ = self._resolve_active_edge_agent_for_lease_locked(agent_id, at_dt)
+            existing = self._get_valid_job_lease_locked(agent_id, job_id, lease_token, at_dt)
+            current_status = str(existing.get("status", "queued")).lower()
+            if current_status not in {"queued", "running"}:
+                raise ValueError("offline job status must be queued or running for lease completion")
+
+        status_payload: dict = {"job_id": job_id, "status": target_status}
+        if "result_ref" in payload:
+            status_payload["result_ref"] = str(payload.get("result_ref", "")).strip()
+        if "error_reason" in payload:
+            status_payload["error_reason"] = str(payload.get("error_reason", "")).strip()
+        updated = self.update_offline_job_status(status_payload, now=at_dt)
+
+        with self._lock:
+            self._append_audit_locked(
+                "offline.job.lease.complete",
+                {
+                    "job_id": job_id,
+                    "agent_id": agent_id,
+                    "to_status": target_status,
+                },
+            )
+        return dict(updated)
+
     def release_offline_job_lease(self, payload: dict, now: datetime | None = None) -> dict:
         required = ("agent_id", "job_id", "lease_token")
         for field in required:
