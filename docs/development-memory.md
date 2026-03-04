@@ -184,3 +184,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-iteration-4-capability-toggle-api/20260304-110232
 - Summary: implemented OCR/face capability toggle API across runtime, http server, fastapi, and docs
 - Next: validate on remote py3.8 and start scheduler binding for capability-aware execution
+
+## [2026-03-04T11:03:21+08:00] P1-iteration-4-capability-toggle-validated
+- Branch: stage/P1-capability-enhancement
+- Commit: e955b7c
+- Tag: checkpoint/P1-iteration-4-capability-toggle-validated/20260304-110321
+- Summary: validated capability toggle API iteration on local py3.11 and remote py3.8
+- Next: implement scheduler binding for OCR/face capability-aware execution
