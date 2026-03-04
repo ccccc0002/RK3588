@@ -1,6 +1,6 @@
 # P0 Closure Review (Local)
 
-Last updated: 2026-03-04T09:53:00+08:00
+Last updated: 2026-03-04T10:30:00+08:00
 Branch: `stage/P0-closed-loop`
 
 ## Scope
@@ -21,19 +21,19 @@ This review validates P0 closed-loop readiness in the local workspace after:
 | RBAC/auth guardrails | PASS | `src/p0_runtime/api_policy.py`, `http_server.py`, `fastapi_adapter.py` | Bearer required on protected endpoints; admin token issuance requires bootstrap header |
 | OpenAPI contract parity | PASS | `docs/api/p0-openapi.yaml` | Paths, auth, status codes, and envelope models aligned to current runtime behavior |
 | Workflow durability | PASS | `.checkpoints/*`, `docs/development-memory.md`, `docs/workflow/agent-sync-log.md` | Iteration checkpoints and compact context are continuously recorded |
-| Python 3.8 compatibility gate | BLOCKED | local env probe: `py -3.8 --version` -> not installed | Must run on remote py3.8 host before stage closure |
+| Python 3.8 compatibility gate | PASS | remote host `192.168.1.104` (`python3.8 -m unittest discover -s tests -p 'test_*.py'`) | 52 tests pass on Python 3.8.10 after syncing latest local changes |
 
 ## Current Residual Risks
 
-1. py3.8 compatibility cannot be re-verified in current local workspace.
-2. Stage closure remains blocked until remote py3.8 validation is green.
+1. Local workspace still has no python3.8 runtime; py3.8 compatibility relies on remote gate execution.
+2. Remote validation currently depends on direct SSH credential availability.
 
 ## Closure Decision
 
-Local closure review is accepted with one external blocker:
+Local closure review is accepted and py3.8 remote gate is complete:
 
-1. Run remote validation on the py3.8 target host (`python -m unittest discover -s tests -p 'test_*.py'`).
-2. If remote is green, create final P0 stage-closure checkpoint and advance to next stage.
+1. Remote py3.8 validation passed on `192.168.1.104`.
+2. Proceed with final P0 stage-closure checkpoint and advance to P1 planning.
 
 Recommended runner:
 
