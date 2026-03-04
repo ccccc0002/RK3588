@@ -876,11 +876,13 @@ GB28181 example:
   - RBAC: requires `device:write`
   - query params (optional):
     - `limit` (default `20`, valid range `1..200`)
+    - `before_id` (positive integer audit id, returns records with `id < before_id`)
   - 200 envelope:
     - `items[]` from audit records filtered by action:
       - `gray_rollout.plan_batch.cache.policy.update`
   - validation:
     - `limit` must be integer within `[1, 200]`
+    - `before_id` must be a positive integer when provided
 
 - `GET /api/v1/gray-rollout/plan/batch/cache`
   - RBAC: requires `device:read`
@@ -904,6 +906,7 @@ GB28181 example:
   - RBAC: requires `device:write`
   - query params (optional):
     - `limit` (default `20`, valid range `1..200`)
+    - `before_id` (positive integer audit id, returns records with `id < before_id`)
   - 200 envelope:
     - `items[]` from audit records, filtered by cache clear operation actions:
       - `gray_rollout.plan_batch.cache.clear.preview`
@@ -911,6 +914,7 @@ GB28181 example:
       - `gray_rollout.plan_batch.cache.clear`
   - validation:
     - `limit` must be integer within `[1, 200]`
+    - `before_id` must be a positive integer when provided
 
 ## FastAPI Compatibility Layer
 

@@ -1238,6 +1238,12 @@ paths:
             minimum: 1
             maximum: 200
             default: 20
+        - in: query
+          name: before_id
+          required: false
+          schema:
+            type: integer
+            minimum: 1
       responses:
         '200':
           description: Cache policy update audit entries
@@ -1302,6 +1308,12 @@ paths:
             minimum: 1
             maximum: 200
             default: 20
+        - in: query
+          name: before_id
+          required: false
+          schema:
+            type: integer
+            minimum: 1
       responses:
         '200':
           description: Cache clear operation audit entries

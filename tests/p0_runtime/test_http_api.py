@@ -1727,6 +1727,16 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIn("gray_rollout.plan_batch.cache.clear.preview", actions)
         self.assertIn("gray_rollout.plan_batch.cache.clear.blocked", actions)
         self.assertIn("gray_rollout.plan_batch.cache.clear", actions)
+        self.assertGreaterEqual(len(op_payload["data"]["items"]), 3)
+
+        anchor_id = int(op_payload["data"]["items"][1]["id"])
+        page_status, page_payload = self._get(
+            f"/api/v1/gray-rollout/plan/batch/cache/ops?limit=5&before_id={anchor_id}",
+            token=self.operator_token,
+        )
+        self.assertEqual(200, page_status)
+        self.assertTrue(page_payload["success"])
+        self.assertTrue(all(int(item["id"]) < anchor_id for item in page_payload["data"]["items"]))
 
         bad_status, bad_payload = self._get(
             "/api/v1/gray-rollout/plan/batch/cache/ops?limit=bad",
@@ -1735,6 +1745,14 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(400, bad_status)
         self.assertFalse(bad_payload["success"])
         self.assertEqual("bad_request", bad_payload["error"]["code"])
+
+        bad_before_id_status, bad_before_id_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache/ops?limit=5&before_id=bad",
+            token=self.operator_token,
+        )
+        self.assertEqual(400, bad_before_id_status)
+        self.assertFalse(bad_before_id_payload["success"])
+        self.assertEqual("bad_request", bad_before_id_payload["error"]["code"])
 
     def test_gray_rollout_batch_cache_policy_endpoints(self) -> None:
         get_status, get_payload = self._get(
@@ -1869,6 +1887,15 @@ class P0HttpApiTests(unittest.TestCase):
             self.assertIn("policy", item["details"])
             self.assertIn("default_max_clear_entries", item["details"]["policy"])
 
+        anchor_id = int(op_payload["data"]["items"][1]["id"])
+        page_status, page_payload = self._get(
+            f"/api/v1/gray-rollout/plan/batch/cache/policy/history?limit=5&before_id={anchor_id}",
+            token=self.operator_token,
+        )
+        self.assertEqual(200, page_status)
+        self.assertTrue(page_payload["success"])
+        self.assertTrue(all(int(item["id"]) < anchor_id for item in page_payload["data"]["items"]))
+
         bad_status, bad_payload = self._get(
             "/api/v1/gray-rollout/plan/batch/cache/policy/history?limit=bad",
             token=self.operator_token,
@@ -1876,6 +1903,14 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(400, bad_status)
         self.assertFalse(bad_payload["success"])
         self.assertEqual("bad_request", bad_payload["error"]["code"])
+
+        bad_before_id_status, bad_before_id_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache/policy/history?limit=5&before_id=bad",
+            token=self.operator_token,
+        )
+        self.assertEqual(400, bad_before_id_status)
+        self.assertFalse(bad_before_id_payload["success"])
+        self.assertEqual("bad_request", bad_before_id_payload["error"]["code"])
 
     def test_network_policy_endpoints(self) -> None:
         update_status, update_payload = self._post(

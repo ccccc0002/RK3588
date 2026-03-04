@@ -2128,11 +2128,21 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIn("gray_rollout.plan_batch.cache.clear.blocked", actions)
         self.assertIn("gray_rollout.plan_batch.cache.clear", actions)
         self.assertNotIn("device.register", actions)
+        self.assertGreaterEqual(len(items), 3)
+
+        anchor_id = int(items[1]["id"])
+        older_items = self.runtime.list_gray_rollout_batch_plan_cache_operations(limit=10, before_id=anchor_id)
+        self.assertGreaterEqual(len(older_items), 1)
+        self.assertTrue(all(int(item["id"]) < anchor_id for item in older_items))
 
         with self.assertRaisesRegex(ValueError, "limit must be within \\[1, 200\\]"):
             self.runtime.list_gray_rollout_batch_plan_cache_operations(limit=0)
         with self.assertRaisesRegex(ValueError, "limit must be an integer"):
             self.runtime.list_gray_rollout_batch_plan_cache_operations(limit="bad")
+        with self.assertRaisesRegex(ValueError, "before_id must be a positive integer"):
+            self.runtime.list_gray_rollout_batch_plan_cache_operations(limit=10, before_id=0)
+        with self.assertRaisesRegex(ValueError, "before_id must be a positive integer"):
+            self.runtime.list_gray_rollout_batch_plan_cache_operations(limit=10, before_id="bad")
 
     def test_gray_rollout_batch_cache_policy_default_max_clear_entries(self) -> None:
         updated = self.runtime.update_gray_rollout_batch_plan_cache_policy({"default_max_clear_entries": 1})
@@ -2213,10 +2223,21 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIsNone(items[0]["details"]["policy"]["default_max_clear_entries"])
         self.assertEqual(5, items[1]["details"]["policy"]["default_max_clear_entries"])
 
+        all_items = self.runtime.list_gray_rollout_batch_plan_cache_policy_history(limit=10)
+        self.assertGreaterEqual(len(all_items), 3)
+        anchor_id = int(all_items[1]["id"])
+        older_items = self.runtime.list_gray_rollout_batch_plan_cache_policy_history(limit=10, before_id=anchor_id)
+        self.assertEqual(1, len(older_items))
+        self.assertTrue(all(int(item["id"]) < anchor_id for item in older_items))
+
         with self.assertRaisesRegex(ValueError, "limit must be within \\[1, 200\\]"):
             self.runtime.list_gray_rollout_batch_plan_cache_policy_history(limit=0)
         with self.assertRaisesRegex(ValueError, "limit must be an integer"):
             self.runtime.list_gray_rollout_batch_plan_cache_policy_history(limit="bad")
+        with self.assertRaisesRegex(ValueError, "before_id must be a positive integer"):
+            self.runtime.list_gray_rollout_batch_plan_cache_policy_history(limit=10, before_id=0)
+        with self.assertRaisesRegex(ValueError, "before_id must be a positive integer"):
+            self.runtime.list_gray_rollout_batch_plan_cache_policy_history(limit=10, before_id="bad")
 
     def test_update_and_get_network_policy(self) -> None:
         updated = self.runtime.update_network_policy(

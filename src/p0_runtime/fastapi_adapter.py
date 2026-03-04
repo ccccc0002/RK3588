@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import importlib.util
-from typing import Any
+from typing import Any, Optional
 
 from src.p0_runtime.api_envelope import error_payload, ok_payload
 from src.p0_runtime.api_policy import is_supported_role, required_get_action, required_post_action
@@ -214,6 +214,7 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
     @app.get("/api/v1/gray-rollout/plan/batch/cache/policy/history")
     def list_gray_rollout_batch_cache_policy_history_ep(
         limit: int = 20,
+        before_id: Optional[str] = None,
         authorization: str = Header(default="", alias="Authorization"),
     ):
         denied = _authorize_request(
@@ -223,7 +224,9 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         if denied is not None:
             return denied
         try:
-            return ok_payload({"items": rt.list_gray_rollout_batch_plan_cache_policy_history(limit=limit)})
+            return ok_payload(
+                {"items": rt.list_gray_rollout_batch_plan_cache_policy_history(limit=limit, before_id=before_id)}
+            )
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 
@@ -249,6 +252,7 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
     @app.get("/api/v1/gray-rollout/plan/batch/cache/ops")
     def list_gray_rollout_batch_cache_ops_ep(
         limit: int = 20,
+        before_id: Optional[str] = None,
         authorization: str = Header(default="", alias="Authorization"),
     ):
         denied = _authorize_request(
@@ -258,7 +262,9 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         if denied is not None:
             return denied
         try:
-            return ok_payload({"items": rt.list_gray_rollout_batch_plan_cache_operations(limit=limit)})
+            return ok_payload(
+                {"items": rt.list_gray_rollout_batch_plan_cache_operations(limit=limit, before_id=before_id)}
+            )
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 

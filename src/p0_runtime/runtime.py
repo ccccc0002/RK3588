@@ -1545,20 +1545,60 @@ class P0Runtime:
             raise ValueError("limit must be within [1, 200]")
         return value
 
-    def list_gray_rollout_batch_plan_cache_operations(self, limit: object = 20) -> list[dict]:
+    @staticmethod
+    def _normalize_cache_operations_before_id(before_id: object) -> int | None:
+        if before_id is None:
+            return None
+        if isinstance(before_id, bool):
+            raise ValueError("before_id must be a positive integer")
+        try:
+            value = int(before_id)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("before_id must be a positive integer") from exc
+        if value <= 0:
+            raise ValueError("before_id must be a positive integer")
+        return value
+
+    def list_gray_rollout_batch_plan_cache_operations(self, limit: object = 20, before_id: object = None) -> list[dict]:
         capped = self._normalize_cache_operations_list_limit(limit)
+        max_id_exclusive = self._normalize_cache_operations_before_id(before_id)
         prefix = "gray_rollout.plan_batch.cache.clear"
         with self._lock:
-            matched = [item for item in self._audit_records if str(item.get("action", "")).startswith(prefix)]
+            matched: list[dict] = []
+            for item in self._audit_records:
+                if not str(item.get("action", "")).startswith(prefix):
+                    continue
+                if max_id_exclusive is not None:
+                    try:
+                        record_id = int(item.get("id"))
+                    except (TypeError, ValueError):
+                        continue
+                    if record_id >= max_id_exclusive:
+                        continue
+                matched.append(item)
             tail = matched[-capped:]
             items = [dict(item) for item in reversed(tail)]
         return items
 
-    def list_gray_rollout_batch_plan_cache_policy_history(self, limit: object = 20) -> list[dict]:
+    def list_gray_rollout_batch_plan_cache_policy_history(
+        self, limit: object = 20, before_id: object = None
+    ) -> list[dict]:
         capped = self._normalize_cache_operations_list_limit(limit)
+        max_id_exclusive = self._normalize_cache_operations_before_id(before_id)
         action = "gray_rollout.plan_batch.cache.policy.update"
         with self._lock:
-            matched = [item for item in self._audit_records if str(item.get("action", "")) == action]
+            matched: list[dict] = []
+            for item in self._audit_records:
+                if str(item.get("action", "")) != action:
+                    continue
+                if max_id_exclusive is not None:
+                    try:
+                        record_id = int(item.get("id"))
+                    except (TypeError, ValueError):
+                        continue
+                    if record_id >= max_id_exclusive:
+                        continue
+                matched.append(item)
             tail = matched[-capped:]
             items = [dict(item) for item in reversed(tail)]
         return items
