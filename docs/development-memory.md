@@ -191,3 +191,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-iteration-4-capability-toggle-validated/20260304-110321
 - Summary: validated capability toggle API iteration on local py3.11 and remote py3.8
 - Next: implement scheduler binding for OCR/face capability-aware execution
+
+## [2026-03-04T11:10:14+08:00] P1-iteration-5-capability-scheduler
+- Branch: stage/P1-capability-enhancement
+- Commit: 205dcc3
+- Tag: checkpoint/P1-iteration-5-capability-scheduler/20260304-111014
+- Summary: implemented capability-aware runtime schedule planning API and validated local+remote
+- Next: implement lane C audit trail model and query endpoint
