@@ -2213,6 +2213,7 @@ class P0Runtime:
 
     def snapshot(self) -> dict:
         with self._lock:
+            self._evict_gray_batch_plan_cache_locked()
             sessions = {
                 stream_id: {
                     "state": item.state.value,
@@ -2232,4 +2233,14 @@ class P0Runtime:
                 "event_dedupe_size": len(self._event_state.seen_keys),
                 "push_queue_size": len(self._push_state.tasks),
                 "dead_letter_size": len(self._push_state.dead_letters),
+                "gray_batch_plan_cache_entries": len(self._gray_rollout_batch_plan_cache),
+                "gray_batch_plan_cache_hits": int(self._metrics.get("gray_batch_plan_cache_hits", 0)),
+                "gray_batch_plan_cache_misses": int(self._metrics.get("gray_batch_plan_cache_misses", 0)),
+                "gray_batch_plan_cache_conflicts": int(self._metrics.get("gray_batch_plan_cache_conflicts", 0)),
+                "gray_batch_plan_cache_evicted_expired": int(
+                    self._metrics.get("gray_batch_plan_cache_evicted_expired", 0)
+                ),
+                "gray_batch_plan_cache_evicted_overflow": int(
+                    self._metrics.get("gray_batch_plan_cache_evicted_overflow", 0)
+                ),
             }

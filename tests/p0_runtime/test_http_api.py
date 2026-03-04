@@ -1505,6 +1505,83 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(worker_status["success"])
         self.assertFalse(worker_status["data"]["running"])
 
+    def test_runtime_snapshot_includes_gray_batch_cache_observability(self) -> None:
+        self._post(
+            "/api/v1/gray-rollout/policy",
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {},
+                "overrides": [],
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "idempotency_key": "http-snapshot-idem-001",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "http-snapshot-idem-001",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
+        self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "idempotency_key": "http-snapshot-idem-001",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "http-snapshot-idem-001",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
+        self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "idempotency_key": "http-snapshot-idem-001",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t9",
+                        "site_id": "s9",
+                        "box_id": "b9",
+                        "seed": "http-snapshot-idem-conflict-001",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
+        status, payload = self._get("/api/v1/runtime/snapshot", token=self.viewer_token)
+        self.assertEqual(200, status)
+        self.assertTrue(payload["success"])
+        self.assertIn("gray_batch_plan_cache_entries", payload["data"])
+        self.assertIn("gray_batch_plan_cache_hits", payload["data"])
+        self.assertIn("gray_batch_plan_cache_misses", payload["data"])
+        self.assertIn("gray_batch_plan_cache_conflicts", payload["data"])
+        self.assertIn("gray_batch_plan_cache_evicted_expired", payload["data"])
+        self.assertIn("gray_batch_plan_cache_evicted_overflow", payload["data"])
+        self.assertGreaterEqual(int(payload["data"]["gray_batch_plan_cache_entries"]), 1)
+        self.assertGreaterEqual(int(payload["data"]["gray_batch_plan_cache_hits"]), 1)
+        self.assertGreaterEqual(int(payload["data"]["gray_batch_plan_cache_misses"]), 1)
+        self.assertGreaterEqual(int(payload["data"]["gray_batch_plan_cache_conflicts"]), 1)
+
     def test_auth_guard_requires_bearer_token(self) -> None:
         status, payload = self._get("/api/v1/metrics")
         self.assertEqual(401, status)

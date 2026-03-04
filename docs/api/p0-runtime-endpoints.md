@@ -577,6 +577,13 @@ GB28181 example:
 
 - `GET /api/v1/runtime/snapshot`
   - 200 envelope with runtime snapshot
+  - includes gray batch idempotency cache quick-view fields:
+    - `gray_batch_plan_cache_entries`
+    - `gray_batch_plan_cache_hits`
+    - `gray_batch_plan_cache_misses`
+    - `gray_batch_plan_cache_conflicts`
+    - `gray_batch_plan_cache_evicted_expired`
+    - `gray_batch_plan_cache_evicted_overflow`
 
 - `GET /api/v1/metrics`
   - 200 envelope with dispatch/worker metrics and storage stats (`storage_enabled`, `storage`)
