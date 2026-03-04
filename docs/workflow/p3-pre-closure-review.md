@@ -1,6 +1,6 @@
 ﻿# P3 Pre-Closure Review
 
-Last updated: 2026-03-04T17:10:00+08:00  
+Last updated: 2026-03-04T17:14:00+08:00  
 Branch: `stage/P3-phase2-readiness`
 
 ## Delivered in P3 So Far
@@ -23,7 +23,8 @@ Branch: `stage/P3-phase2-readiness`
 
 1. Local gate: `python -m unittest discover -s tests -p 'test_*.py'`  
    Result: 115 tests pass on Python 3.11 (iteration-5 local).
-2. Remote gate on `192.168.1.104` (Python 3.8.10): pending rerun against iteration-5 commit.
+2. Remote gate on `192.168.1.104`: `python3.8 -m unittest discover -s tests -p 'test_*.py'`  
+   Result: pass on Python 3.8.10 with 115 tests (validated against current iteration-5 local-gate commit in isolated remote clone).
 3. GitHub sync: pending for iteration-5 checkpoint and tags.
 
 ## Current Gaps Before P3 Closure
