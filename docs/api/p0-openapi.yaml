@@ -319,6 +319,48 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/network/policy:
+    get:
+      tags: [runtime]
+      summary: Read current network policy
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Network policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkPolicyEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      tags: [runtime]
+      summary: Update network policy
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NetworkPolicyRequest'
+      responses:
+        '200':
+          description: Updated network policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkPolicyEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/runtime/snapshot:
     get:
       tags: [runtime]
@@ -825,6 +867,28 @@ components:
           items:
             $ref: '#/components/schemas/AuditRecord'
 
+    NetworkPolicyRequest:
+      type: object
+      additionalProperties: true
+      properties:
+        enforce_allowlist:
+          type: boolean
+        webhook_allowlist:
+          type: array
+          items:
+            type: string
+
+    NetworkPolicyData:
+      type: object
+      required: [enforce_allowlist, webhook_allowlist]
+      properties:
+        enforce_allowlist:
+          type: boolean
+        webhook_allowlist:
+          type: array
+          items:
+            type: string
+
     MetricsData:
       type: object
       required:
@@ -977,6 +1041,14 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/AuditListData'
+
+    NetworkPolicyEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/NetworkPolicyData'
 
     MetricsEnvelope:
       allOf:

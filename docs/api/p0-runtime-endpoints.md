@@ -218,6 +218,25 @@ GB28181 example:
   - RBAC: requires `device:write` (`operator`/`admin` allowed, `viewer` forbidden)
   - 200 envelope with `{ "items": [ { "id": 1, "at": "...", "action": "...", "details": {} } ] }`
 
+### Network Policy
+
+- `GET /api/v1/network/policy`
+  - RBAC: requires `device:read`
+  - 200 envelope with current policy:
+    - `enforce_allowlist`
+    - `webhook_allowlist`
+
+- `POST /api/v1/network/policy`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "enforce_allowlist": true,
+      "webhook_allowlist": ["https://hooks.example.com", "http://10.0.0.5:8080"]
+    }
+    ```
+  - 200 envelope with updated policy
+
 ## FastAPI Compatibility Layer
 
 File: `src/p0_runtime/fastapi_adapter.py`

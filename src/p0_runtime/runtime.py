@@ -38,6 +38,7 @@ class P0Runtime:
         self._last_capability_schedule: SchedulePlan | None = None
         self._audit_records: list[dict] = []
         self._audit_next_id: int = 1
+        self._network_policy: dict = {"enforce_allowlist": False, "webhook_allowlist": []}
 
         self._metrics = {
             "dispatch_runs": 0,
@@ -196,6 +197,37 @@ class P0Runtime:
             tail = self._audit_records[-capped:]
             items = [dict(item) for item in reversed(tail)]
         return items
+
+    @staticmethod
+    def _normalize_network_policy(payload: dict) -> dict:
+        allowlist_raw = payload.get("webhook_allowlist", [])
+        if not isinstance(allowlist_raw, list):
+            raise ValueError("webhook_allowlist must be a list")
+
+        normalized_allowlist: list[str] = []
+        for item in allowlist_raw:
+            value = str(item).strip()
+            if not value:
+                continue
+            if not (value.startswith("http://") or value.startswith("https://")):
+                raise ValueError(f"invalid webhook url: {value}")
+            normalized_allowlist.append(value)
+
+        return {
+            "enforce_allowlist": bool(payload.get("enforce_allowlist", False)),
+            "webhook_allowlist": normalized_allowlist,
+        }
+
+    def get_network_policy(self) -> dict:
+        with self._lock:
+            return dict(self._network_policy)
+
+    def update_network_policy(self, payload: dict) -> dict:
+        normalized = self._normalize_network_policy(dict(payload))
+        with self._lock:
+            self._network_policy = normalized
+            self._append_audit_locked("network.policy.update", {"policy": dict(normalized)})
+            return dict(self._network_policy)
 
     def plan_capability_schedule(self, budget: float) -> dict:
         capped_budget = max(0.1, float(budget))

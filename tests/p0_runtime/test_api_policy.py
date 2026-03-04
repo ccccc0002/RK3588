@@ -16,12 +16,14 @@ class ApiPolicyTests(unittest.TestCase):
         self.assertEqual("device:read", required_get_action("/api/v1/devices"))
         self.assertEqual("device:read", required_get_action("/api/v1/push/worker/status"))
         self.assertEqual("device:write", required_get_action("/api/v1/audit/recent"))
+        self.assertEqual("device:read", required_get_action("/api/v1/network/policy"))
         self.assertIsNone(required_get_action("/api/v1/unknown"))
 
     def test_required_post_action_mapping(self) -> None:
         self.assertEqual("device:write", required_post_action("/api/v1/devices/register"))
         self.assertEqual("device:write", required_post_action("/api/v1/devices/capabilities"))
         self.assertEqual("device:read", required_post_action("/api/v1/runtime/schedule"))
+        self.assertEqual("device:write", required_post_action("/api/v1/network/policy"))
         self.assertEqual("device:read", required_post_action("/api/v1/viewer-sessions/cam-1/join"))
         self.assertEqual("device:read", required_post_action("/api/v1/viewer-sessions/cam-1/leave"))
         self.assertEqual("device:write", required_post_action("/api/v1/events"))

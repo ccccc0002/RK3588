@@ -283,6 +283,24 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIn("device.register", actions)
         self.assertIn("device.capabilities.update", actions)
 
+    def test_network_policy_endpoints(self) -> None:
+        update_status, update_payload = self._post(
+            "/api/v1/network/policy",
+            {
+                "enforce_allowlist": True,
+                "webhook_allowlist": ["https://hooks.example.com", "http://10.0.0.5:8080"],
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, update_status)
+        self.assertTrue(update_payload["success"])
+        self.assertTrue(update_payload["data"]["enforce_allowlist"])
+
+        get_status, get_payload = self._get("/api/v1/network/policy", token=self.viewer_token)
+        self.assertEqual(200, get_status)
+        self.assertTrue(get_payload["success"])
+        self.assertEqual(2, len(get_payload["data"]["webhook_allowlist"]))
+
     def test_push_worker_and_metrics_endpoints(self) -> None:
         self._post(
             "/api/v1/events",

@@ -133,6 +133,19 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIn("device.register", actions)
         self.assertIn("device.capabilities.update", actions)
 
+    def test_update_and_get_network_policy(self) -> None:
+        updated = self.runtime.update_network_policy(
+            {
+                "enforce_allowlist": True,
+                "webhook_allowlist": ["https://hooks.example.com", "http://10.0.0.5:8080"],
+            }
+        )
+        self.assertTrue(updated["enforce_allowlist"])
+        self.assertEqual(2, len(updated["webhook_allowlist"]))
+
+        current = self.runtime.get_network_policy()
+        self.assertEqual(updated, current)
+
 
 if __name__ == "__main__":
     unittest.main()
