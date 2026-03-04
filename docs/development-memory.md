@@ -527,3 +527,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-5-gray-plan-max-errors-metrics-validated/20260304-162403
 - Summary: added max_errors early-stop and duration/processed metrics for gray rollout batch planning with local+remote validation
 - Next: sync branch and tags, then continue post-P3 orchestration hardening
+
+## [2026-03-04T16:29:16+08:00] P4-iteration-6-gray-plan-resume-index-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 57ae882
+- Tag: checkpoint/P4-iteration-6-gray-plan-resume-index-validated/20260304-162916
+- Summary: added start_index/failed_indices/next_start_index resume semantics for gray rollout batch planning with local+remote validation
+- Next: sync branch and tags, then continue post-P3 orchestration hardening
