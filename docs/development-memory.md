@@ -639,3 +639,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-21-gray-plan-cache-policy-observability-validated/20260304-181834
 - Summary: added gray batch cache policy observability fields to runtime snapshot and metrics with local+remote py3.8 validation
 - Next: continue post-P3 hardening with cache policy change history and multi-runtime governance
+
+## [2026-03-04T18:26:22+08:00] P4-iteration-22-gray-plan-cache-policy-history-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: fcc0570
+- Tag: checkpoint/P4-iteration-22-gray-plan-cache-policy-history-validated/20260304-182622
+- Summary: added gray batch cache policy history endpoint with RBAC/runtime/http/fastapi/docs/openapi parity and validated tests
+- Next: continue post-P3 cache governance hardening with policy-history ergonomics
