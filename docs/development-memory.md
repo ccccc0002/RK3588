@@ -149,3 +149,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-planning-kickoff/20260304-103445
 - Summary: initialized P1 capability enhancement plan and execution gates after P0 stage closure
 - Next: create stage/P1-capability-enhancement branch and implement lane A GB28181 scaffold with tests first
+
+## [2026-03-04T10:36:24+08:00] P1-iteration-1-gb28181-scaffold
+- Branch: stage/P0-closed-loop
+- Commit: a017ad9
+- Tag: checkpoint/P1-iteration-1-gb28181-scaffold/20260304-103624
+- Summary: implemented P1 GB28181 normalization scaffold with test coverage
+- Next: integrate gb28181 adapter into runtime register/list device APIs
