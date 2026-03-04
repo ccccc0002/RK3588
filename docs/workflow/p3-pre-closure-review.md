@@ -1,6 +1,6 @@
 ﻿# P3 Pre-Closure Review
 
-Last updated: 2026-03-04T18:29:00+08:00  
+Last updated: 2026-03-04T18:33:00+08:00  
 Branch: `stage/P3-phase2-readiness`
 
 ## Delivered in P3 So Far
@@ -42,14 +42,22 @@ Branch: `stage/P3-phase2-readiness`
 1. Local gate: `python -m unittest discover -s tests -p 'test_*.py'`  
    Result: 127 tests pass on Python 3.11 (iteration-10 local DAG update).
 2. Remote gate on `192.168.1.104` (Python 3.8.10): 127 tests pass for iteration-10 via isolated bundle clone.
-3. GitHub sync: iteration-9 checkpoint/tags are synced; iteration-10 validated checkpoint/tag sync pending.
+3. GitHub sync: `stage/P3-phase2-readiness` plus iteration-10 checkpoint/tags are synced.
 
 ## Current Gaps Before P3 Closure
 
 1. Gray rollout dependency graph now supports DAG-level evaluation only; no dependency execution planner/scheduler is implemented.
 
+## Closure Decision (2026-03-04)
+
+1. Accept evaluation-only dependency DAG baseline for P3 closure:
+   - Reason: P3 scope targets readiness contracts for edge-agent, offline-sync, and gray rollout decisioning.
+   - Status: delivered with dependency graph validation and deterministic transitive blocking in rollout evaluation.
+2. Defer dependency execution planner/scheduler to post-P3 hardening:
+   - Reason: execution planning is a higher-order orchestration feature beyond P3 API/runtime readiness baseline.
+   - Follow-up direction: introduce planner graph execution model with per-dependency state transitions and failure propagation policy.
+
 ## Recommended Final P3 Closure Tasks
 
-1. Sync iteration-10 validated checkpoint/tag to GitHub.
-2. Decide whether evaluation-only DAG baseline is sufficient for P3 closure or if execution planning must be added now.
-3. Run final P3 closure review and decide whether to close stage or continue hardening backlog.
+1. Issue `P3-stage-closure` checkpoint.
+2. Sync closure checkpoint/tag to GitHub.
