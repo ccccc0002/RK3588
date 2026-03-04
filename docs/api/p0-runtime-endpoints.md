@@ -111,8 +111,28 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run-p0-push-process-worker.ps
       "transport": "tcp"
     }
     ```
-  - protocol adapters supported: `rtsp`, `rtmp`, `onvif`
+  - protocol adapters supported: `rtsp`, `rtmp`, `onvif`, `gb28181`
+  - field rule:
+    - `stream_url` is required for `rtsp|rtmp|onvif`
+    - `gb28181` requires `sip_server`, `sip_port`, `channel_id`, `transport`
   - 200: envelope with registered record and `ingest_spec`
+
+GB28181 example:
+
+```json
+{
+  "tenant_id": "t1",
+  "site_id": "s1",
+  "box_id": "b1",
+  "device_id": "cam-gb-1",
+  "protocol": "gb28181",
+  "sip_server": "10.0.0.8",
+  "sip_port": 5060,
+  "channel_id": "34020000001320000001",
+  "transport": "udp",
+  "enabled": true
+}
+```
 
 - `GET /api/v1/devices`
   - 200: envelope with `{ "items": [ ... ] }`

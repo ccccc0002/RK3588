@@ -414,7 +414,7 @@ components:
 
     RegisterDeviceRequest:
       type: object
-      required: [tenant_id, site_id, box_id, device_id, protocol, stream_url]
+      required: [tenant_id, site_id, box_id, device_id, protocol]
       additionalProperties: true
       properties:
         tenant_id:
@@ -427,9 +427,23 @@ components:
           type: string
         protocol:
           type: string
-          enum: [rtsp, rtmp, onvif]
+          enum: [rtsp, rtmp, onvif, gb28181]
         stream_url:
           type: string
+          description: Required for protocol `rtsp`, `rtmp`, and `onvif`
+        sip_server:
+          type: string
+          description: Required for protocol `gb28181`
+        sip_port:
+          type: integer
+          description: Required for protocol `gb28181` (1-65535)
+        channel_id:
+          type: string
+          description: Required for protocol `gb28181`
+        transport:
+          type: string
+          enum: [udp, tcp]
+          description: Required for protocol `gb28181`
         enabled:
           type: boolean
 

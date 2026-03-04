@@ -94,6 +94,21 @@ class P0DeviceRegistryTests(unittest.TestCase):
         self.assertEqual(5060, reg["ingest_spec"]["sip_port"])
         self.assertEqual("34020000001320000001", reg["ingest_spec"]["channel_id"])
 
+    def test_register_rtsp_without_stream_url_raises(self) -> None:
+        with self.assertRaises(ValueError) as ctx:
+            self.runtime.register_device(
+                {
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "device_id": "cam-missing-url",
+                    "protocol": "rtsp",
+                    "enabled": True,
+                }
+            )
+
+        self.assertIn("missing required field: stream_url", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

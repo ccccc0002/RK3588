@@ -134,6 +134,46 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(list_payload["success"])
         self.assertTrue(any(item["device_id"] == "cam-2" for item in list_payload["data"]["items"]))
 
+    def test_register_gb28181_device_endpoint(self) -> None:
+        reg_status, reg_payload = self._post(
+            "/api/v1/devices/register",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-gb-http",
+                "protocol": "gb28181",
+                "sip_server": "10.0.0.8",
+                "sip_port": 5060,
+                "channel_id": "34020000001320000001",
+                "transport": "udp",
+                "enabled": True,
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, reg_status)
+        self.assertTrue(reg_payload["success"])
+        self.assertEqual("gb28181", reg_payload["data"]["protocol"])
+        self.assertEqual("", reg_payload["data"]["stream_url"])
+        self.assertEqual("10.0.0.8", reg_payload["data"]["ingest_spec"]["sip_server"])
+
+    def test_register_rtsp_without_stream_url_rejected(self) -> None:
+        status, payload = self._post(
+            "/api/v1/devices/register",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-missing-url",
+                "protocol": "rtsp",
+                "enabled": True,
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(400, status)
+        self.assertFalse(payload["success"])
+        self.assertEqual("bad_request", payload["error"]["code"])
+
     def test_push_worker_and_metrics_endpoints(self) -> None:
         self._post(
             "/api/v1/events",
