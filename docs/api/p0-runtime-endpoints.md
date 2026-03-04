@@ -305,7 +305,9 @@ GB28181 example:
     }
     ```
   - 200 envelope with created job
-  - created job includes `executor_id` (auto-selected from active executor pool with health-aware preference: `healthy`/`unknown` before `stale`, or explicitly set by request)
+  - created job includes:
+    - `executor_id` (auto-selected from active executor pool with health-aware preference: `healthy`/`unknown` before `stale`, or explicitly set by request)
+    - lease fields initialized as empty string: `lease_agent_id`, `lease_token`, `lease_expires_at`, `lease_updated_at`
   - validation: referenced algorithm must exist and be `active`
 
 - `POST /api/v1/offline-jobs/status`
@@ -370,6 +372,29 @@ GB28181 example:
     }
     ```
   - 200 envelope with heartbeat-updated edge-agent record (`health_state=healthy`)
+
+- `POST /api/v1/edge-agents/offline-jobs/lease`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "agent_id": "edge-agent-1",
+      "lease_seconds": 120,
+      "now": "2026-03-04T14:30:00+00:00"
+    }
+    ```
+  - 200 envelope with lease result:
+    - `leased=true`: returns `job` object and writes lease fields on that offline job:
+      - `lease_agent_id`
+      - `lease_token`
+      - `lease_expires_at`
+      - `lease_updated_at`
+    - `leased=false`: returns `"job": null` when no queued scope-matched job is available
+  - selection baseline:
+    - edge agent must be `active` and not `stale`
+    - only `queued` offline jobs are eligible
+    - only jobs with matching `source_scope` tenant/site/box are eligible
+    - active unexpired leases block other agents from taking the same job
 
 ### Offline Sync Cursor
 

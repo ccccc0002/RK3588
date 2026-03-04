@@ -249,6 +249,11 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                 _json_response(self, 200, ok_payload(res))
                 return
 
+            if parsed.path == "/api/v1/edge-agents/offline-jobs/lease":
+                res = self.runtime.lease_offline_job_to_edge_agent(dict(body), now=_parse_time(body.get("now")))
+                _json_response(self, 200, ok_payload(res))
+                return
+
             if parsed.path == "/api/v1/offline-sync/cursors/upsert":
                 res = self.runtime.upsert_offline_sync_cursor(dict(body), now=_parse_time(body.get("now")))
                 _json_response(self, 200, ok_payload(res))

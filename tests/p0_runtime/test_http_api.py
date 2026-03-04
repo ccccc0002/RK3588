@@ -344,6 +344,66 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(get_payload["success"])
         self.assertTrue(any(item["cursor"] == "evt-300" for item in get_payload["data"]["items"]))
 
+    def test_edge_agent_offline_job_lease_endpoint(self) -> None:
+        self._post(
+            "/api/v1/edge-agents/register",
+            {
+                "agent_id": "edge-http-lease",
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "endpoint": "http://edge-agent.local:9510",
+                "status": "active",
+                "capabilities": ["sync"],
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/edge-agents/heartbeat",
+            {
+                "agent_id": "edge-http-lease",
+                "now": datetime.now(timezone.utc).isoformat(),
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/algorithms/upsert",
+            {
+                "algorithm_id": "offline-http-lease",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/offline-jobs/create",
+            {
+                "job_id": "job-http-lease-1",
+                "source_scope": {"tenant_id": "t1", "site_id": "s1", "box_id": "b1"},
+                "algorithm_id": "offline-http-lease",
+                "algorithm_version": "1.0.0",
+            },
+            token=self.operator_token,
+        )
+
+        lease_status, lease_payload = self._post(
+            "/api/v1/edge-agents/offline-jobs/lease",
+            {
+                "agent_id": "edge-http-lease",
+                "lease_seconds": 120,
+                "now": datetime.now(timezone.utc).isoformat(),
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, lease_status)
+        self.assertTrue(lease_payload["success"])
+        self.assertTrue(lease_payload["data"]["leased"])
+        self.assertEqual("edge-http-lease", lease_payload["data"]["agent_id"])
+        self.assertEqual("job-http-lease-1", lease_payload["data"]["job"]["job_id"])
+        self.assertEqual("edge-http-lease", lease_payload["data"]["job"]["lease_agent_id"])
+        self.assertTrue(bool(lease_payload["data"]["job"]["lease_token"]))
+
     def test_gray_rollout_policy_endpoints(self) -> None:
         update_status, update_payload = self._post(
             "/api/v1/gray-rollout/policy",
@@ -937,6 +997,12 @@ class P0HttpApiTests(unittest.TestCase):
             ),
             (
                 "/api/v1/edge-agents/heartbeat",
+                {
+                    "agent_id": "edge-forbidden",
+                },
+            ),
+            (
+                "/api/v1/edge-agents/offline-jobs/lease",
                 {
                     "agent_id": "edge-forbidden",
                 },

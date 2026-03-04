@@ -1,6 +1,6 @@
 ﻿from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import hashlib
 import re
 import threading
@@ -765,6 +765,128 @@ class P0Runtime:
         items.sort(key=lambda item: item["agent_id"])
         return items
 
+    @staticmethod
+    def _parse_iso_datetime(value: str) -> datetime | None:
+        raw = str(value).strip()
+        if not raw:
+            return None
+        try:
+            parsed = datetime.fromisoformat(raw)
+        except ValueError:
+            return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed
+
+    @staticmethod
+    def _new_offline_job_lease_token(agent_id: str, job_id: str, lease_at: str) -> str:
+        key = f"{agent_id}|{job_id}|{lease_at}"
+        return hashlib.sha256(key.encode("utf-8")).hexdigest()[:24]
+
+    @staticmethod
+    def _offline_job_scope_matches_agent(job: dict, agent: dict) -> bool:
+        source_scope = job.get("source_scope", {})
+        if not isinstance(source_scope, dict):
+            return False
+        for field in ("tenant_id", "site_id", "box_id"):
+            expected = str(source_scope.get(field, "")).strip()
+            if not expected:
+                continue
+            if expected != str(agent.get(field, "")).strip():
+                return False
+        return True
+
+    def lease_offline_job_to_edge_agent(self, payload: dict, now: datetime | None = None) -> dict:
+        if "agent_id" not in payload:
+            raise ValueError("missing required field: agent_id")
+        agent_id = str(payload.get("agent_id", "")).strip()
+        if not agent_id:
+            raise ValueError("agent_id must not be empty")
+
+        lease_seconds = int(payload.get("lease_seconds", 60))
+        if lease_seconds < 5 or lease_seconds > 3600:
+            raise ValueError("lease_seconds must be between 5 and 3600")
+
+        at_dt = self._now_or(now)
+        at = at_dt.isoformat()
+        lease_expires_at = (at_dt + timedelta(seconds=lease_seconds)).isoformat()
+
+        with self._lock:
+            edge_agent = self._edge_agents.get(agent_id)
+            if edge_agent is None:
+                raise ValueError("edge agent not found")
+
+            resolved_agent = self._with_edge_agent_health(dict(edge_agent), now=at_dt)
+            if str(resolved_agent.get("status", "")).lower() != "active":
+                raise ValueError("edge agent must be active")
+            if str(resolved_agent.get("health_state", "")).lower() == "stale":
+                raise ValueError("edge agent is stale")
+
+            jobs = [dict(item) for item in self._offline_jobs.values()]
+            jobs.sort(key=lambda item: (str(item.get("created_at", "")), str(item.get("job_id", ""))))
+
+            # Idempotent pull for agent: return currently active lease first.
+            for job in jobs:
+                if not self._offline_job_scope_matches_agent(job, resolved_agent):
+                    continue
+                if str(job.get("lease_agent_id", "")).strip() != agent_id:
+                    continue
+                if str(job.get("status", "")).lower() not in {"queued", "running"}:
+                    continue
+                expires = self._parse_iso_datetime(str(job.get("lease_expires_at", "")))
+                if expires is None or expires <= at_dt:
+                    continue
+                return {
+                    "agent_id": agent_id,
+                    "lease_seconds": lease_seconds,
+                    "lease_at": at,
+                    "leased": True,
+                    "job": dict(job),
+                }
+
+            for job in jobs:
+                if str(job.get("status", "")).lower() != "queued":
+                    continue
+                if not self._offline_job_scope_matches_agent(job, resolved_agent):
+                    continue
+                lease_holder = str(job.get("lease_agent_id", "")).strip()
+                lease_expires = self._parse_iso_datetime(str(job.get("lease_expires_at", "")))
+                if lease_holder and lease_expires is not None and lease_expires > at_dt:
+                    continue
+
+                updated = dict(job)
+                updated["lease_agent_id"] = agent_id
+                updated["lease_token"] = self._new_offline_job_lease_token(agent_id, str(job.get("job_id", "")), at)
+                updated["lease_expires_at"] = lease_expires_at
+                updated["lease_updated_at"] = at
+                updated["updated_at"] = at
+                self._offline_jobs[str(updated.get("job_id", ""))] = updated
+                if self._storage:
+                    self._storage.upsert_offline_job(updated)
+                self._append_audit_locked(
+                    "offline.job.lease",
+                    {
+                        "job_id": str(updated.get("job_id", "")),
+                        "agent_id": agent_id,
+                        "lease_expires_at": lease_expires_at,
+                    },
+                )
+                return {
+                    "agent_id": agent_id,
+                    "lease_seconds": lease_seconds,
+                    "lease_at": at,
+                    "leased": True,
+                    "job": dict(updated),
+                }
+
+            return {
+                "agent_id": agent_id,
+                "lease_seconds": lease_seconds,
+                "lease_at": at,
+                "leased": False,
+                "job": None,
+            }
+
     def upsert_offline_sync_cursor(self, payload: dict, now: datetime | None = None) -> dict:
         required = ("tenant_id", "site_id", "box_id", "cursor")
         for field in required:
@@ -899,6 +1021,10 @@ class P0Runtime:
                 "status": "queued",
                 "result_ref": str(payload.get("result_ref", "")).strip(),
                 "error_reason": "",
+                "lease_agent_id": "",
+                "lease_token": "",
+                "lease_expires_at": "",
+                "lease_updated_at": "",
                 "created_at": at,
                 "updated_at": at,
             }
@@ -948,6 +1074,11 @@ class P0Runtime:
                 updated["result_ref"] = str(payload.get("result_ref", "")).strip()
             if "error_reason" in payload:
                 updated["error_reason"] = str(payload.get("error_reason", "")).strip()
+            if target_status in {"succeeded", "failed", "canceled"}:
+                updated["lease_agent_id"] = ""
+                updated["lease_token"] = ""
+                updated["lease_expires_at"] = ""
+                updated["lease_updated_at"] = at
 
             self._offline_jobs[job_id] = updated
             if self._storage:

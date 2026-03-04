@@ -553,6 +553,32 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/edge-agents/offline-jobs/lease:
+    post:
+      tags: [runtime]
+      summary: Lease one queued offline job for an edge agent
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeaseOfflineJobToEdgeAgentRequest'
+      responses:
+        '200':
+          description: Lease result for edge agent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EdgeAgentOfflineJobLeaseEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/offline-sync/cursors:
     get:
       tags: [runtime]
@@ -1540,6 +1566,22 @@ components:
           type: string
           format: date-time
 
+    LeaseOfflineJobToEdgeAgentRequest:
+      type: object
+      required: [agent_id]
+      additionalProperties: true
+      properties:
+        agent_id:
+          type: string
+        lease_seconds:
+          type: integer
+          minimum: 5
+          maximum: 3600
+          default: 60
+        now:
+          type: string
+          format: date-time
+
     EdgeAgentRecord:
       type: object
       required:
@@ -1588,6 +1630,26 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/EdgeAgentRecord'
+
+    EdgeAgentOfflineJobLeaseData:
+      type: object
+      required: [agent_id, lease_seconds, lease_at, leased, job]
+      properties:
+        agent_id:
+          type: string
+        lease_seconds:
+          type: integer
+          minimum: 5
+          maximum: 3600
+        lease_at:
+          type: string
+          format: date-time
+        leased:
+          type: boolean
+        job:
+          allOf:
+            - $ref: '#/components/schemas/OfflineJobRecord'
+          nullable: true
 
     UpsertOfflineSyncCursorRequest:
       type: object
@@ -1698,6 +1760,10 @@ components:
         - status
         - result_ref
         - error_reason
+        - lease_agent_id
+        - lease_token
+        - lease_expires_at
+        - lease_updated_at
         - created_at
         - updated_at
       properties:
@@ -1718,6 +1784,14 @@ components:
         result_ref:
           type: string
         error_reason:
+          type: string
+        lease_agent_id:
+          type: string
+        lease_token:
+          type: string
+        lease_expires_at:
+          type: string
+        lease_updated_at:
           type: string
         created_at:
           type: string
@@ -2376,6 +2450,14 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/EdgeAgentListData'
+
+    EdgeAgentOfflineJobLeaseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/EdgeAgentOfflineJobLeaseData'
 
     OfflineSyncCursorEnvelope:
       allOf:

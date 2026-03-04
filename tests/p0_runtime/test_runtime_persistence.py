@@ -208,6 +208,58 @@ class P0RuntimePersistenceTests(unittest.TestCase):
                 if rt2 is not None:
                     rt2.close()
 
+    def test_offline_job_lease_fields_recover_after_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "runtime.db")
+            rt1 = self._runtime(db_path)
+            rt2 = None
+            try:
+                rt1.register_edge_agent(
+                    {
+                        "agent_id": "edge-agent-lease-persist",
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "endpoint": "http://edge-agent.local:9402",
+                        "status": "active",
+                        "capabilities": ["sync"],
+                    }
+                )
+                rt1.heartbeat_edge_agent({"agent_id": "edge-agent-lease-persist"}, now=self.now)
+                rt1.upsert_algorithm(
+                    {
+                        "algorithm_id": "offline-detector-lease-persist",
+                        "version": "1.0.0",
+                        "status": "active",
+                        "capabilities": ["face"],
+                    }
+                )
+                rt1.create_offline_job(
+                    {
+                        "job_id": "job-lease-persist-1",
+                        "source_scope": {"tenant_id": "t1", "site_id": "s1", "box_id": "b1"},
+                        "algorithm_id": "offline-detector-lease-persist",
+                        "algorithm_version": "1.0.0",
+                    },
+                    now=self.now,
+                )
+                rt1.lease_offline_job_to_edge_agent(
+                    {"agent_id": "edge-agent-lease-persist", "lease_seconds": 120},
+                    now=self.now,
+                )
+
+                rt2 = self._runtime(db_path)
+                jobs = rt2.list_offline_jobs()
+                self.assertEqual(1, len(jobs))
+                self.assertEqual("job-lease-persist-1", jobs[0]["job_id"])
+                self.assertEqual("edge-agent-lease-persist", jobs[0]["lease_agent_id"])
+                self.assertTrue(bool(jobs[0]["lease_token"]))
+                self.assertTrue(bool(jobs[0]["lease_expires_at"]))
+            finally:
+                rt1.close()
+                if rt2 is not None:
+                    rt2.close()
+
     def test_edge_agent_registry_recovers_after_restart(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "runtime.db")
