@@ -289,3 +289,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P2-planning-kickoff/20260304-115953
 - Summary: created P2 execution plan and initialized stage/P2-business-expansion branch
 - Next: implement lane A algorithm repository scaffold with tests first
+
+## [2026-03-04T12:43:35+08:00] P2-iteration-1-algorithm-repo-scaffold-validated
+- Branch: stage/P2-business-expansion
+- Commit: 0923381
+- Tag: checkpoint/P2-iteration-1-algorithm-repo-scaffold-validated/20260304-124335
+- Summary: implemented algorithm repository runtime/api/persistence scaffold with local+remote validation
+- Next: start lane B base library registry scaffold
