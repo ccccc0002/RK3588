@@ -1837,6 +1837,46 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(disable_payload["success"])
         self.assertIsNone(disable_payload["data"]["default_max_clear_entries"])
 
+    def test_gray_rollout_batch_cache_policy_history_endpoint(self) -> None:
+        self._post(
+            "/api/v1/gray-rollout/plan/batch/cache/policy",
+            {"default_max_clear_entries": 3},
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/gray-rollout/plan/batch/cache/policy",
+            {"default_max_clear_entries": 6},
+            token=self.operator_token,
+        )
+
+        viewer_status, viewer_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache/policy/history?limit=5",
+            token=self.viewer_token,
+        )
+        self.assertEqual(403, viewer_status)
+        self.assertFalse(viewer_payload["success"])
+        self.assertEqual("forbidden", viewer_payload["error"]["code"])
+
+        op_status, op_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache/policy/history?limit=5",
+            token=self.operator_token,
+        )
+        self.assertEqual(200, op_status)
+        self.assertTrue(op_payload["success"])
+        self.assertGreaterEqual(len(op_payload["data"]["items"]), 2)
+        for item in op_payload["data"]["items"]:
+            self.assertEqual("gray_rollout.plan_batch.cache.policy.update", item["action"])
+            self.assertIn("policy", item["details"])
+            self.assertIn("default_max_clear_entries", item["details"]["policy"])
+
+        bad_status, bad_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache/policy/history?limit=bad",
+            token=self.operator_token,
+        )
+        self.assertEqual(400, bad_status)
+        self.assertFalse(bad_payload["success"])
+        self.assertEqual("bad_request", bad_payload["error"]["code"])
+
     def test_network_policy_endpoints(self) -> None:
         update_status, update_payload = self._post(
             "/api/v1/network/policy",

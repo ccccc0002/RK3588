@@ -1554,6 +1554,15 @@ class P0Runtime:
             items = [dict(item) for item in reversed(tail)]
         return items
 
+    def list_gray_rollout_batch_plan_cache_policy_history(self, limit: object = 20) -> list[dict]:
+        capped = self._normalize_cache_operations_list_limit(limit)
+        action = "gray_rollout.plan_batch.cache.policy.update"
+        with self._lock:
+            matched = [item for item in self._audit_records if str(item.get("action", "")) == action]
+            tail = matched[-capped:]
+            items = [dict(item) for item in reversed(tail)]
+        return items
+
     @staticmethod
     def _normalize_audit_policy(payload: dict) -> dict:
         if "max_records" not in payload:

@@ -1223,6 +1223,35 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/gray-rollout/plan/batch/cache/policy/history:
+    get:
+      tags: [runtime]
+      summary: List gray rollout batch cache policy update audit history
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 20
+      responses:
+        '200':
+          description: Cache policy update audit entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditListEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/gray-rollout/plan/batch/cache:
     get:
       tags: [runtime]

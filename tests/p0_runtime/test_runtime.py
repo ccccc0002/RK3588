@@ -2199,6 +2199,25 @@ class P0RuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "default_max_clear_entries must be a positive integer or null"):
             self.runtime.update_gray_rollout_batch_plan_cache_policy({"default_max_clear_entries": "bad"})
 
+    def test_list_gray_rollout_batch_plan_cache_policy_history(self) -> None:
+        self.runtime.update_gray_rollout_batch_plan_cache_policy({"default_max_clear_entries": 3})
+        self.runtime.update_gray_rollout_batch_plan_cache_policy({"default_max_clear_entries": 5})
+        self.runtime.update_gray_rollout_batch_plan_cache_policy({"default_max_clear_entries": None})
+
+        items = self.runtime.list_gray_rollout_batch_plan_cache_policy_history(limit=2)
+        self.assertEqual(2, len(items))
+        for item in items:
+            self.assertEqual("gray_rollout.plan_batch.cache.policy.update", item["action"])
+            self.assertIn("policy", item["details"])
+            self.assertIn("default_max_clear_entries", item["details"]["policy"])
+        self.assertIsNone(items[0]["details"]["policy"]["default_max_clear_entries"])
+        self.assertEqual(5, items[1]["details"]["policy"]["default_max_clear_entries"])
+
+        with self.assertRaisesRegex(ValueError, "limit must be within \\[1, 200\\]"):
+            self.runtime.list_gray_rollout_batch_plan_cache_policy_history(limit=0)
+        with self.assertRaisesRegex(ValueError, "limit must be an integer"):
+            self.runtime.list_gray_rollout_batch_plan_cache_policy_history(limit="bad")
+
     def test_update_and_get_network_policy(self) -> None:
         updated = self.runtime.update_network_policy(
             {

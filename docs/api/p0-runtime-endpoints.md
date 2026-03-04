@@ -872,6 +872,16 @@ GB28181 example:
   - persistence:
     - when runtime storage is enabled (sqlite), this policy is persisted and restored after restart
 
+- `GET /api/v1/gray-rollout/plan/batch/cache/policy/history`
+  - RBAC: requires `device:write`
+  - query params (optional):
+    - `limit` (default `20`, valid range `1..200`)
+  - 200 envelope:
+    - `items[]` from audit records filtered by action:
+      - `gray_rollout.plan_batch.cache.policy.update`
+  - validation:
+    - `limit` must be integer within `[1, 200]`
+
 - `GET /api/v1/gray-rollout/plan/batch/cache`
   - RBAC: requires `device:read`
   - query params (optional):

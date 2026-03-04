@@ -156,6 +156,21 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             _json_response(self, 200, ok_payload(self.runtime.get_gray_rollout_batch_plan_cache_policy()))
             return
 
+        if parsed.path == "/api/v1/gray-rollout/plan/batch/cache/policy/history":
+            query = parse_qs(parsed.query)
+            limit_raw = (query.get("limit", ["20"]) or ["20"])[0]
+            try:
+                _json_response(
+                    self,
+                    200,
+                    ok_payload(
+                        {"items": self.runtime.list_gray_rollout_batch_plan_cache_policy_history(limit=limit_raw)}
+                    ),
+                )
+            except ValueError as exc:
+                _json_response(self, 400, error_payload("bad_request", str(exc)))
+            return
+
         if parsed.path == "/api/v1/gray-rollout/plan/batch/cache":
             query = parse_qs(parsed.query)
             payload: dict[str, object] = {}

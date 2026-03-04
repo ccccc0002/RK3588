@@ -25,6 +25,7 @@ class ApiPolicyTests(unittest.TestCase):
         self.assertEqual("device:read", required_get_action("/api/v1/offline-sync/streams"))
         self.assertEqual("device:read", required_get_action("/api/v1/gray-rollout/policy"))
         self.assertEqual("device:read", required_get_action("/api/v1/gray-rollout/plan/batch/cache/policy"))
+        self.assertEqual("device:write", required_get_action("/api/v1/gray-rollout/plan/batch/cache/policy/history"))
         self.assertEqual("device:read", required_get_action("/api/v1/gray-rollout/plan/batch/cache"))
         self.assertEqual("device:write", required_get_action("/api/v1/gray-rollout/plan/batch/cache/ops"))
         self.assertEqual("device:read", required_get_action("/api/v1/push/worker/status"))
