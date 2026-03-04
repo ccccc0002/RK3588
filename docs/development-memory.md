@@ -163,3 +163,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-iteration-2-gb28181-runtime/20260304-104030
 - Summary: wired gb28181 adapter into runtime register/list flow with protocol-aware required-field validation
 - Next: run remote py3.8 gate for P1 iteration 2 and update api docs for gb28181
+
+## [2026-03-04T10:41:19+08:00] P1-iteration-2-gb28181-runtime-validated
+- Branch: stage/P1-capability-enhancement
+- Commit: 4163d8f
+- Tag: checkpoint/P1-iteration-2-gb28181-runtime-validated/20260304-104119
+- Summary: validated P1 gb28181 runtime integration on local py3.11 and remote py3.8
+- Next: document gb28181 API contract updates and start lane B OCR/face capability wiring
