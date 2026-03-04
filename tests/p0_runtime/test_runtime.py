@@ -556,6 +556,101 @@ class P0RuntimeTests(unittest.TestCase):
                 now=self.now + timedelta(seconds=10),
             )
 
+    def test_edge_agent_offline_job_lease_start_sets_running(self) -> None:
+        self.runtime.register_edge_agent(
+            {
+                "agent_id": "edge-agent-lease-start",
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "endpoint": "http://edge-agent.local:9607",
+                "status": "active",
+                "capabilities": ["sync"],
+            }
+        )
+        self.runtime.heartbeat_edge_agent({"agent_id": "edge-agent-lease-start"}, now=self.now)
+        self.runtime.upsert_algorithm(
+            {
+                "algorithm_id": "offline-lease-start",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            }
+        )
+        self.runtime.create_offline_job(
+            {
+                "job_id": "job-lease-start-001",
+                "source_scope": {"tenant_id": "t1", "site_id": "s1", "box_id": "b1"},
+                "algorithm_id": "offline-lease-start",
+                "algorithm_version": "1.0.0",
+            },
+            now=self.now,
+        )
+        leased = self.runtime.lease_offline_job_to_edge_agent(
+            {"agent_id": "edge-agent-lease-start", "lease_seconds": 90},
+            now=self.now,
+        )
+        token = str(leased["job"]["lease_token"])
+
+        started = self.runtime.start_offline_job_with_lease(
+            {
+                "agent_id": "edge-agent-lease-start",
+                "job_id": "job-lease-start-001",
+                "lease_token": token,
+            },
+            now=self.now + timedelta(seconds=5),
+        )
+        self.assertEqual("job-lease-start-001", started["job_id"])
+        self.assertEqual("running", started["status"])
+        self.assertEqual("edge-agent-lease-start", started["lease_agent_id"])
+        self.assertEqual(token, started["lease_token"])
+        self.assertTrue(bool(started["lease_updated_at"]))
+
+    def test_edge_agent_offline_job_lease_start_rejects_invalid_token(self) -> None:
+        self.runtime.register_edge_agent(
+            {
+                "agent_id": "edge-agent-lease-start-invalid",
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "endpoint": "http://edge-agent.local:9608",
+                "status": "active",
+                "capabilities": ["sync"],
+            }
+        )
+        self.runtime.heartbeat_edge_agent({"agent_id": "edge-agent-lease-start-invalid"}, now=self.now)
+        self.runtime.upsert_algorithm(
+            {
+                "algorithm_id": "offline-lease-start-invalid",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            }
+        )
+        self.runtime.create_offline_job(
+            {
+                "job_id": "job-lease-start-invalid-001",
+                "source_scope": {"tenant_id": "t1", "site_id": "s1", "box_id": "b1"},
+                "algorithm_id": "offline-lease-start-invalid",
+                "algorithm_version": "1.0.0",
+            },
+            now=self.now,
+        )
+        self.runtime.lease_offline_job_to_edge_agent(
+            {"agent_id": "edge-agent-lease-start-invalid", "lease_seconds": 90},
+            now=self.now,
+        )
+
+        with self.assertRaises(ValueError):
+            self.runtime.start_offline_job_with_lease(
+                {
+                    "agent_id": "edge-agent-lease-start-invalid",
+                    "job_id": "job-lease-start-invalid-001",
+                    "lease_token": "invalid-token",
+                },
+                now=self.now + timedelta(seconds=5),
+            )
+
     def test_offline_sync_cursor_conflict_detection(self) -> None:
         created = self.runtime.upsert_offline_sync_cursor(
             {

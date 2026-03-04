@@ -953,6 +953,46 @@ class P0Runtime:
             )
             return dict(updated)
 
+    def start_offline_job_with_lease(self, payload: dict, now: datetime | None = None) -> dict:
+        required = ("agent_id", "job_id", "lease_token")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        agent_id = str(payload.get("agent_id", "")).strip()
+        job_id = str(payload.get("job_id", "")).strip()
+        lease_token = str(payload.get("lease_token", "")).strip()
+        if not agent_id or not job_id or not lease_token:
+            raise ValueError("agent_id/job_id/lease_token must not be empty")
+
+        at_dt = self._now_or(now)
+        at = at_dt.isoformat()
+        with self._lock:
+            _ = self._resolve_active_edge_agent_for_lease_locked(agent_id, at_dt)
+            existing = self._get_valid_job_lease_locked(agent_id, job_id, lease_token, at_dt)
+
+            current_status = str(existing.get("status", "queued")).lower()
+            if current_status not in {"queued", "running"}:
+                raise ValueError("offline job status must be queued or running for lease start")
+
+            updated = dict(existing)
+            updated["status"] = "running"
+            updated["lease_updated_at"] = at
+            updated["updated_at"] = at
+            self._offline_jobs[job_id] = updated
+            if self._storage:
+                self._storage.upsert_offline_job(updated)
+            self._append_audit_locked(
+                "offline.job.lease.start",
+                {
+                    "job_id": job_id,
+                    "agent_id": agent_id,
+                    "from_status": current_status,
+                    "to_status": "running",
+                },
+            )
+            return dict(updated)
+
     def release_offline_job_lease(self, payload: dict, now: datetime | None = None) -> dict:
         required = ("agent_id", "job_id", "lease_token")
         for field in required:

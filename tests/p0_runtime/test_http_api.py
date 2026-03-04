@@ -475,6 +475,21 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual("edge-http-lease-flow", renew_payload["data"]["lease_agent_id"])
         self.assertEqual(token, renew_payload["data"]["lease_token"])
 
+        start_status, start_payload = self._post(
+            "/api/v1/edge-agents/offline-jobs/lease/start",
+            {
+                "agent_id": "edge-http-lease-flow",
+                "job_id": "job-http-lease-flow-1",
+                "lease_token": token,
+                "now": datetime.now(timezone.utc).isoformat(),
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, start_status)
+        self.assertTrue(start_payload["success"])
+        self.assertEqual("job-http-lease-flow-1", start_payload["data"]["job_id"])
+        self.assertEqual("running", start_payload["data"]["status"])
+
         release_status, release_payload = self._post(
             "/api/v1/edge-agents/offline-jobs/lease/release",
             {
@@ -1096,6 +1111,14 @@ class P0HttpApiTests(unittest.TestCase):
             ),
             (
                 "/api/v1/edge-agents/offline-jobs/lease/renew",
+                {
+                    "agent_id": "edge-forbidden",
+                    "job_id": "job-forbidden",
+                    "lease_token": "x",
+                },
+            ),
+            (
+                "/api/v1/edge-agents/offline-jobs/lease/start",
                 {
                     "agent_id": "edge-forbidden",
                     "job_id": "job-forbidden",

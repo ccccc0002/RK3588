@@ -417,6 +417,27 @@ GB28181 example:
     - extends `lease_expires_at`
     - refreshes `lease_updated_at`
 
+- `POST /api/v1/edge-agents/offline-jobs/lease/start`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "agent_id": "edge-agent-1",
+      "job_id": "job-001",
+      "lease_token": "abcd1234",
+      "now": "2026-03-04T14:31:30+00:00"
+    }
+    ```
+  - 200 envelope with updated offline-job record
+  - validation baseline:
+    - edge agent must exist, be `active`, and not `stale`
+    - job must have an unexpired lease owned by the same `agent_id`
+    - `lease_token` must match current job lease token
+    - job status must be `queued` or `running`
+  - effect:
+    - updates job `status` to `running`
+    - refreshes `lease_updated_at`
+
 - `POST /api/v1/edge-agents/offline-jobs/lease/release`
   - RBAC: requires `device:write`
   - body:

@@ -33,6 +33,7 @@ class FastApiAdapterTests(unittest.TestCase):
             self.assertIn("/api/v1/edge-agents/register", paths)
             self.assertIn("/api/v1/edge-agents/heartbeat", paths)
             self.assertIn("/api/v1/edge-agents/offline-jobs/lease", paths)
+            self.assertIn("/api/v1/edge-agents/offline-jobs/lease/start", paths)
             self.assertIn("/api/v1/edge-agents/offline-jobs/lease/renew", paths)
             self.assertIn("/api/v1/edge-agents/offline-jobs/lease/release", paths)
             self.assertIn("/api/v1/offline-sync/cursors", paths)

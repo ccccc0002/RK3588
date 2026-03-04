@@ -579,6 +579,32 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/edge-agents/offline-jobs/lease/start:
+    post:
+      tags: [runtime]
+      summary: Start leased offline job as running by edge agent
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartOfflineJobWithLeaseRequest'
+      responses:
+        '200':
+          description: Started offline job with lease
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfflineJobEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/edge-agents/offline-jobs/lease/renew:
     post:
       tags: [runtime]
@@ -1630,6 +1656,21 @@ components:
           minimum: 5
           maximum: 3600
           default: 60
+        now:
+          type: string
+          format: date-time
+
+    StartOfflineJobWithLeaseRequest:
+      type: object
+      required: [agent_id, job_id, lease_token]
+      additionalProperties: true
+      properties:
+        agent_id:
+          type: string
+        job_id:
+          type: string
+        lease_token:
+          type: string
         now:
           type: string
           format: date-time

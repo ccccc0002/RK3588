@@ -254,6 +254,11 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                 _json_response(self, 200, ok_payload(res))
                 return
 
+            if parsed.path == "/api/v1/edge-agents/offline-jobs/lease/start":
+                res = self.runtime.start_offline_job_with_lease(dict(body), now=_parse_time(body.get("now")))
+                _json_response(self, 200, ok_payload(res))
+                return
+
             if parsed.path == "/api/v1/edge-agents/offline-jobs/lease/renew":
                 res = self.runtime.renew_offline_job_lease(dict(body), now=_parse_time(body.get("now")))
                 _json_response(self, 200, ok_payload(res))

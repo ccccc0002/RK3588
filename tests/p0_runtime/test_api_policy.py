@@ -46,6 +46,7 @@ class ApiPolicyTests(unittest.TestCase):
         self.assertEqual("device:write", required_post_action("/api/v1/edge-agents/register"))
         self.assertEqual("device:write", required_post_action("/api/v1/edge-agents/heartbeat"))
         self.assertEqual("device:write", required_post_action("/api/v1/edge-agents/offline-jobs/lease"))
+        self.assertEqual("device:write", required_post_action("/api/v1/edge-agents/offline-jobs/lease/start"))
         self.assertEqual("device:write", required_post_action("/api/v1/edge-agents/offline-jobs/lease/renew"))
         self.assertEqual("device:write", required_post_action("/api/v1/edge-agents/offline-jobs/lease/release"))
         self.assertEqual("device:write", required_post_action("/api/v1/offline-sync/cursors/upsert"))
