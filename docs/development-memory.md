@@ -247,3 +247,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-pre-closure-review-local/20260304-113157
 - Summary: documented P1 pre-closure status, gates, and remaining hardening backlog
 - Next: implement remaining hardening items and issue P1 stage closure checkpoint
+
+## [2026-03-04T11:40:46+08:00] P1-iteration-10-policy-dead-letter
+- Branch: stage/P1-capability-enhancement
+- Commit: 1b0d288
+- Tag: checkpoint/P1-iteration-10-policy-dead-letter/20260304-114046
+- Summary: short-circuit allowlist-denied dispatch to dead-letter with audit trace; add tests and docs
+- Next: run remote py3.8 validation and closure checkpoint
