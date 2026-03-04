@@ -492,3 +492,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P3-stage-closure/20260304-152201
 - Summary: closed P3 phase-2 readiness after edge orchestration, offline sync stream cursor, and gray rollout DAG decision contracts with local+remote validation and synced checkpoints
 - Next: start next-stage hardening for dependency execution planner and advanced orchestration
+
+## [2026-03-04T16:01:54+08:00] P4-iteration-1-gray-dependency-plan-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 01f9e14
+- Tag: checkpoint/P4-iteration-1-gray-dependency-plan-validated/20260304-160154
+- Summary: added gray rollout dependency planning endpoint with deterministic topology and node-level readiness, validated on local py3.11 and remote py3.8.10
+- Next: sync stage/P3-phase2-readiness and tags to GitHub, then continue post-P3 orchestration hardening
