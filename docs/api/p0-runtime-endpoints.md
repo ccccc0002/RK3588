@@ -764,7 +764,7 @@ GB28181 example:
   - 200 envelope:
     - `items[]` list of successful per-scope plan results
     - `errors[]` list of item-level errors with `index` and `error`
-    - `continue_on_error`, `start_index`, `next_start_index`, `max_errors`
+    - `continue_on_error`, `start_index`, `next_start_index`, `applied_range[]`, `retry_hint{}`, `max_errors`
     - `total`, `processed_count`, `success_count`, `error_count`, `failed_indices[]`, `stopped_early`, `duration_ms`
   - batch rule:
     - default (`continue_on_error=false`): any invalid item fails entire request with `400` (`items[i]: ...`)
@@ -772,6 +772,8 @@ GB28181 example:
   - resume rule:
     - `errors[].index` and `failed_indices[]` are absolute indices offset by request `start_index`
     - when early stop occurs, `next_start_index` points to the next unprocessed item index for resume
+    - `applied_range=[start_index, start_index+processed_count)` marks the absolute index window processed in current call
+    - `retry_hint` includes `should_retry`, `resume_from`, `remaining_items`, and `failed_indices[]` for client resume logic
   - early-stop rule: when `max_errors` is provided in tolerant mode, processing stops once accumulated item errors reach `max_errors`
 
 ## FastAPI Compatibility Layer

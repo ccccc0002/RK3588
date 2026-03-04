@@ -2671,9 +2671,28 @@ components:
         error:
           type: string
 
+    GrayRolloutBatchRetryHintData:
+      type: object
+      required: [should_retry, resume_from, remaining_items, failed_indices]
+      properties:
+        should_retry:
+          type: boolean
+        resume_from:
+          type: integer
+          minimum: 0
+          nullable: true
+        remaining_items:
+          type: integer
+          minimum: 0
+        failed_indices:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+
     GrayRolloutPlanBatchData:
       type: object
-      required: [items, errors, continue_on_error, start_index, next_start_index, max_errors, total, processed_count, success_count, error_count, failed_indices, stopped_early, duration_ms]
+      required: [items, errors, continue_on_error, start_index, next_start_index, applied_range, retry_hint, max_errors, total, processed_count, success_count, error_count, failed_indices, stopped_early, duration_ms]
       properties:
         items:
           type: array
@@ -2692,6 +2711,15 @@ components:
           type: integer
           minimum: 0
           nullable: true
+        applied_range:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            type: integer
+            minimum: 0
+        retry_hint:
+          $ref: '#/components/schemas/GrayRolloutBatchRetryHintData'
         max_errors:
           type: integer
           minimum: 1

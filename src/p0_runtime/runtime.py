@@ -1760,18 +1760,27 @@ class P0Runtime:
         duration_ms = int((perf_counter() - started_at) * 1000)
         failed_indices = sorted({int(item.get("index", 0)) for item in errors})
         next_start_index = start_index + processed_count if stopped_early else None
+        applied_range = [start_index, start_index + processed_count]
+        retry_hint = {
+            "should_retry": bool(stopped_early and next_start_index is not None),
+            "resume_from": next_start_index,
+            "remaining_items": max(0, len(items_raw) - processed_count),
+            "failed_indices": [int(item) for item in failed_indices],
+        }
         return {
             "items": [dict(item) for item in results],
             "errors": [dict(item) for item in errors],
             "continue_on_error": continue_on_error,
             "start_index": start_index,
             "next_start_index": next_start_index,
+            "applied_range": [int(applied_range[0]), int(applied_range[1])],
             "max_errors": max_errors,
             "total": len(items_raw),
             "processed_count": processed_count,
             "success_count": len(results),
             "error_count": len(errors),
             "failed_indices": failed_indices,
+            "retry_hint": retry_hint,
             "stopped_early": stopped_early,
             "duration_ms": max(0, duration_ms),
         }
