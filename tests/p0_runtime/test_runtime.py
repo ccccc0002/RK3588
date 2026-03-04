@@ -146,6 +146,37 @@ class P0RuntimeTests(unittest.TestCase):
         current = self.runtime.get_network_policy()
         self.assertEqual(updated, current)
 
+    def test_dispatch_respects_network_policy_allowlist(self) -> None:
+        self.runtime.update_network_policy(
+            {
+                "enforce_allowlist": True,
+                "webhook_allowlist": ["https://hooks.example.com"],
+            }
+        )
+        self.runtime.ingest_event(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "source_id": "cam-1",
+                "event_type": "line_crossing",
+                "object_id": "p1",
+                "payload": {"confidence": 0.88},
+            },
+            now=self.now,
+        )
+
+        sent_targets = []
+
+        def sender(task) -> bool:
+            sent_targets.append(task.target_url)
+            return True
+
+        result = self.runtime.dispatch_pushes(now=self.now, sender=sender)
+        self.assertEqual(0, result["sent"])
+        self.assertEqual(1, result["failed"])
+        self.assertEqual([], sent_targets)
+
 
 if __name__ == "__main__":
     unittest.main()

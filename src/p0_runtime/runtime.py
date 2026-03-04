@@ -236,6 +236,17 @@ class P0Runtime:
             self._append_audit_locked("network.policy.update", {"policy": dict(normalized)})
             return dict(self._network_policy)
 
+    def _is_target_allowed(self, target_url: str) -> bool:
+        with self._lock:
+            policy = dict(self._network_policy)
+        if not bool(policy.get("enforce_allowlist", False)):
+            return True
+        allowlist = [str(item) for item in policy.get("webhook_allowlist", [])]
+        if not allowlist:
+            return False
+        url = str(target_url)
+        return any(url.startswith(prefix) for prefix in allowlist)
+
     def plan_capability_schedule(self, budget: float) -> dict:
         capped_budget = max(0.1, float(budget))
         with self._lock:
@@ -353,7 +364,10 @@ class P0Runtime:
             if processed >= max_items:
                 break
             processed += 1
-            ok = bool(sender(task))
+            if not self._is_target_allowed(task.target_url):
+                ok = False
+            else:
+                ok = bool(sender(task))
             with self._lock:
                 self._push_state = mark_delivery_result(self._push_state, task_id=task.task_id, success=ok, now=at)
                 self._update_queue_peak_locked()

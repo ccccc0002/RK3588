@@ -303,6 +303,15 @@ class P0HttpApiTests(unittest.TestCase):
 
     def test_push_worker_and_metrics_endpoints(self) -> None:
         self._post(
+            "/api/v1/network/policy",
+            {
+                "enforce_allowlist": False,
+                "webhook_allowlist": [],
+            },
+            token=self.operator_token,
+        )
+
+        self._post(
             "/api/v1/events",
             {
                 "now": datetime.now(timezone.utc).isoformat(),
