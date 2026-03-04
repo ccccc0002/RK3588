@@ -499,3 +499,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-1-gray-dependency-plan-validated/20260304-160154
 - Summary: added gray rollout dependency planning endpoint with deterministic topology and node-level readiness, validated on local py3.11 and remote py3.8.10
 - Next: sync stage/P3-phase2-readiness and tags to GitHub, then continue post-P3 orchestration hardening
+
+## [2026-03-04T16:04:51+08:00] P4-iteration-2-gray-plan-missing-status-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: d71203a
+- Tag: checkpoint/P4-iteration-2-gray-plan-missing-status-validated/20260304-160451
+- Summary: hardened gray rollout dependency plan with missing_status diagnostics and kept local+remote validation green
+- Next: sync branch and tags, then continue post-P3 dependency orchestration hardening
