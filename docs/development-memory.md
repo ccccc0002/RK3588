@@ -359,3 +359,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P3-iteration-2-edge-sync-local-gate/20260304-140144
 - Summary: added edge-agent and offline-sync cursor readiness contracts with tests and docs
 - Next: run remote py3.8 gate and issue validated checkpoint
+
+## [2026-03-04T14:03:09+08:00] P3-iteration-2-edge-sync-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 53ae2e8
+- Tag: checkpoint/P3-iteration-2-edge-sync-validated/20260304-140309
+- Summary: validated edge-agent and offline-sync cursor readiness contracts on local py3.11 and remote py3.8.10
+- Next: continue P3 with gray rollout and edge orchestration contracts
