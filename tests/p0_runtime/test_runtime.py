@@ -426,6 +426,136 @@ class P0RuntimeTests(unittest.TestCase):
                 now=self.now,
             )
 
+    def test_edge_agent_offline_job_lease_renew_and_release(self) -> None:
+        self.runtime.register_edge_agent(
+            {
+                "agent_id": "edge-agent-lease-flow-1",
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "endpoint": "http://edge-agent.local:9604",
+                "status": "active",
+                "capabilities": ["sync"],
+            }
+        )
+        self.runtime.heartbeat_edge_agent({"agent_id": "edge-agent-lease-flow-1"}, now=self.now)
+        self.runtime.register_edge_agent(
+            {
+                "agent_id": "edge-agent-lease-flow-2",
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "endpoint": "http://edge-agent.local:9605",
+                "status": "active",
+                "capabilities": ["sync"],
+            }
+        )
+        self.runtime.heartbeat_edge_agent({"agent_id": "edge-agent-lease-flow-2"}, now=self.now)
+        self.runtime.upsert_algorithm(
+            {
+                "algorithm_id": "offline-lease-flow",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            }
+        )
+        self.runtime.create_offline_job(
+            {
+                "job_id": "job-lease-flow-001",
+                "source_scope": {"tenant_id": "t1", "site_id": "s1", "box_id": "b1"},
+                "algorithm_id": "offline-lease-flow",
+                "algorithm_version": "1.0.0",
+            },
+            now=self.now,
+        )
+
+        leased = self.runtime.lease_offline_job_to_edge_agent(
+            {"agent_id": "edge-agent-lease-flow-1", "lease_seconds": 60},
+            now=self.now,
+        )
+        self.assertTrue(leased["leased"])
+        token = leased["job"]["lease_token"]
+        expires_at_before = leased["job"]["lease_expires_at"]
+
+        renewed = self.runtime.renew_offline_job_lease(
+            {
+                "agent_id": "edge-agent-lease-flow-1",
+                "job_id": "job-lease-flow-001",
+                "lease_token": token,
+                "lease_seconds": 180,
+            },
+            now=self.now + timedelta(seconds=30),
+        )
+        self.assertEqual("job-lease-flow-001", renewed["job_id"])
+        self.assertEqual("edge-agent-lease-flow-1", renewed["lease_agent_id"])
+        self.assertEqual(token, renewed["lease_token"])
+        self.assertGreater(renewed["lease_expires_at"], expires_at_before)
+
+        released = self.runtime.release_offline_job_lease(
+            {
+                "agent_id": "edge-agent-lease-flow-1",
+                "job_id": "job-lease-flow-001",
+                "lease_token": token,
+            },
+            now=self.now + timedelta(seconds=35),
+        )
+        self.assertEqual("job-lease-flow-001", released["job_id"])
+        self.assertEqual("", released["lease_agent_id"])
+        self.assertEqual("", released["lease_token"])
+        self.assertEqual("", released["lease_expires_at"])
+
+        leased_again = self.runtime.lease_offline_job_to_edge_agent(
+            {"agent_id": "edge-agent-lease-flow-2", "lease_seconds": 90},
+            now=self.now + timedelta(seconds=40),
+        )
+        self.assertTrue(leased_again["leased"])
+        self.assertEqual("edge-agent-lease-flow-2", leased_again["job"]["lease_agent_id"])
+
+    def test_edge_agent_offline_job_lease_renew_rejects_invalid_token(self) -> None:
+        self.runtime.register_edge_agent(
+            {
+                "agent_id": "edge-agent-lease-invalid",
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "endpoint": "http://edge-agent.local:9606",
+                "status": "active",
+                "capabilities": ["sync"],
+            }
+        )
+        self.runtime.heartbeat_edge_agent({"agent_id": "edge-agent-lease-invalid"}, now=self.now)
+        self.runtime.upsert_algorithm(
+            {
+                "algorithm_id": "offline-lease-invalid",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            }
+        )
+        self.runtime.create_offline_job(
+            {
+                "job_id": "job-lease-invalid-001",
+                "source_scope": {"tenant_id": "t1", "site_id": "s1", "box_id": "b1"},
+                "algorithm_id": "offline-lease-invalid",
+                "algorithm_version": "1.0.0",
+            },
+            now=self.now,
+        )
+        self.runtime.lease_offline_job_to_edge_agent(
+            {"agent_id": "edge-agent-lease-invalid", "lease_seconds": 60},
+            now=self.now,
+        )
+
+        with self.assertRaises(ValueError):
+            self.runtime.renew_offline_job_lease(
+                {
+                    "agent_id": "edge-agent-lease-invalid",
+                    "job_id": "job-lease-invalid-001",
+                    "lease_token": "invalid-token",
+                },
+                now=self.now + timedelta(seconds=10),
+            )
+
     def test_offline_sync_cursor_conflict_detection(self) -> None:
         created = self.runtime.upsert_offline_sync_cursor(
             {

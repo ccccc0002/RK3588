@@ -77,6 +77,10 @@ def required_post_action(path: str) -> str | None:
         return "device:write"
     if path == "/api/v1/edge-agents/offline-jobs/lease":
         return "device:write"
+    if path == "/api/v1/edge-agents/offline-jobs/lease/renew":
+        return "device:write"
+    if path == "/api/v1/edge-agents/offline-jobs/lease/release":
+        return "device:write"
     if path == "/api/v1/offline-sync/cursors/upsert":
         return "device:write"
     if path == "/api/v1/gray-rollout/policy":

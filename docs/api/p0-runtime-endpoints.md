@@ -396,6 +396,47 @@ GB28181 example:
     - only jobs with matching `source_scope` tenant/site/box are eligible
     - active unexpired leases block other agents from taking the same job
 
+- `POST /api/v1/edge-agents/offline-jobs/lease/renew`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "agent_id": "edge-agent-1",
+      "job_id": "job-001",
+      "lease_token": "abcd1234",
+      "lease_seconds": 180,
+      "now": "2026-03-04T14:31:00+00:00"
+    }
+    ```
+  - 200 envelope with renewed offline-job record
+  - validation baseline:
+    - edge agent must exist, be `active`, and not `stale`
+    - job must have an unexpired lease owned by the same `agent_id`
+    - `lease_token` must match current job lease token
+  - effect:
+    - extends `lease_expires_at`
+    - refreshes `lease_updated_at`
+
+- `POST /api/v1/edge-agents/offline-jobs/lease/release`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "agent_id": "edge-agent-1",
+      "job_id": "job-001",
+      "lease_token": "abcd1234",
+      "now": "2026-03-04T14:32:00+00:00"
+    }
+    ```
+  - 200 envelope with updated offline-job record
+  - validation baseline:
+    - edge agent must exist, be `active`, and not `stale`
+    - job must have an unexpired lease owned by the same `agent_id`
+    - `lease_token` must match current job lease token
+  - effect:
+    - clears `lease_agent_id`, `lease_token`, `lease_expires_at`
+    - updates `lease_updated_at`
+
 ### Offline Sync Cursor
 
 - `GET /api/v1/offline-sync/cursors`

@@ -404,6 +404,93 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual("edge-http-lease", lease_payload["data"]["job"]["lease_agent_id"])
         self.assertTrue(bool(lease_payload["data"]["job"]["lease_token"]))
 
+    def test_edge_agent_offline_job_lease_renew_and_release_endpoints(self) -> None:
+        self._post(
+            "/api/v1/edge-agents/register",
+            {
+                "agent_id": "edge-http-lease-flow",
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "endpoint": "http://edge-agent.local:9511",
+                "status": "active",
+                "capabilities": ["sync"],
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/edge-agents/heartbeat",
+            {
+                "agent_id": "edge-http-lease-flow",
+                "now": datetime.now(timezone.utc).isoformat(),
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/algorithms/upsert",
+            {
+                "algorithm_id": "offline-http-lease-flow",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/offline-jobs/create",
+            {
+                "job_id": "job-http-lease-flow-1",
+                "source_scope": {"tenant_id": "t1", "site_id": "s1", "box_id": "b1"},
+                "algorithm_id": "offline-http-lease-flow",
+                "algorithm_version": "1.0.0",
+            },
+            token=self.operator_token,
+        )
+        lease_status, lease_payload = self._post(
+            "/api/v1/edge-agents/offline-jobs/lease",
+            {
+                "agent_id": "edge-http-lease-flow",
+                "lease_seconds": 120,
+                "now": datetime.now(timezone.utc).isoformat(),
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, lease_status)
+        token = str(lease_payload["data"]["job"]["lease_token"])
+
+        renew_status, renew_payload = self._post(
+            "/api/v1/edge-agents/offline-jobs/lease/renew",
+            {
+                "agent_id": "edge-http-lease-flow",
+                "job_id": "job-http-lease-flow-1",
+                "lease_token": token,
+                "lease_seconds": 180,
+                "now": datetime.now(timezone.utc).isoformat(),
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, renew_status)
+        self.assertTrue(renew_payload["success"])
+        self.assertEqual("job-http-lease-flow-1", renew_payload["data"]["job_id"])
+        self.assertEqual("edge-http-lease-flow", renew_payload["data"]["lease_agent_id"])
+        self.assertEqual(token, renew_payload["data"]["lease_token"])
+
+        release_status, release_payload = self._post(
+            "/api/v1/edge-agents/offline-jobs/lease/release",
+            {
+                "agent_id": "edge-http-lease-flow",
+                "job_id": "job-http-lease-flow-1",
+                "lease_token": token,
+                "now": datetime.now(timezone.utc).isoformat(),
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, release_status)
+        self.assertTrue(release_payload["success"])
+        self.assertEqual("job-http-lease-flow-1", release_payload["data"]["job_id"])
+        self.assertEqual("", release_payload["data"]["lease_agent_id"])
+        self.assertEqual("", release_payload["data"]["lease_token"])
+
     def test_gray_rollout_policy_endpoints(self) -> None:
         update_status, update_payload = self._post(
             "/api/v1/gray-rollout/policy",
@@ -1005,6 +1092,22 @@ class P0HttpApiTests(unittest.TestCase):
                 "/api/v1/edge-agents/offline-jobs/lease",
                 {
                     "agent_id": "edge-forbidden",
+                },
+            ),
+            (
+                "/api/v1/edge-agents/offline-jobs/lease/renew",
+                {
+                    "agent_id": "edge-forbidden",
+                    "job_id": "job-forbidden",
+                    "lease_token": "x",
+                },
+            ),
+            (
+                "/api/v1/edge-agents/offline-jobs/lease/release",
+                {
+                    "agent_id": "edge-forbidden",
+                    "job_id": "job-forbidden",
+                    "lease_token": "x",
                 },
             ),
             (

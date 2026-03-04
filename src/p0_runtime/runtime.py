@@ -887,6 +887,108 @@ class P0Runtime:
                 "job": None,
             }
 
+    def _resolve_active_edge_agent_for_lease_locked(self, agent_id: str, now: datetime) -> dict:
+        edge_agent = self._edge_agents.get(agent_id)
+        if edge_agent is None:
+            raise ValueError("edge agent not found")
+        resolved_agent = self._with_edge_agent_health(dict(edge_agent), now=now)
+        if str(resolved_agent.get("status", "")).lower() != "active":
+            raise ValueError("edge agent must be active")
+        if str(resolved_agent.get("health_state", "")).lower() == "stale":
+            raise ValueError("edge agent is stale")
+        return resolved_agent
+
+    def _get_valid_job_lease_locked(self, agent_id: str, job_id: str, lease_token: str, now: datetime) -> dict:
+        existing = self._offline_jobs.get(job_id)
+        if existing is None:
+            raise ValueError("offline job not found")
+        lease_agent_id = str(existing.get("lease_agent_id", "")).strip()
+        if lease_agent_id != agent_id:
+            raise ValueError("offline job lease holder mismatch")
+        token = str(existing.get("lease_token", "")).strip()
+        if not token or token != lease_token:
+            raise ValueError("offline job lease token mismatch")
+        lease_expires = self._parse_iso_datetime(str(existing.get("lease_expires_at", "")))
+        if lease_expires is None or lease_expires <= now:
+            raise ValueError("offline job lease expired")
+        return dict(existing)
+
+    def renew_offline_job_lease(self, payload: dict, now: datetime | None = None) -> dict:
+        required = ("agent_id", "job_id", "lease_token")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        agent_id = str(payload.get("agent_id", "")).strip()
+        job_id = str(payload.get("job_id", "")).strip()
+        lease_token = str(payload.get("lease_token", "")).strip()
+        if not agent_id or not job_id or not lease_token:
+            raise ValueError("agent_id/job_id/lease_token must not be empty")
+
+        lease_seconds = int(payload.get("lease_seconds", 60))
+        if lease_seconds < 5 or lease_seconds > 3600:
+            raise ValueError("lease_seconds must be between 5 and 3600")
+
+        at_dt = self._now_or(now)
+        at = at_dt.isoformat()
+        lease_expires_at = (at_dt + timedelta(seconds=lease_seconds)).isoformat()
+        with self._lock:
+            _ = self._resolve_active_edge_agent_for_lease_locked(agent_id, at_dt)
+            existing = self._get_valid_job_lease_locked(agent_id, job_id, lease_token, at_dt)
+
+            updated = dict(existing)
+            updated["lease_expires_at"] = lease_expires_at
+            updated["lease_updated_at"] = at
+            updated["updated_at"] = at
+            self._offline_jobs[job_id] = updated
+            if self._storage:
+                self._storage.upsert_offline_job(updated)
+            self._append_audit_locked(
+                "offline.job.lease.renew",
+                {
+                    "job_id": job_id,
+                    "agent_id": agent_id,
+                    "lease_expires_at": lease_expires_at,
+                },
+            )
+            return dict(updated)
+
+    def release_offline_job_lease(self, payload: dict, now: datetime | None = None) -> dict:
+        required = ("agent_id", "job_id", "lease_token")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        agent_id = str(payload.get("agent_id", "")).strip()
+        job_id = str(payload.get("job_id", "")).strip()
+        lease_token = str(payload.get("lease_token", "")).strip()
+        if not agent_id or not job_id or not lease_token:
+            raise ValueError("agent_id/job_id/lease_token must not be empty")
+
+        at_dt = self._now_or(now)
+        at = at_dt.isoformat()
+        with self._lock:
+            _ = self._resolve_active_edge_agent_for_lease_locked(agent_id, at_dt)
+            existing = self._get_valid_job_lease_locked(agent_id, job_id, lease_token, at_dt)
+
+            updated = dict(existing)
+            updated["lease_agent_id"] = ""
+            updated["lease_token"] = ""
+            updated["lease_expires_at"] = ""
+            updated["lease_updated_at"] = at
+            updated["updated_at"] = at
+            self._offline_jobs[job_id] = updated
+            if self._storage:
+                self._storage.upsert_offline_job(updated)
+            self._append_audit_locked(
+                "offline.job.lease.release",
+                {
+                    "job_id": job_id,
+                    "agent_id": agent_id,
+                },
+            )
+            return dict(updated)
+
     def upsert_offline_sync_cursor(self, payload: dict, now: datetime | None = None) -> dict:
         required = ("tenant_id", "site_id", "box_id", "cursor")
         for field in required:
