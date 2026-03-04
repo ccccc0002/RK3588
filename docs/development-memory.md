@@ -212,3 +212,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-iteration-7-network-policy/20260304-112019
 - Summary: added network policy baseline APIs with validation, RBAC, audit hooks, and docs parity
 - Next: persist audit/network policy into sqlite runtime storage and run P1 pre-closure review
+
+## [2026-03-04T11:24:30+08:00] P1-iteration-8-persistence-hardening
+- Branch: stage/P1-capability-enhancement
+- Commit: 8b4ab21
+- Tag: checkpoint/P1-iteration-8-persistence-hardening/20260304-112430
+- Summary: persisted audit and network policy in sqlite with restart recovery tests
+- Next: rerun remote py3.8 validation and then sync latest P1 branch to GitHub
