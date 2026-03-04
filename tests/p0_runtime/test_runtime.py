@@ -293,6 +293,66 @@ class P0RuntimeTests(unittest.TestCase):
         )
         self.assertEqual("exec-fresh", job["executor_id"])
 
+    def test_edge_agent_register_heartbeat_and_list(self) -> None:
+        registered = self.runtime.register_edge_agent(
+            {
+                "agent_id": "edge-agent-1",
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "endpoint": "http://edge-agent.local:9301",
+                "status": "active",
+                "capabilities": ["sync", "rollout"],
+            }
+        )
+        self.assertEqual("edge-agent-1", registered["agent_id"])
+        self.assertEqual("unknown", registered["health_state"])
+
+        heartbeat = self.runtime.heartbeat_edge_agent({"agent_id": "edge-agent-1"}, now=self.now)
+        self.assertEqual("healthy", heartbeat["health_state"])
+        self.assertTrue(bool(heartbeat["last_heartbeat_at"]))
+
+        listed = self.runtime.list_edge_agents(now=self.now)
+        self.assertEqual(1, len(listed))
+        self.assertEqual("edge-agent-1", listed[0]["agent_id"])
+        self.assertEqual("healthy", listed[0]["health_state"])
+
+    def test_offline_sync_cursor_conflict_detection(self) -> None:
+        created = self.runtime.upsert_offline_sync_cursor(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "cursor": "evt-100",
+            },
+            now=self.now,
+        )
+        self.assertEqual(1, created["version"])
+
+        with self.assertRaises(ValueError):
+            self.runtime.upsert_offline_sync_cursor(
+                {
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "cursor": "evt-101",
+                    "expected_version": 0,
+                },
+                now=self.now,
+            )
+
+        updated = self.runtime.upsert_offline_sync_cursor(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "cursor": "evt-102",
+                "expected_version": 1,
+            },
+            now=self.now,
+        )
+        self.assertEqual(2, updated["version"])
+
     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
         self.runtime.register_device(
             {

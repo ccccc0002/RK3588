@@ -275,6 +275,75 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual("healthy", hb_payload["data"]["health_state"])
         self.assertTrue(bool(hb_payload["data"]["last_heartbeat_at"]))
 
+    def test_edge_agent_and_offline_sync_endpoints(self) -> None:
+        reg_status, reg_payload = self._post(
+            "/api/v1/edge-agents/register",
+            {
+                "agent_id": "edge-http-1",
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "endpoint": "http://edge-agent.local:9501",
+                "status": "active",
+                "capabilities": ["sync", "rollout"],
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, reg_status)
+        self.assertTrue(reg_payload["success"])
+        self.assertEqual("edge-http-1", reg_payload["data"]["agent_id"])
+
+        hb_status, hb_payload = self._post(
+            "/api/v1/edge-agents/heartbeat",
+            {
+                "agent_id": "edge-http-1",
+                "now": datetime.now(timezone.utc).isoformat(),
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, hb_status)
+        self.assertTrue(hb_payload["success"])
+        self.assertEqual("healthy", hb_payload["data"]["health_state"])
+
+        list_status, list_payload = self._get("/api/v1/edge-agents", token=self.viewer_token)
+        self.assertEqual(200, list_status)
+        self.assertTrue(list_payload["success"])
+        self.assertTrue(any(item["agent_id"] == "edge-http-1" for item in list_payload["data"]["items"]))
+
+        cur_status, cur_payload = self._post(
+            "/api/v1/offline-sync/cursors/upsert",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "cursor": "evt-300",
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, cur_status)
+        self.assertTrue(cur_payload["success"])
+        self.assertEqual(1, cur_payload["data"]["version"])
+
+        conflict_status, conflict_payload = self._post(
+            "/api/v1/offline-sync/cursors/upsert",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "cursor": "evt-301",
+                "expected_version": 0,
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(400, conflict_status)
+        self.assertFalse(conflict_payload["success"])
+        self.assertEqual("bad_request", conflict_payload["error"]["code"])
+
+        get_status, get_payload = self._get("/api/v1/offline-sync/cursors", token=self.viewer_token)
+        self.assertEqual(200, get_status)
+        self.assertTrue(get_payload["success"])
+        self.assertTrue(any(item["cursor"] == "evt-300" for item in get_payload["data"]["items"]))
+
     def test_offline_jobs_endpoints(self) -> None:
         self._post(
             "/api/v1/offline-executors/upsert",
@@ -816,6 +885,33 @@ class P0HttpApiTests(unittest.TestCase):
                 "/api/v1/offline-executors/heartbeat",
                 {
                     "executor_id": "exec-http-heartbeat",
+                },
+            ),
+            (
+                "/api/v1/edge-agents/register",
+                {
+                    "agent_id": "edge-forbidden",
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "endpoint": "http://edge-agent.local:9509",
+                    "status": "active",
+                    "capabilities": ["sync"],
+                },
+            ),
+            (
+                "/api/v1/edge-agents/heartbeat",
+                {
+                    "agent_id": "edge-forbidden",
+                },
+            ),
+            (
+                "/api/v1/offline-sync/cursors/upsert",
+                {
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "cursor": "evt-forbidden",
                 },
             ),
         ]

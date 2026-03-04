@@ -483,6 +483,120 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/edge-agents:
+    get:
+      tags: [runtime]
+      summary: List edge agents
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Edge agent list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EdgeAgentListEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/edge-agents/register:
+    post:
+      tags: [runtime]
+      summary: Register or update edge agent
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterEdgeAgentRequest'
+      responses:
+        '200':
+          description: Registered edge agent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EdgeAgentEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/edge-agents/heartbeat:
+    post:
+      tags: [runtime]
+      summary: Update edge agent heartbeat
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EdgeAgentHeartbeatRequest'
+      responses:
+        '200':
+          description: Updated edge agent heartbeat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EdgeAgentEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/offline-sync/cursors:
+    get:
+      tags: [runtime]
+      summary: List offline sync cursors
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Offline sync cursor list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfflineSyncCursorListEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/offline-sync/cursors/upsert:
+    post:
+      tags: [runtime]
+      summary: Upsert offline sync cursor with optimistic version check
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertOfflineSyncCursorRequest'
+      responses:
+        '200':
+          description: Updated offline sync cursor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfflineSyncCursorEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/viewer-sessions/{streamId}/join:
     post:
       tags: [viewer]
@@ -1321,6 +1435,140 @@ components:
           items:
             $ref: '#/components/schemas/OfflineExecutorRecord'
 
+    RegisterEdgeAgentRequest:
+      type: object
+      required: [agent_id, tenant_id, site_id, box_id, endpoint, status]
+      additionalProperties: true
+      properties:
+        agent_id:
+          type: string
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        endpoint:
+          type: string
+        status:
+          type: string
+          enum: [active, drain, disabled]
+        capabilities:
+          type: array
+          items:
+            type: string
+        last_heartbeat_at:
+          type: string
+          format: date-time
+
+    EdgeAgentHeartbeatRequest:
+      type: object
+      required: [agent_id]
+      additionalProperties: true
+      properties:
+        agent_id:
+          type: string
+        now:
+          type: string
+          format: date-time
+
+    EdgeAgentRecord:
+      type: object
+      required:
+        - agent_id
+        - tenant_id
+        - site_id
+        - box_id
+        - endpoint
+        - status
+        - capabilities
+        - last_heartbeat_at
+        - health_state
+        - updated_at
+      properties:
+        agent_id:
+          type: string
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        endpoint:
+          type: string
+        status:
+          type: string
+          enum: [active, drain, disabled]
+        capabilities:
+          type: array
+          items:
+            type: string
+        last_heartbeat_at:
+          type: string
+        health_state:
+          type: string
+          enum: [healthy, unknown, stale]
+        updated_at:
+          type: string
+          format: date-time
+
+    EdgeAgentListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EdgeAgentRecord'
+
+    UpsertOfflineSyncCursorRequest:
+      type: object
+      required: [tenant_id, site_id, box_id, cursor]
+      additionalProperties: true
+      properties:
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        cursor:
+          type: string
+        expected_version:
+          type: integer
+          minimum: 0
+        now:
+          type: string
+          format: date-time
+
+    OfflineSyncCursorRecord:
+      type: object
+      required: [tenant_id, site_id, box_id, cursor, version, updated_at]
+      properties:
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        cursor:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        updated_at:
+          type: string
+          format: date-time
+
+    OfflineSyncCursorListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OfflineSyncCursorRecord'
+
     CreateOfflineJobRequest:
       type: object
       required: [job_id, source_scope, algorithm_id, algorithm_version]
@@ -1977,6 +2225,38 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/OfflineJobListData'
+
+    EdgeAgentEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/EdgeAgentRecord'
+
+    EdgeAgentListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/EdgeAgentListData'
+
+    OfflineSyncCursorEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/OfflineSyncCursorRecord'
+
+    OfflineSyncCursorListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/OfflineSyncCursorListData'
 
     ViewerSessionEnvelope:
       allOf:

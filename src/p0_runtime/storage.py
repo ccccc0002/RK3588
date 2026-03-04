@@ -112,6 +112,27 @@ class RuntimeStorage:
             )
             cur.execute(
                 """
+                CREATE TABLE IF NOT EXISTS edge_agents (
+                  agent_id TEXT PRIMARY KEY,
+                  record_json TEXT NOT NULL,
+                  updated_at TEXT NOT NULL
+                )
+                """
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS offline_sync_cursors (
+                  tenant_id TEXT NOT NULL,
+                  site_id TEXT NOT NULL,
+                  box_id TEXT NOT NULL,
+                  record_json TEXT NOT NULL,
+                  updated_at TEXT NOT NULL,
+                  PRIMARY KEY (tenant_id, site_id, box_id)
+                )
+                """
+            )
+            cur.execute(
+                """
                 CREATE TABLE IF NOT EXISTS push_queue (
                   sequence_no INTEGER NOT NULL,
                   task_id TEXT PRIMARY KEY,
@@ -416,6 +437,67 @@ class RuntimeStorage:
             )
             self._conn.commit()
 
+    def load_edge_agents(self) -> Dict[str, dict]:
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT agent_id, record_json
+                FROM edge_agents
+                ORDER BY agent_id
+                """
+            ).fetchall()
+
+        items: Dict[str, dict] = {}
+        for row in rows:
+            items[str(row["agent_id"])] = dict(json.loads(row["record_json"]))
+        return items
+
+    def upsert_edge_agent(self, record: dict) -> None:
+        agent_id = str(record["agent_id"])
+        payload = json.dumps(record, sort_keys=True, separators=(",", ":"))
+        now = datetime.utcnow().isoformat()
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO edge_agents
+                (agent_id, record_json, updated_at)
+                VALUES (?, ?, ?)
+                """,
+                (agent_id, payload, now),
+            )
+            self._conn.commit()
+
+    def load_offline_sync_cursors(self) -> Dict[Tuple[str, str, str], dict]:
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT tenant_id, site_id, box_id, record_json
+                FROM offline_sync_cursors
+                ORDER BY tenant_id, site_id, box_id
+                """
+            ).fetchall()
+
+        items: Dict[Tuple[str, str, str], dict] = {}
+        for row in rows:
+            key = (str(row["tenant_id"]), str(row["site_id"]), str(row["box_id"]))
+            items[key] = dict(json.loads(row["record_json"]))
+        return items
+
+    def upsert_offline_sync_cursor(self, record: dict) -> None:
+        key = (str(record["tenant_id"]), str(record["site_id"]), str(record["box_id"]))
+        payload = json.dumps(record, sort_keys=True, separators=(",", ":"))
+        now = datetime.utcnow().isoformat()
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO offline_sync_cursors
+                (tenant_id, site_id, box_id, record_json, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (key[0], key[1], key[2], payload, now),
+            )
+            self._conn.commit()
+
     def load_push_state(self) -> PushState:
         with self._lock:
             queue_rows = self._conn.execute(
@@ -654,6 +736,8 @@ class RuntimeStorage:
             )
             offline_executor_count = int(self._conn.execute("SELECT COUNT(1) FROM offline_executors").fetchone()[0])
             offline_job_count = int(self._conn.execute("SELECT COUNT(1) FROM offline_jobs").fetchone()[0])
+            edge_agent_count = int(self._conn.execute("SELECT COUNT(1) FROM edge_agents").fetchone()[0])
+            offline_sync_cursor_count = int(self._conn.execute("SELECT COUNT(1) FROM offline_sync_cursors").fetchone()[0])
             push_queue_count = int(self._conn.execute("SELECT COUNT(1) FROM push_queue").fetchone()[0])
             dead_letter_count = int(self._conn.execute("SELECT COUNT(1) FROM push_dead_letters").fetchone()[0])
             event_seen_count = int(self._conn.execute("SELECT COUNT(1) FROM event_seen_keys").fetchone()[0])
@@ -669,6 +753,8 @@ class RuntimeStorage:
             "base_library_compatibility_policy_count": base_library_compatibility_policy_count,
             "offline_executor_count": offline_executor_count,
             "offline_job_count": offline_job_count,
+            "edge_agent_count": edge_agent_count,
+            "offline_sync_cursor_count": offline_sync_cursor_count,
             "push_queue_count": push_queue_count,
             "dead_letter_count": dead_letter_count,
             "event_seen_count": event_seen_count,

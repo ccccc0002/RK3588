@@ -57,6 +57,10 @@ class P0Runtime:
         )
         self._offline_executors: Dict[str, dict] = self._storage.load_offline_executors() if self._storage else {}
         self._offline_jobs: Dict[str, dict] = self._storage.load_offline_jobs() if self._storage else {}
+        self._edge_agents: Dict[str, dict] = self._storage.load_edge_agents() if self._storage else {}
+        self._offline_sync_cursors: Dict[tuple[str, str, str], dict] = (
+            self._storage.load_offline_sync_cursors() if self._storage else {}
+        )
         self._push_worker: PushWorker | None = None
         self._last_capability_schedule: SchedulePlan | None = None
         self._audit_records: list[dict] = self._storage.load_audit_records() if self._storage else []
@@ -633,6 +637,177 @@ class P0Runtime:
         with self._lock:
             items = [self._with_executor_health(dict(item), now=now) for item in self._offline_executors.values()]
         items.sort(key=lambda item: item["executor_id"])
+        return items
+
+    @staticmethod
+    def _normalize_edge_agent_status(value: str) -> str:
+        status = str(value).strip().lower()
+        if status not in {"active", "drain", "disabled"}:
+            raise ValueError(f"unsupported edge agent status: {status}")
+        return status
+
+    def _edge_agent_health_state(self, record: dict, now: datetime | None = None) -> str:
+        raw = str(record.get("last_heartbeat_at", "")).strip()
+        if not raw:
+            return "unknown"
+        try:
+            heartbeat_at = datetime.fromisoformat(raw)
+        except ValueError:
+            return "unknown"
+        if heartbeat_at.tzinfo is None:
+            heartbeat_at = heartbeat_at.replace(tzinfo=timezone.utc)
+        reference = self._now_or(now)
+        age_seconds = (reference - heartbeat_at).total_seconds()
+        if age_seconds <= 300:
+            return "healthy"
+        return "stale"
+
+    def _with_edge_agent_health(self, record: dict, now: datetime | None = None) -> dict:
+        enriched = dict(record)
+        enriched["last_heartbeat_at"] = str(enriched.get("last_heartbeat_at", "")).strip()
+        enriched["health_state"] = self._edge_agent_health_state(enriched, now=now)
+        return enriched
+
+    def register_edge_agent(self, payload: dict) -> dict:
+        required = ("agent_id", "tenant_id", "site_id", "box_id", "endpoint", "status")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        capabilities_raw = payload.get("capabilities", [])
+        if not isinstance(capabilities_raw, list):
+            raise ValueError("capabilities must be a list")
+
+        agent_id = str(payload["agent_id"]).strip()
+        endpoint = str(payload["endpoint"]).strip()
+        if not agent_id:
+            raise ValueError("agent_id must not be empty")
+        if not (endpoint.startswith("http://") or endpoint.startswith("https://")):
+            raise ValueError("endpoint must start with http:// or https://")
+        last_heartbeat = str(payload.get("last_heartbeat_at", "")).strip()
+        if last_heartbeat:
+            try:
+                datetime.fromisoformat(last_heartbeat)
+            except ValueError:
+                raise ValueError("last_heartbeat_at must be ISO datetime")
+
+        at = datetime.now(timezone.utc).isoformat()
+        with self._lock:
+            existing = dict(self._edge_agents.get(agent_id, {}))
+            resolved_heartbeat = last_heartbeat or str(existing.get("last_heartbeat_at", "")).strip()
+            record = {
+                "agent_id": agent_id,
+                "tenant_id": str(payload["tenant_id"]).strip(),
+                "site_id": str(payload["site_id"]).strip(),
+                "box_id": str(payload["box_id"]).strip(),
+                "endpoint": endpoint,
+                "status": self._normalize_edge_agent_status(str(payload["status"])),
+                "capabilities": [str(item).strip().lower() for item in capabilities_raw if str(item).strip()],
+                "last_heartbeat_at": resolved_heartbeat,
+                "health_state": "",
+                "updated_at": at,
+            }
+            record["health_state"] = self._edge_agent_health_state(record)
+            self._edge_agents[agent_id] = record
+            if self._storage:
+                self._storage.upsert_edge_agent(record)
+            self._append_audit_locked(
+                "edge.agent.register",
+                {
+                    "agent_id": record["agent_id"],
+                    "tenant_id": record["tenant_id"],
+                    "site_id": record["site_id"],
+                    "box_id": record["box_id"],
+                    "status": record["status"],
+                    "health_state": record["health_state"],
+                },
+            )
+            return dict(record)
+
+    def heartbeat_edge_agent(self, payload: dict, now: datetime | None = None) -> dict:
+        if "agent_id" not in payload:
+            raise ValueError("missing required field: agent_id")
+        agent_id = str(payload["agent_id"]).strip()
+        if not agent_id:
+            raise ValueError("agent_id must not be empty")
+        at = self._now_or(now).isoformat()
+        with self._lock:
+            existing = self._edge_agents.get(agent_id)
+            if existing is None:
+                raise ValueError("edge agent not found")
+            updated = dict(existing)
+            updated["last_heartbeat_at"] = at
+            updated["health_state"] = "healthy"
+            updated["updated_at"] = at
+            self._edge_agents[agent_id] = updated
+            if self._storage:
+                self._storage.upsert_edge_agent(updated)
+            self._append_audit_locked(
+                "edge.agent.heartbeat",
+                {
+                    "agent_id": agent_id,
+                    "last_heartbeat_at": at,
+                    "health_state": "healthy",
+                },
+            )
+            return dict(updated)
+
+    def list_edge_agents(self, now: datetime | None = None) -> list[dict]:
+        with self._lock:
+            items = [self._with_edge_agent_health(dict(item), now=now) for item in self._edge_agents.values()]
+        items.sort(key=lambda item: item["agent_id"])
+        return items
+
+    def upsert_offline_sync_cursor(self, payload: dict, now: datetime | None = None) -> dict:
+        required = ("tenant_id", "site_id", "box_id", "cursor")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        key = (
+            str(payload["tenant_id"]).strip(),
+            str(payload["site_id"]).strip(),
+            str(payload["box_id"]).strip(),
+        )
+        cursor = str(payload["cursor"]).strip()
+        if not all(key) or not cursor:
+            raise ValueError("tenant_id/site_id/box_id/cursor must not be empty")
+
+        expected_version_raw = payload.get("expected_version")
+        expected_version = None if expected_version_raw is None else int(expected_version_raw)
+        at = self._now_or(now).isoformat()
+        with self._lock:
+            existing = self._offline_sync_cursors.get(key)
+            current_version = int(existing["version"]) if existing is not None else 0
+            if expected_version is not None and expected_version != current_version:
+                raise ValueError("offline sync cursor version conflict")
+
+            record = {
+                "tenant_id": key[0],
+                "site_id": key[1],
+                "box_id": key[2],
+                "cursor": cursor,
+                "version": current_version + 1,
+                "updated_at": at,
+            }
+            self._offline_sync_cursors[key] = record
+            if self._storage:
+                self._storage.upsert_offline_sync_cursor(record)
+            self._append_audit_locked(
+                "offline.sync.cursor.upsert",
+                {
+                    "tenant_id": key[0],
+                    "site_id": key[1],
+                    "box_id": key[2],
+                    "version": record["version"],
+                },
+            )
+            return dict(record)
+
+    def list_offline_sync_cursors(self) -> list[dict]:
+        with self._lock:
+            items = [dict(item) for item in self._offline_sync_cursors.values()]
+        items.sort(key=lambda item: (item["tenant_id"], item["site_id"], item["box_id"]))
         return items
 
     @staticmethod

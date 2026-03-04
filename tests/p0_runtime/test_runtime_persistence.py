@@ -208,6 +208,61 @@ class P0RuntimePersistenceTests(unittest.TestCase):
                 if rt2 is not None:
                     rt2.close()
 
+    def test_edge_agent_registry_recovers_after_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "runtime.db")
+            rt1 = self._runtime(db_path)
+            rt2 = None
+            try:
+                rt1.register_edge_agent(
+                    {
+                        "agent_id": "edge-agent-persist",
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "endpoint": "http://edge-agent.local:9401",
+                        "status": "active",
+                        "capabilities": ["sync"],
+                    }
+                )
+                rt1.heartbeat_edge_agent({"agent_id": "edge-agent-persist"}, now=self.now)
+
+                rt2 = self._runtime(db_path)
+                agents = rt2.list_edge_agents(now=self.now)
+                self.assertEqual(1, len(agents))
+                self.assertEqual("edge-agent-persist", agents[0]["agent_id"])
+                self.assertEqual("healthy", agents[0]["health_state"])
+            finally:
+                rt1.close()
+                if rt2 is not None:
+                    rt2.close()
+
+    def test_offline_sync_cursor_recovers_after_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "runtime.db")
+            rt1 = self._runtime(db_path)
+            rt2 = None
+            try:
+                rt1.upsert_offline_sync_cursor(
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "cursor": "evt-200",
+                    },
+                    now=self.now,
+                )
+
+                rt2 = self._runtime(db_path)
+                cursors = rt2.list_offline_sync_cursors()
+                self.assertEqual(1, len(cursors))
+                self.assertEqual("evt-200", cursors[0]["cursor"])
+                self.assertEqual(1, cursors[0]["version"])
+            finally:
+                rt1.close()
+                if rt2 is not None:
+                    rt2.close()
+
     def test_push_queue_recovers_after_restart(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "runtime.db")

@@ -132,6 +132,20 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return denied
         return ok_payload({"items": rt.list_offline_jobs()})
 
+    @app.get("/api/v1/edge-agents")
+    def list_edge_agents(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(authorization, required_get_action("/api/v1/edge-agents") or "device:read")
+        if denied is not None:
+            return denied
+        return ok_payload({"items": rt.list_edge_agents()})
+
+    @app.get("/api/v1/offline-sync/cursors")
+    def list_offline_sync_cursors(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(authorization, required_get_action("/api/v1/offline-sync/cursors") or "device:read")
+        if denied is not None:
+            return denied
+        return ok_payload({"items": rt.list_offline_sync_cursors()})
+
     @app.get("/api/v1/push/worker/status")
     def push_worker_status(authorization: str = Header(default="", alias="Authorization")):
         denied = _authorize_request(authorization, required_get_action("/api/v1/push/worker/status") or "device:read")
@@ -326,6 +340,48 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return denied
         try:
             return ok_payload(rt.heartbeat_offline_executor(dict(payload), now=_parse_time(payload.get("now"))))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/edge-agents/register")
+    def register_edge_agent_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, required_post_action("/api/v1/edge-agents/register") or "device:write")
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.register_edge_agent(dict(payload)))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/edge-agents/heartbeat")
+    def heartbeat_edge_agent_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, required_post_action("/api/v1/edge-agents/heartbeat") or "device:write")
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.heartbeat_edge_agent(dict(payload), now=_parse_time(payload.get("now"))))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/offline-sync/cursors/upsert")
+    def upsert_offline_sync_cursor_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(
+            authorization,
+            required_post_action("/api/v1/offline-sync/cursors/upsert") or "device:write",
+        )
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.upsert_offline_sync_cursor(dict(payload), now=_parse_time(payload.get("now"))))
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 

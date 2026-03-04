@@ -118,6 +118,14 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             _json_response(self, 200, ok_payload({"items": self.runtime.list_offline_jobs()}))
             return
 
+        if parsed.path == "/api/v1/edge-agents":
+            _json_response(self, 200, ok_payload({"items": self.runtime.list_edge_agents()}))
+            return
+
+        if parsed.path == "/api/v1/offline-sync/cursors":
+            _json_response(self, 200, ok_payload({"items": self.runtime.list_offline_sync_cursors()}))
+            return
+
         if parsed.path == "/api/v1/push/worker/status":
             _json_response(self, 200, ok_payload(self.runtime.push_worker_status()))
             return
@@ -224,6 +232,21 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
 
             if parsed.path == "/api/v1/offline-executors/heartbeat":
                 res = self.runtime.heartbeat_offline_executor(dict(body), now=_parse_time(body.get("now")))
+                _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/edge-agents/register":
+                res = self.runtime.register_edge_agent(dict(body))
+                _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/edge-agents/heartbeat":
+                res = self.runtime.heartbeat_edge_agent(dict(body), now=_parse_time(body.get("now")))
+                _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/offline-sync/cursors/upsert":
+                res = self.runtime.upsert_offline_sync_cursor(dict(body), now=_parse_time(body.get("now")))
                 _json_response(self, 200, ok_payload(res))
                 return
 

@@ -338,6 +338,60 @@ GB28181 example:
   - 200 envelope with `{ "items": [ ...OfflineJobRecord ] }`
   - validation: each item follows single status-update transition rules
 
+### Edge Agents
+
+- `GET /api/v1/edge-agents`
+  - RBAC: requires `device:read`
+  - 200 envelope with `{ "items": [ { "agent_id": "...", "tenant_id": "...", "site_id": "...", "box_id": "...", "endpoint": "http://...", "status": "active|drain|disabled", "capabilities": [], "last_heartbeat_at": "...|''", "health_state": "healthy|unknown|stale", "updated_at": "..." } ] }`
+
+- `POST /api/v1/edge-agents/register`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "agent_id": "edge-agent-1",
+      "tenant_id": "t1",
+      "site_id": "s1",
+      "box_id": "b1",
+      "endpoint": "http://edge-agent.local:9501",
+      "status": "active",
+      "capabilities": ["sync", "rollout"]
+    }
+    ```
+  - 200 envelope with registered edge-agent record
+
+- `POST /api/v1/edge-agents/heartbeat`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "agent_id": "edge-agent-1",
+      "now": "2026-03-04T13:00:00+00:00"
+    }
+    ```
+  - 200 envelope with heartbeat-updated edge-agent record (`health_state=healthy`)
+
+### Offline Sync Cursor
+
+- `GET /api/v1/offline-sync/cursors`
+  - RBAC: requires `device:read`
+  - 200 envelope with `{ "items": [ { "tenant_id": "...", "site_id": "...", "box_id": "...", "cursor": "...", "version": 1, "updated_at": "..." } ] }`
+
+- `POST /api/v1/offline-sync/cursors/upsert`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "tenant_id": "t1",
+      "site_id": "s1",
+      "box_id": "b1",
+      "cursor": "evt-300",
+      "expected_version": 1
+    }
+    ```
+  - 200 envelope with upserted cursor record (version auto-increments)
+  - conflict behavior: if `expected_version` does not match current version, returns `400 bad_request`
+
 ### Viewer sessions
 
 - `POST /api/v1/viewer-sessions/{streamId}/join`
