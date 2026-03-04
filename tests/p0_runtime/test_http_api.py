@@ -1631,6 +1631,24 @@ class P0HttpApiTests(unittest.TestCase):
         actions = [item["action"] for item in op_payload["data"]["items"]]
         self.assertIn("device.register", actions)
         self.assertIn("device.capabilities.update", actions)
+        self.assertGreaterEqual(len(op_payload["data"]["items"]), 2)
+
+        anchor_id = int(op_payload["data"]["items"][1]["id"])
+        page_status, page_payload = self._get(
+            f"/api/v1/audit/recent?limit=5&before_id={anchor_id}",
+            token=self.operator_token,
+        )
+        self.assertEqual(200, page_status)
+        self.assertTrue(page_payload["success"])
+        self.assertTrue(all(int(item["id"]) < anchor_id for item in page_payload["data"]["items"]))
+
+        bad_before_id_status, bad_before_id_payload = self._get(
+            "/api/v1/audit/recent?limit=5&before_id=bad",
+            token=self.operator_token,
+        )
+        self.assertEqual(400, bad_before_id_status)
+        self.assertFalse(bad_before_id_payload["success"])
+        self.assertEqual("bad_request", bad_before_id_payload["error"]["code"])
 
     def test_audit_policy_endpoints(self) -> None:
         update_status, update_payload = self._post(

@@ -161,11 +161,18 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         return ok_payload(rt.push_worker_status())
 
     @app.get("/api/v1/audit/recent")
-    def audit_recent(limit: int = 20, authorization: str = Header(default="", alias="Authorization")):
+    def audit_recent(
+        limit: int = 20,
+        before_id: Optional[str] = None,
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
         denied = _authorize_request(authorization, required_get_action("/api/v1/audit/recent") or "device:write")
         if denied is not None:
             return denied
-        return ok_payload({"items": rt.list_audit_records(limit=limit)})
+        try:
+            return ok_payload({"items": rt.list_audit_records(limit=limit, before_id=before_id)})
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 
     @app.get("/api/v1/audit/policy")
     def get_audit_policy_ep(authorization: str = Header(default="", alias="Authorization")):

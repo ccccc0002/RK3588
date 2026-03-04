@@ -2077,6 +2077,32 @@ class P0RuntimeTests(unittest.TestCase):
         records = self.runtime.list_audit_records(limit=20)
         self.assertLessEqual(len(records), 3)
 
+    def test_list_audit_records_before_id_cursor(self) -> None:
+        for idx in range(3):
+            self.runtime.register_device(
+                {
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "device_id": f"cam-audit-cursor-{idx}",
+                    "protocol": "rtsp",
+                    "stream_url": f"rtsp://10.0.1.{idx}/live",
+                    "enabled": True,
+                }
+            )
+
+        items = self.runtime.list_audit_records(limit=10)
+        self.assertGreaterEqual(len(items), 3)
+        anchor_id = int(items[1]["id"])
+        older_items = self.runtime.list_audit_records(limit=10, before_id=anchor_id)
+        self.assertGreaterEqual(len(older_items), 1)
+        self.assertTrue(all(int(item["id"]) < anchor_id for item in older_items))
+
+        with self.assertRaisesRegex(ValueError, "before_id must be a positive integer"):
+            self.runtime.list_audit_records(limit=10, before_id=0)
+        with self.assertRaisesRegex(ValueError, "before_id must be a positive integer"):
+            self.runtime.list_audit_records(limit=10, before_id="bad")
+
     def test_list_gray_rollout_batch_plan_cache_operations(self) -> None:
         self.runtime.update_gray_rollout_policy(
             {

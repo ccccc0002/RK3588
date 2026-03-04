@@ -1526,10 +1526,22 @@ class P0Runtime:
         items.sort(key=lambda item: (item.get("updated_at", ""), item.get("job_id", "")), reverse=True)
         return items
 
-    def list_audit_records(self, limit: int = 20) -> list[dict]:
+    def list_audit_records(self, limit: int = 20, before_id: object = None) -> list[dict]:
         capped = max(1, min(200, int(limit)))
+        max_id_exclusive = self._normalize_audit_before_id(before_id)
         with self._lock:
-            tail = self._audit_records[-capped:]
+            if max_id_exclusive is None:
+                filtered = self._audit_records
+            else:
+                filtered = []
+                for item in self._audit_records:
+                    try:
+                        record_id = int(item.get("id"))
+                    except (TypeError, ValueError):
+                        continue
+                    if record_id < max_id_exclusive:
+                        filtered.append(item)
+            tail = filtered[-capped:]
             items = [dict(item) for item in reversed(tail)]
         return items
 
@@ -1546,7 +1558,7 @@ class P0Runtime:
         return value
 
     @staticmethod
-    def _normalize_cache_operations_before_id(before_id: object) -> int | None:
+    def _normalize_audit_before_id(before_id: object) -> int | None:
         if before_id is None:
             return None
         if isinstance(before_id, bool):
@@ -1561,7 +1573,7 @@ class P0Runtime:
 
     def list_gray_rollout_batch_plan_cache_operations(self, limit: object = 20, before_id: object = None) -> list[dict]:
         capped = self._normalize_cache_operations_list_limit(limit)
-        max_id_exclusive = self._normalize_cache_operations_before_id(before_id)
+        max_id_exclusive = self._normalize_audit_before_id(before_id)
         prefix = "gray_rollout.plan_batch.cache.clear"
         with self._lock:
             matched: list[dict] = []
@@ -1584,7 +1596,7 @@ class P0Runtime:
         self, limit: object = 20, before_id: object = None
     ) -> list[dict]:
         capped = self._normalize_cache_operations_list_limit(limit)
-        max_id_exclusive = self._normalize_cache_operations_before_id(before_id)
+        max_id_exclusive = self._normalize_audit_before_id(before_id)
         action = "gray_rollout.plan_batch.cache.policy.update"
         with self._lock:
             matched: list[dict] = []
