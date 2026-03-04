@@ -506,3 +506,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-2-gray-plan-missing-status-validated/20260304-160451
 - Summary: hardened gray rollout dependency plan with missing_status diagnostics and kept local+remote validation green
 - Next: sync branch and tags, then continue post-P3 dependency orchestration hardening
+
+## [2026-03-04T16:09:53+08:00] P4-iteration-3-gray-plan-batch-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 1802559
+- Tag: checkpoint/P4-iteration-3-gray-plan-batch-validated/20260304-160953
+- Summary: added gray rollout batch planning endpoint with local+remote validation and docs/openapi parity
+- Next: sync branch and tags, then continue post-P3 orchestration hardening
