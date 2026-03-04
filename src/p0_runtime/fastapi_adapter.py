@@ -4,6 +4,7 @@ from datetime import datetime
 import importlib.util
 from typing import Any
 
+from src.p0_runtime.api_policy import is_supported_role, required_get_action, required_post_action
 from src.p0_runtime.runtime import P0Runtime
 
 
@@ -38,36 +39,6 @@ def _sender_for_mode(mode: str | None):
         return lambda _task: True
     if normalized == "always_fail":
         return lambda _task: False
-    return None
-
-
-def _required_get_action(path: str) -> str | None:
-    if path == "/api/v1/runtime/snapshot":
-        return "alert:read"
-    if path == "/api/v1/metrics":
-        return "alert:read"
-    if path == "/api/v1/devices":
-        return "device:read"
-    if path == "/api/v1/push/worker/status":
-        return "device:read"
-    return None
-
-
-def _required_post_action(path: str) -> str | None:
-    if path == "/api/v1/devices/register":
-        return "device:write"
-    if path.startswith("/api/v1/viewer-sessions/") and path.endswith("/join"):
-        return "device:read"
-    if path.startswith("/api/v1/viewer-sessions/") and path.endswith("/leave"):
-        return "device:read"
-    if path == "/api/v1/events":
-        return "device:write"
-    if path == "/api/v1/push/dispatch":
-        return "device:write"
-    if path == "/api/v1/push/worker/start":
-        return "device:write"
-    if path == "/api/v1/push/worker/stop":
-        return "device:write"
     return None
 
 
@@ -138,8 +109,7 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         x_bootstrap_token: str = Header(default="", alias="X-Bootstrap-Token"),
     ):
         role = str(payload.get("role", "viewer"))
-        allowed_roles = {"admin", "operator", "viewer"}
-        if role not in allowed_roles:
+        if not is_supported_role(role):
             return JSONResponse(status_code=400, content=_err("bad_request", f"unsupported role: {role}"))
 
         if role == "admin":

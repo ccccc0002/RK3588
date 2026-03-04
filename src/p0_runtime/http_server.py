@@ -7,6 +7,7 @@ import os
 from typing import Any, Callable
 from urllib.parse import urlparse
 
+from src.p0_runtime.api_policy import is_supported_role, required_get_action, required_post_action
 from src.p0_runtime.runtime import P0Runtime
 
 
@@ -49,36 +50,6 @@ def _sender_for_mode(mode: str | None) -> Callable[[object], bool] | None:
     return None
 
 
-def _required_get_action(path: str) -> str | None:
-    if path == "/api/v1/runtime/snapshot":
-        return "alert:read"
-    if path == "/api/v1/metrics":
-        return "alert:read"
-    if path == "/api/v1/devices":
-        return "device:read"
-    if path == "/api/v1/push/worker/status":
-        return "device:read"
-    return None
-
-
-def _required_post_action(path: str) -> str | None:
-    if path == "/api/v1/devices/register":
-        return "device:write"
-    if path.startswith("/api/v1/viewer-sessions/") and path.endswith("/join"):
-        return "device:read"
-    if path.startswith("/api/v1/viewer-sessions/") and path.endswith("/leave"):
-        return "device:read"
-    if path == "/api/v1/events":
-        return "device:write"
-    if path == "/api/v1/push/dispatch":
-        return "device:write"
-    if path == "/api/v1/push/worker/start":
-        return "device:write"
-    if path == "/api/v1/push/worker/stop":
-        return "device:write"
-    return None
-
-
 class _RuntimeHandler(BaseHTTPRequestHandler):
     runtime: P0Runtime
     bootstrap_token: str = ""
@@ -116,7 +87,7 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
-        required_action = _required_get_action(parsed.path)
+        required_action = required_get_action(parsed.path)
         if required_action is not None:
             denied_status, denied_payload = self._authorize(required_action)
             if denied_status is not None:
@@ -145,7 +116,7 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
         try:
             parsed = urlparse(self.path)
             if parsed.path != "/api/v1/auth/token":
-                required_action = _required_post_action(parsed.path)
+                required_action = required_post_action(parsed.path)
                 if required_action is not None:
                     denied_status, denied_payload = self._authorize(required_action)
                     if denied_status is not None:
@@ -158,8 +129,7 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
 
             if parsed.path == "/api/v1/auth/token":
                 role = str(body.get("role", "viewer"))
-                allowed_roles = {"admin", "operator", "viewer"}
-                if role not in allowed_roles:
+                if not is_supported_role(role):
                     _json_response(self, 400, _err("bad_request", f"unsupported role: {role}"))
                     return
 
