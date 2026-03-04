@@ -548,3 +548,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-8-gray-plan-idempotency-cache-validated/20260304-164920
 - Summary: added idempotency_key cache semantics for gray rollout batch planning with conflict detection and cache metadata under local+remote validation
 - Next: sync stage/P3-phase2-readiness branch and checkpoint tags to GitHub, then continue P4 hardening slices
+
+## [2026-03-04T16:51:58+08:00] P4-iteration-9-gray-plan-idempotency-ttl-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: b6f1d13
+- Tag: checkpoint/P4-iteration-9-gray-plan-idempotency-ttl-validated/20260304-165158
+- Summary: hardened gray rollout batch idempotency cache contract with cache_ttl_seconds guardrails and validated runtime/http regression coverage on local+remote
+- Next: sync stage/P3-phase2-readiness and iteration-9 checkpoint tags to GitHub, then continue P4 next hardening slice
