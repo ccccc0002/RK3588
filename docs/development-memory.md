@@ -317,3 +317,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P2-iteration-4-executor-compatibility-local-gate/20260304-131659
 - Summary: executor binding + compatibility policy delivered with full local test pass
 - Next: rerun remote py3.8 validation after SSH credential recovery, then issue remote-validated checkpoint
+
+## [2026-03-04T13:23:41+08:00] P2-iteration-5-batch-governance-local-gate
+- Branch: stage/P2-business-expansion
+- Commit: 3dfab6d
+- Tag: checkpoint/P2-iteration-5-batch-governance-local-gate/20260304-132341
+- Summary: added batch governance APIs for mappings and offline-job status with docs/openapi parity
+- Next: rerun remote py3.8 gate after SSH auth recovery then issue remote-validated closure checkpoint
