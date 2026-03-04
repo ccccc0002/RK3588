@@ -205,3 +205,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-iteration-6-audit-trail/20260304-111448
 - Summary: implemented audit trail model, RBAC-protected audit endpoint, and capability scheduler docs parity
 - Next: implement lane D network policy baseline with validation and persistence hooks
+
+## [2026-03-04T11:20:19+08:00] P1-iteration-7-network-policy
+- Branch: stage/P1-capability-enhancement
+- Commit: 88dbb1c
+- Tag: checkpoint/P1-iteration-7-network-policy/20260304-112019
+- Summary: added network policy baseline APIs with validation, RBAC, audit hooks, and docs parity
+- Next: persist audit/network policy into sqlite runtime storage and run P1 pre-closure review
