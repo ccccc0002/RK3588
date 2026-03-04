@@ -91,6 +91,13 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return denied
         return ok_payload(rt.push_worker_status())
 
+    @app.get("/api/v1/audit/recent")
+    def audit_recent(limit: int = 20, authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(authorization, required_get_action("/api/v1/audit/recent") or "device:write")
+        if denied is not None:
+            return denied
+        return ok_payload({"items": rt.list_audit_records(limit=limit)})
+
     @app.post("/api/v1/auth/token")
     def issue_token_ep(
         payload: dict = Body(default_factory=dict),

@@ -292,6 +292,33 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/audit/recent:
+    get:
+      tags: [runtime]
+      summary: List recent audit records
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 20
+      responses:
+        '200':
+          description: Recent audit records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditListEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/runtime/snapshot:
     get:
       tags: [runtime]
@@ -774,6 +801,30 @@ components:
           items:
             $ref: '#/components/schemas/RuntimeScheduleStream'
 
+    AuditRecord:
+      type: object
+      required: [id, at, action, details]
+      properties:
+        id:
+          type: integer
+        at:
+          type: string
+          format: date-time
+        action:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    AuditListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditRecord'
+
     MetricsData:
       type: object
       required:
@@ -918,6 +969,14 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/RuntimeScheduleData'
+
+    AuditListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AuditListData'
 
     MetricsEnvelope:
       allOf:

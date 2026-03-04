@@ -245,6 +245,44 @@ class P0HttpApiTests(unittest.TestCase):
             streams["cam-schedule-basic"]["sample_fps"],
         )
 
+    def test_audit_recent_endpoint_requires_operator_role(self) -> None:
+        self._post(
+            "/api/v1/devices/register",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-audit-http",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.41/live",
+                "enabled": True,
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/devices/capabilities",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-audit-http",
+                "capabilities": {"ocr": True, "face": False},
+            },
+            token=self.operator_token,
+        )
+
+        viewer_status, viewer_payload = self._get("/api/v1/audit/recent?limit=5", token=self.viewer_token)
+        self.assertEqual(403, viewer_status)
+        self.assertFalse(viewer_payload["success"])
+        self.assertEqual("forbidden", viewer_payload["error"]["code"])
+
+        op_status, op_payload = self._get("/api/v1/audit/recent?limit=5", token=self.operator_token)
+        self.assertEqual(200, op_status)
+        self.assertTrue(op_payload["success"])
+        actions = [item["action"] for item in op_payload["data"]["items"]]
+        self.assertIn("device.register", actions)
+        self.assertIn("device.capabilities.update", actions)
+
     def test_push_worker_and_metrics_endpoints(self) -> None:
         self._post(
             "/api/v1/events",

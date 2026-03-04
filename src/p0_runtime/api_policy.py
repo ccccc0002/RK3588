@@ -17,6 +17,8 @@ def required_get_action(path: str) -> str | None:
         return "device:read"
     if path == "/api/v1/push/worker/status":
         return "device:read"
+    if path == "/api/v1/audit/recent":
+        return "device:write"
     return None
 
 

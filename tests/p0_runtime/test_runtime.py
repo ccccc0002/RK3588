@@ -106,6 +106,33 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIn("cam-basic", streams)
         self.assertGreaterEqual(streams["cam-face"]["sample_fps"], streams["cam-basic"]["sample_fps"])
 
+    def test_audit_records_capture_device_changes(self) -> None:
+        self.runtime.register_device(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-audit",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.40/live",
+                "enabled": True,
+            }
+        )
+        self.runtime.update_device_capabilities(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-audit",
+                "capabilities": {"ocr": True, "face": False},
+            }
+        )
+
+        records = self.runtime.list_audit_records(limit=10)
+        actions = [item["action"] for item in records]
+        self.assertIn("device.register", actions)
+        self.assertIn("device.capabilities.update", actions)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -36,6 +36,8 @@ class P0Runtime:
         self._devices: Dict[tuple[str, str, str, str], dict] = self._storage.load_devices() if self._storage else {}
         self._push_worker: PushWorker | None = None
         self._last_capability_schedule: SchedulePlan | None = None
+        self._audit_records: list[dict] = []
+        self._audit_next_id: int = 1
 
         self._metrics = {
             "dispatch_runs": 0,
@@ -84,6 +86,18 @@ class P0Runtime:
             return
         self._storage.replace_push_state(self._push_state)
 
+    def _append_audit_locked(self, action: str, details: dict) -> None:
+        record = {
+            "id": self._audit_next_id,
+            "at": datetime.now(timezone.utc).isoformat(),
+            "action": str(action),
+            "details": dict(details),
+        }
+        self._audit_next_id += 1
+        self._audit_records.append(record)
+        if len(self._audit_records) > 2000:
+            self._audit_records = self._audit_records[-2000:]
+
     def issue_token(self, user_id: str, role: str, now: datetime | None = None) -> dict:
         at = self._now_or(now)
         token = issue_token(user_id=user_id, role=role, issued_at=at, secret=self._token_secret)
@@ -121,6 +135,16 @@ class P0Runtime:
             self._devices[key] = record
             if self._storage:
                 self._storage.upsert_device(record)
+            self._append_audit_locked(
+                "device.register",
+                {
+                    "tenant_id": record["tenant_id"],
+                    "site_id": record["site_id"],
+                    "box_id": record["box_id"],
+                    "device_id": record["device_id"],
+                    "protocol": record["protocol"],
+                },
+            )
         return dict(record)
 
     def update_device_capabilities(self, payload: dict) -> dict:
@@ -147,6 +171,16 @@ class P0Runtime:
             self._devices[key] = updated
             if self._storage:
                 self._storage.upsert_device(updated)
+            self._append_audit_locked(
+                "device.capabilities.update",
+                {
+                    "tenant_id": key[0],
+                    "site_id": key[1],
+                    "box_id": key[2],
+                    "device_id": key[3],
+                    "capabilities": capabilities,
+                },
+            )
 
         return dict(updated)
 
@@ -154,6 +188,13 @@ class P0Runtime:
         with self._lock:
             items = [dict(item) for item in self._devices.values()]
         items.sort(key=lambda item: (item["tenant_id"], item["site_id"], item["box_id"], item["device_id"]))
+        return items
+
+    def list_audit_records(self, limit: int = 20) -> list[dict]:
+        capped = max(1, min(200, int(limit)))
+        with self._lock:
+            tail = self._audit_records[-capped:]
+            items = [dict(item) for item in reversed(tail)]
         return items
 
     def plan_capability_schedule(self, budget: float) -> dict:

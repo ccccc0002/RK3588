@@ -15,6 +15,7 @@ class ApiPolicyTests(unittest.TestCase):
         self.assertEqual("alert:read", required_get_action("/api/v1/metrics"))
         self.assertEqual("device:read", required_get_action("/api/v1/devices"))
         self.assertEqual("device:read", required_get_action("/api/v1/push/worker/status"))
+        self.assertEqual("device:write", required_get_action("/api/v1/audit/recent"))
         self.assertIsNone(required_get_action("/api/v1/unknown"))
 
     def test_required_post_action_mapping(self) -> None:

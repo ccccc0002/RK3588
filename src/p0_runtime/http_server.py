@@ -5,7 +5,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from typing import Any, Callable
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from src.p0_runtime.api_envelope import error_payload, ok_payload
 from src.p0_runtime.api_policy import is_supported_role, required_get_action, required_post_action
@@ -96,6 +96,12 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/v1/push/worker/status":
             _json_response(self, 200, ok_payload(self.runtime.push_worker_status()))
+            return
+
+        if parsed.path == "/api/v1/audit/recent":
+            query = parse_qs(parsed.query)
+            limit = int((query.get("limit", ["20"]) or ["20"])[0])
+            _json_response(self, 200, ok_payload({"items": self.runtime.list_audit_records(limit=limit)}))
             return
 
         _json_response(self, 404, error_payload("not_found", "endpoint not found"))

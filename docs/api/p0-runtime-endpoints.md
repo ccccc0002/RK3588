@@ -212,6 +212,12 @@ GB28181 example:
     - `total_cost`
     - `streams[]` with `device_id`, `sample_fps`, `estimated_cost`
 
+### Audit
+
+- `GET /api/v1/audit/recent?limit=20`
+  - RBAC: requires `device:write` (`operator`/`admin` allowed, `viewer` forbidden)
+  - 200 envelope with `{ "items": [ { "id": 1, "at": "...", "action": "...", "details": {} } ] }`
+
 ## FastAPI Compatibility Layer
 
 File: `src/p0_runtime/fastapi_adapter.py`
