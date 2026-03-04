@@ -646,3 +646,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-22-gray-plan-cache-policy-history-validated/20260304-182622
 - Summary: added gray batch cache policy history endpoint with RBAC/runtime/http/fastapi/docs/openapi parity and validated tests
 - Next: continue post-P3 cache governance hardening with policy-history ergonomics
+
+## [2026-03-04T18:34:36+08:00] P4-iteration-23-gray-plan-cache-audit-cursor-pagination-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: ec2f914
+- Tag: checkpoint/P4-iteration-23-gray-plan-cache-audit-cursor-pagination-validated/20260304-183436
+- Summary: added before_id keyset pagination for gray batch cache ops and cache policy history audit endpoints with runtime/http/fastapi/docs/openapi parity and local+remote validation
+- Next: continue post-P3 cache governance hardening with operator-centric audit ergonomics
