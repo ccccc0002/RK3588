@@ -34,3 +34,12 @@ Local closure review is accepted with one external blocker:
 
 1. Run remote validation on the py3.8 target host (`python -m unittest discover -s tests -p 'test_*.py'`).
 2. If remote is green, create final P0 stage-closure checkpoint and advance to next stage.
+
+Recommended runner:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run-remote-p0-validation.ps1 `
+  -RemoteHost 192.168.1.104 `
+  -User <remote-user> `
+  -RepoPath /path/to/RK3588
+```

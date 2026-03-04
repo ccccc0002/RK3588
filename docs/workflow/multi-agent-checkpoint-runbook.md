@@ -95,6 +95,15 @@ List checkpoints:
 powershell -ExecutionPolicy Bypass -File .\scripts\list-checkpoints.ps1
 ```
 
+Run remote py3.8 validation gate (before final stage closure):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run-remote-p0-validation.ps1 `
+  -RemoteHost 192.168.1.104 `
+  -User <remote-user> `
+  -RepoPath /path/to/RK3588
+```
+
 Restore from latest checkpoint (create resume branch):
 
 ```powershell
