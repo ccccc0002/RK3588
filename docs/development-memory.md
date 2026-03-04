@@ -373,3 +373,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P3-iteration-3-gray-rollout-local-gate/20260304-141233
 - Summary: added gray rollout policy and evaluation API/contracts with runtime persistence and docs
 - Next: run remote py3.8 validation and issue validated checkpoint
+
+## [2026-03-04T14:14:03+08:00] P3-iteration-3-gray-rollout-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: e76b653
+- Tag: checkpoint/P3-iteration-3-gray-rollout-validated/20260304-141403
+- Summary: validated gray rollout policy/evaluation iteration on local py3.11 and remote py3.8.10
+- Next: continue P3 edge orchestration contracts and pre-closure checklist
