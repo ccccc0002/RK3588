@@ -37,6 +37,10 @@ class P0Runtime:
         self._push_worker: PushWorker | None = None
         self._last_capability_schedule: SchedulePlan | None = None
         self._audit_records: list[dict] = self._storage.load_audit_records() if self._storage else []
+        self._audit_policy: dict = self._storage.load_audit_policy() if self._storage else {"max_records": 2000}
+        max_records = max(1, int(self._audit_policy.get("max_records", 2000)))
+        if len(self._audit_records) > max_records:
+            self._audit_records = self._audit_records[-max_records:]
         max_audit_id = max((int(item["id"]) for item in self._audit_records), default=0)
         self._audit_next_id: int = max_audit_id + 1
         self._network_policy: dict = (
@@ -100,10 +104,16 @@ class P0Runtime:
         }
         self._audit_next_id += 1
         self._audit_records.append(record)
-        if len(self._audit_records) > 2000:
-            self._audit_records = self._audit_records[-2000:]
         if self._storage is not None:
             self._storage.append_audit_record(record)
+        self._apply_audit_retention_locked()
+
+    def _apply_audit_retention_locked(self) -> None:
+        max_records = max(1, int(self._audit_policy.get("max_records", 2000)))
+        if len(self._audit_records) > max_records:
+            self._audit_records = self._audit_records[-max_records:]
+        if self._storage is not None:
+            self._storage.prune_audit_records(max_records)
 
     def issue_token(self, user_id: str, role: str, now: datetime | None = None) -> dict:
         at = self._now_or(now)
@@ -203,6 +213,29 @@ class P0Runtime:
             tail = self._audit_records[-capped:]
             items = [dict(item) for item in reversed(tail)]
         return items
+
+    @staticmethod
+    def _normalize_audit_policy(payload: dict) -> dict:
+        if "max_records" not in payload:
+            raise ValueError("missing required field: max_records")
+        max_records = int(payload["max_records"])
+        if max_records < 1 or max_records > 50000:
+            raise ValueError("max_records must be between 1 and 50000")
+        return {"max_records": max_records}
+
+    def get_audit_policy(self) -> dict:
+        with self._lock:
+            return dict(self._audit_policy)
+
+    def update_audit_policy(self, payload: dict) -> dict:
+        normalized = self._normalize_audit_policy(dict(payload))
+        with self._lock:
+            self._audit_policy = normalized
+            if self._storage is not None:
+                self._storage.replace_audit_policy(self._audit_policy)
+            self._apply_audit_retention_locked()
+            self._append_audit_locked("audit.policy.update", {"policy": dict(normalized)})
+            return dict(self._audit_policy)
 
     @staticmethod
     def _normalize_network_policy(payload: dict) -> dict:
@@ -510,6 +543,7 @@ class P0Runtime:
             data["dead_letter_current"] = len(self._push_state.dead_letters)
             data["device_count"] = len(self._devices)
             data["telemetry_count"] = len(self._stream_telemetry)
+            data["audit_max_records"] = int(self._audit_policy.get("max_records", 2000))
             data["storage_enabled"] = bool(storage is not None)
         if storage is not None:
             data["storage"] = storage.stats()

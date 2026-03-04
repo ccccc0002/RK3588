@@ -17,6 +17,7 @@ class FastApiAdapterTests(unittest.TestCase):
             self.assertIn("/api/v1/runtime/schedule", paths)
             self.assertIn("/api/v1/runtime/telemetry", paths)
             self.assertIn("/api/v1/audit/recent", paths)
+            self.assertIn("/api/v1/audit/policy", paths)
             self.assertIn("/api/v1/network/policy", paths)
             self.assertIn("/api/v1/events", paths)
             self.assertIn("/api/v1/push/dispatch", paths)

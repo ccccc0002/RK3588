@@ -354,6 +354,21 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIn("device.register", actions)
         self.assertIn("device.capabilities.update", actions)
 
+    def test_audit_policy_endpoints(self) -> None:
+        update_status, update_payload = self._post(
+            "/api/v1/audit/policy",
+            {"max_records": 128},
+            token=self.operator_token,
+        )
+        self.assertEqual(200, update_status)
+        self.assertTrue(update_payload["success"])
+        self.assertEqual(128, update_payload["data"]["max_records"])
+
+        get_status, get_payload = self._get("/api/v1/audit/policy", token=self.viewer_token)
+        self.assertEqual(200, get_status)
+        self.assertTrue(get_payload["success"])
+        self.assertEqual(128, get_payload["data"]["max_records"])
+
     def test_network_policy_endpoints(self) -> None:
         update_status, update_payload = self._post(
             "/api/v1/network/policy",

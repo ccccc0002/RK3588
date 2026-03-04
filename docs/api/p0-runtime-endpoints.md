@@ -239,6 +239,22 @@ GB28181 example:
   - RBAC: requires `device:write` (`operator`/`admin` allowed, `viewer` forbidden)
   - 200 envelope with `{ "items": [ { "id": 1, "at": "...", "action": "...", "details": {} } ] }`
 
+- `GET /api/v1/audit/policy`
+  - RBAC: requires `device:read`
+  - 200 envelope with current retention policy:
+    - `max_records`
+
+- `POST /api/v1/audit/policy`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "max_records": 2000
+    }
+    ```
+  - 200 envelope with updated policy
+  - effect: both in-memory and persisted audit records are pruned to `max_records`
+
 ### Network Policy
 
 - `GET /api/v1/network/policy`

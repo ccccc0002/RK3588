@@ -19,6 +19,8 @@ def required_get_action(path: str) -> str | None:
         return "device:read"
     if path == "/api/v1/audit/recent":
         return "device:write"
+    if path == "/api/v1/audit/policy":
+        return "device:read"
     if path == "/api/v1/network/policy":
         return "device:read"
     if path == "/api/v1/runtime/telemetry":
@@ -33,6 +35,8 @@ def required_post_action(path: str) -> str | None:
         return "device:write"
     if path == "/api/v1/runtime/schedule":
         return "device:read"
+    if path == "/api/v1/audit/policy":
+        return "device:write"
     if path == "/api/v1/runtime/telemetry":
         return "device:write"
     if path == "/api/v1/network/policy":

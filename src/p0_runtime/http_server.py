@@ -104,6 +104,10 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             _json_response(self, 200, ok_payload({"items": self.runtime.list_audit_records(limit=limit)}))
             return
 
+        if parsed.path == "/api/v1/audit/policy":
+            _json_response(self, 200, ok_payload(self.runtime.get_audit_policy()))
+            return
+
         if parsed.path == "/api/v1/network/policy":
             _json_response(self, 200, ok_payload(self.runtime.get_network_policy()))
             return
@@ -177,6 +181,11 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
 
             if parsed.path == "/api/v1/network/policy":
                 res = self.runtime.update_network_policy(dict(body))
+                _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/audit/policy":
+                res = self.runtime.update_audit_policy(dict(body))
                 _json_response(self, 200, ok_payload(res))
                 return
 

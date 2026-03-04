@@ -323,6 +323,48 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/audit/policy:
+    get:
+      tags: [runtime]
+      summary: Read audit retention policy
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Current audit retention policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditPolicyEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      tags: [runtime]
+      summary: Update audit retention policy
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuditPolicyRequest'
+      responses:
+        '200':
+          description: Updated audit retention policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditPolicyEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/network/policy:
     get:
       tags: [runtime]
@@ -964,6 +1006,25 @@ components:
           items:
             $ref: '#/components/schemas/AuditRecord'
 
+    AuditPolicyRequest:
+      type: object
+      required: [max_records]
+      additionalProperties: true
+      properties:
+        max_records:
+          type: integer
+          minimum: 1
+          maximum: 50000
+
+    AuditPolicyData:
+      type: object
+      required: [max_records]
+      properties:
+        max_records:
+          type: integer
+          minimum: 1
+          maximum: 50000
+
     NetworkPolicyRequest:
       type: object
       additionalProperties: true
@@ -1000,6 +1061,7 @@ components:
         - dead_letter_current
         - device_count
         - telemetry_count
+        - audit_max_records
         - storage_enabled
         - storage
       properties:
@@ -1040,6 +1102,9 @@ components:
         telemetry_count:
           type: integer
           minimum: 0
+        audit_max_records:
+          type: integer
+          minimum: 1
         storage_enabled:
           type: boolean
         storage:
@@ -1158,6 +1223,14 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/AuditListData'
+
+    AuditPolicyEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AuditPolicyData'
 
     NetworkPolicyEnvelope:
       allOf:

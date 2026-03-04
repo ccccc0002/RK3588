@@ -182,6 +182,27 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIn("device.register", actions)
         self.assertIn("device.capabilities.update", actions)
 
+    def test_audit_policy_limits_record_count(self) -> None:
+        updated = self.runtime.update_audit_policy({"max_records": 3})
+        self.assertEqual(3, updated["max_records"])
+        self.assertEqual(3, self.runtime.get_audit_policy()["max_records"])
+
+        for idx in range(6):
+            self.runtime.register_device(
+                {
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "device_id": f"cam-retain-{idx}",
+                    "protocol": "rtsp",
+                    "stream_url": f"rtsp://10.0.0.{70 + idx}/live",
+                    "enabled": True,
+                }
+            )
+
+        records = self.runtime.list_audit_records(limit=20)
+        self.assertLessEqual(len(records), 3)
+
     def test_update_and_get_network_policy(self) -> None:
         updated = self.runtime.update_network_policy(
             {
