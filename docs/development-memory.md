@@ -352,3 +352,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P3-iteration-1-heartbeat-semver-validated/20260304-135023
 - Summary: validated executor-heartbeat and semver-compatibility iteration on local py3.11 and remote py3.8.10
 - Next: continue P3 scope: edge-agent and offline-sync readiness contracts
+
+## [2026-03-04T14:01:44+08:00] P3-iteration-2-edge-sync-local-gate
+- Branch: stage/P3-phase2-readiness
+- Commit: f3c1c1f
+- Tag: checkpoint/P3-iteration-2-edge-sync-local-gate/20260304-140144
+- Summary: added edge-agent and offline-sync cursor readiness contracts with tests and docs
+- Next: run remote py3.8 gate and issue validated checkpoint
