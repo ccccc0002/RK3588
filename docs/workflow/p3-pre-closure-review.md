@@ -1,6 +1,6 @@
 ﻿# P3 Pre-Closure Review
 
-Last updated: 2026-03-04T18:25:00+08:00  
+Last updated: 2026-03-04T18:29:00+08:00  
 Branch: `stage/P3-phase2-readiness`
 
 ## Delivered in P3 So Far
@@ -41,8 +41,8 @@ Branch: `stage/P3-phase2-readiness`
 
 1. Local gate: `python -m unittest discover -s tests -p 'test_*.py'`  
    Result: 127 tests pass on Python 3.11 (iteration-10 local DAG update).
-2. Remote gate on `192.168.1.104` (Python 3.8.10): 125 tests passed for iteration-9; iteration-10 rerun pending.
-3. GitHub sync: iteration-9 checkpoint/tags are synced; iteration-10 sync pending remote validation.
+2. Remote gate on `192.168.1.104` (Python 3.8.10): 127 tests pass for iteration-10 via isolated bundle clone.
+3. GitHub sync: iteration-9 checkpoint/tags are synced; iteration-10 validated checkpoint/tag sync pending.
 
 ## Current Gaps Before P3 Closure
 
@@ -50,6 +50,6 @@ Branch: `stage/P3-phase2-readiness`
 
 ## Recommended Final P3 Closure Tasks
 
-1. Run remote py3.8.10 validation on iteration-10 DAG commit and sync checkpoint/tags.
+1. Sync iteration-10 validated checkpoint/tag to GitHub.
 2. Decide whether evaluation-only DAG baseline is sufficient for P3 closure or if execution planning must be added now.
 3. Run final P3 closure review and decide whether to close stage or continue hardening backlog.
