@@ -513,3 +513,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-3-gray-plan-batch-validated/20260304-160953
 - Summary: added gray rollout batch planning endpoint with local+remote validation and docs/openapi parity
 - Next: sync branch and tags, then continue post-P3 orchestration hardening
+
+## [2026-03-04T16:16:31+08:00] P4-iteration-4-gray-plan-batch-continue-on-error-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 5cb522c
+- Tag: checkpoint/P4-iteration-4-gray-plan-batch-continue-on-error-validated/20260304-161631
+- Summary: added continue_on_error partial-success mode for gray rollout batch planning with structured error reporting and local+remote validation
+- Next: sync branch and tags, then continue post-P3 orchestration hardening
