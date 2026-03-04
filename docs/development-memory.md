@@ -156,3 +156,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-iteration-1-gb28181-scaffold/20260304-103624
 - Summary: implemented P1 GB28181 normalization scaffold with test coverage
 - Next: integrate gb28181 adapter into runtime register/list device APIs
+
+## [2026-03-04T10:40:30+08:00] P1-iteration-2-gb28181-runtime
+- Branch: stage/P1-capability-enhancement
+- Commit: 464b2a2
+- Tag: checkpoint/P1-iteration-2-gb28181-runtime/20260304-104030
+- Summary: wired gb28181 adapter into runtime register/list flow with protocol-aware required-field validation
+- Next: run remote py3.8 gate for P1 iteration 2 and update api docs for gb28181
