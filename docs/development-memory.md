@@ -562,3 +562,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-10-gray-plan-idempotency-metrics-validated/20260304-165827
 - Summary: added gray batch idempotency cache observability metrics to runtime metrics endpoint with local+remote validated tests and docs parity
 - Next: sync stage/P3-phase2-readiness and iteration-10 checkpoint tags to GitHub, then continue next P4 hardening slice
+
+## [2026-03-04T17:01:18+08:00] P4-iteration-11-gray-plan-cache-eviction-metrics-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 6ca78ef
+- Tag: checkpoint/P4-iteration-11-gray-plan-cache-eviction-metrics-validated/20260304-170118
+- Summary: added gray batch cache eviction observability counters with expiry/overflow regression coverage and local+remote validation
+- Next: sync stage/P3-phase2-readiness and iteration-11 checkpoint tags to GitHub, then continue next P4 hardening slice
