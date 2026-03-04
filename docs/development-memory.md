@@ -541,3 +541,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-7-gray-plan-retry-hint-validated/20260304-163340
 - Summary: added applied_range and retry_hint contracts for gray rollout batch planning with local+remote validation
 - Next: sync branch and tags, then continue post-P3 orchestration hardening
+
+## [2026-03-04T16:49:20+08:00] P4-iteration-8-gray-plan-idempotency-cache-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: d722f40
+- Tag: checkpoint/P4-iteration-8-gray-plan-idempotency-cache-validated/20260304-164920
+- Summary: added idempotency_key cache semantics for gray rollout batch planning with conflict detection and cache metadata under local+remote validation
+- Next: sync stage/P3-phase2-readiness branch and checkpoint tags to GitHub, then continue P4 hardening slices
