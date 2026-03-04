@@ -387,6 +387,9 @@ paths:
     post:
       tags: [runtime]
       summary: Build capability-aware sampling schedule for enabled devices
+      description: >-
+        Uses latest runtime telemetry `fps_in` per device when available, and
+        falls back to default input FPS `8.0` when telemetry is missing.
       security:
         - BearerAuth: []
       requestBody:
@@ -402,6 +405,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RuntimeScheduleEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/runtime/telemetry:
+    get:
+      tags: [runtime]
+      summary: List latest per-device stream telemetry used by scheduler
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Runtime telemetry list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeTelemetryListEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      tags: [runtime]
+      summary: Upsert latest stream telemetry for a device
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuntimeTelemetryRequest'
+      responses:
+        '200':
+          description: Updated telemetry record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeTelemetryEnvelope'
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
@@ -847,6 +892,54 @@ components:
           items:
             $ref: '#/components/schemas/RuntimeScheduleStream'
 
+    RuntimeTelemetryRequest:
+      type: object
+      required: [tenant_id, site_id, box_id, device_id, fps_in]
+      additionalProperties: true
+      properties:
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        device_id:
+          type: string
+        fps_in:
+          type: number
+          exclusiveMinimum: 0
+        now:
+          type: string
+          format: date-time
+
+    RuntimeTelemetryRecord:
+      type: object
+      required: [tenant_id, site_id, box_id, device_id, fps_in, updated_at]
+      properties:
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        device_id:
+          type: string
+        fps_in:
+          type: number
+          exclusiveMinimum: 0
+        updated_at:
+          type: string
+          format: date-time
+
+    RuntimeTelemetryListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuntimeTelemetryRecord'
+
     AuditRecord:
       type: object
       required: [id, at, action, details]
@@ -906,6 +999,7 @@ components:
         - queue_current
         - dead_letter_current
         - device_count
+        - telemetry_count
         - storage_enabled
         - storage
       properties:
@@ -941,6 +1035,9 @@ components:
           type: integer
           minimum: 0
         device_count:
+          type: integer
+          minimum: 0
+        telemetry_count:
           type: integer
           minimum: 0
         storage_enabled:
@@ -1037,6 +1134,22 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/RuntimeScheduleData'
+
+    RuntimeTelemetryEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/RuntimeTelemetryRecord'
+
+    RuntimeTelemetryListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/RuntimeTelemetryListData'
 
     AuditListEnvelope:
       allOf:

@@ -245,6 +245,77 @@ class P0HttpApiTests(unittest.TestCase):
             streams["cam-schedule-basic"]["sample_fps"],
         )
 
+    def test_runtime_telemetry_endpoint_influences_schedule(self) -> None:
+        self._post(
+            "/api/v1/devices/register",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-telemetry-low-http",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.60/live",
+                "capabilities": {"ocr": False, "face": False},
+                "enabled": True,
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/devices/register",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-telemetry-high-http",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.61/live",
+                "capabilities": {"ocr": False, "face": False},
+                "enabled": True,
+            },
+            token=self.operator_token,
+        )
+
+        low_status, low_payload = self._post(
+            "/api/v1/runtime/telemetry",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-telemetry-low-http",
+                "fps_in": 2.0,
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, low_status)
+        self.assertTrue(low_payload["success"])
+
+        high_status, high_payload = self._post(
+            "/api/v1/runtime/telemetry",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-telemetry-high-http",
+                "fps_in": 16.0,
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, high_status)
+        self.assertTrue(high_payload["success"])
+
+        telemetry_status, telemetry_payload = self._get("/api/v1/runtime/telemetry", token=self.viewer_token)
+        self.assertEqual(200, telemetry_status)
+        self.assertTrue(telemetry_payload["success"])
+
+        status, payload = self._post("/api/v1/runtime/schedule", {"budget": 100.0}, token=self.viewer_token)
+        self.assertEqual(200, status)
+        self.assertTrue(payload["success"])
+        streams = {item["device_id"]: item for item in payload["data"]["streams"]}
+        self.assertGreater(
+            streams["cam-telemetry-high-http"]["sample_fps"],
+            streams["cam-telemetry-low-http"]["sample_fps"],
+        )
+
     def test_audit_recent_endpoint_requires_operator_role(self) -> None:
         self._post(
             "/api/v1/devices/register",

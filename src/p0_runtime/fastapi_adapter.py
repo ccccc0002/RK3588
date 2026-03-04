@@ -215,6 +215,26 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         budget = float(payload.get("budget", 10.0))
         return ok_payload(rt.plan_capability_schedule(budget=budget))
 
+    @app.get("/api/v1/runtime/telemetry")
+    def runtime_telemetry_ep(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(authorization, required_get_action("/api/v1/runtime/telemetry") or "device:read")
+        if denied is not None:
+            return denied
+        return ok_payload({"items": rt.list_stream_telemetry()})
+
+    @app.post("/api/v1/runtime/telemetry")
+    def update_runtime_telemetry_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, required_post_action("/api/v1/runtime/telemetry") or "device:write")
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.update_stream_telemetry(dict(payload), now=_parse_time(payload.get("now"))))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
     @app.post("/api/v1/network/policy")
     def update_network_policy_ep(
         payload: dict = Body(default_factory=dict),

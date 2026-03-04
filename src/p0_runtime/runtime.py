@@ -42,6 +42,7 @@ class P0Runtime:
         self._network_policy: dict = (
             self._storage.load_network_policy() if self._storage else {"enforce_allowlist": False, "webhook_allowlist": []}
         )
+        self._stream_telemetry: Dict[tuple[str, str, str, str], dict] = {}
 
         self._metrics = {
             "dispatch_runs": 0,
@@ -247,21 +248,76 @@ class P0Runtime:
         url = str(target_url)
         return any(url.startswith(prefix) for prefix in allowlist)
 
+    @staticmethod
+    def _device_key(payload: dict) -> tuple[str, str, str, str]:
+        return (
+            str(payload["tenant_id"]),
+            str(payload["site_id"]),
+            str(payload["box_id"]),
+            str(payload["device_id"]),
+        )
+
+    def update_stream_telemetry(self, payload: dict, now: datetime | None = None) -> dict:
+        required = ("tenant_id", "site_id", "box_id", "device_id", "fps_in")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        key = self._device_key(payload)
+        fps_in = float(payload["fps_in"])
+        if fps_in <= 0:
+            raise ValueError("fps_in must be positive")
+
+        at = self._now_or(now).isoformat()
+        record = {
+            "tenant_id": key[0],
+            "site_id": key[1],
+            "box_id": key[2],
+            "device_id": key[3],
+            "fps_in": fps_in,
+            "updated_at": at,
+        }
+        with self._lock:
+            if key not in self._devices:
+                raise ValueError("device not found")
+            self._stream_telemetry[key] = record
+            self._append_audit_locked(
+                "runtime.telemetry.update",
+                {
+                    "tenant_id": key[0],
+                    "site_id": key[1],
+                    "box_id": key[2],
+                    "device_id": key[3],
+                    "fps_in": fps_in,
+                    "updated_at": at,
+                },
+            )
+        return dict(record)
+
+    def list_stream_telemetry(self) -> list[dict]:
+        with self._lock:
+            items = [dict(item) for item in self._stream_telemetry.values()]
+        items.sort(key=lambda item: (item["tenant_id"], item["site_id"], item["box_id"], item["device_id"]))
+        return items
+
     def plan_capability_schedule(self, budget: float) -> dict:
         capped_budget = max(0.1, float(budget))
         with self._lock:
             devices = [dict(item) for item in self._devices.values() if bool(item.get("enabled", True))]
             previous = self._last_capability_schedule
+            telemetry_map = {key: float(item.get("fps_in", 8.0)) for key, item in self._stream_telemetry.items()}
 
         streams = []
         for item in devices:
+            key = (item["tenant_id"], item["site_id"], item["box_id"], item["device_id"])
+            fps_in = float(telemetry_map.get(key, 8.0))
             capabilities = self._normalize_capabilities(item.get("capabilities"))
             priority = 3 if capabilities["face"] else (2 if capabilities["ocr"] else 1)
             complexity = 1.0 + (0.6 if capabilities["face"] else 0.0) + (0.4 if capabilities["ocr"] else 0.0)
             streams.append(
                 StreamLoad(
                     stream_id=str(item["device_id"]),
-                    fps_in=8.0,
+                    fps_in=fps_in,
                     complexity=complexity,
                     priority=priority,
                 )
@@ -453,6 +509,7 @@ class P0Runtime:
             data["queue_current"] = len(self._push_state.tasks)
             data["dead_letter_current"] = len(self._push_state.dead_letters)
             data["device_count"] = len(self._devices)
+            data["telemetry_count"] = len(self._stream_telemetry)
             data["storage_enabled"] = bool(storage is not None)
         if storage is not None:
             data["storage"] = storage.stats()

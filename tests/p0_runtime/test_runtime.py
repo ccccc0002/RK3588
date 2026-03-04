@@ -106,6 +106,55 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIn("cam-basic", streams)
         self.assertGreaterEqual(streams["cam-face"]["sample_fps"], streams["cam-basic"]["sample_fps"])
 
+    def test_capability_schedule_uses_stream_telemetry_fps(self) -> None:
+        self.runtime.register_device(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-telemetry-low",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.50/live",
+                "enabled": True,
+            }
+        )
+        self.runtime.register_device(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-telemetry-high",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.51/live",
+                "enabled": True,
+            }
+        )
+        self.runtime.update_stream_telemetry(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-telemetry-low",
+                "fps_in": 2.0,
+            },
+            now=self.now,
+        )
+        self.runtime.update_stream_telemetry(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-telemetry-high",
+                "fps_in": 16.0,
+            },
+            now=self.now,
+        )
+
+        plan = self.runtime.plan_capability_schedule(budget=100.0)
+        streams = {item["device_id"]: item for item in plan["streams"]}
+        self.assertGreater(streams["cam-telemetry-high"]["sample_fps"], streams["cam-telemetry-low"]["sample_fps"])
+        self.assertLessEqual(streams["cam-telemetry-low"]["sample_fps"], 2.0)
+
     def test_audit_records_capture_device_changes(self) -> None:
         self.runtime.register_device(
             {

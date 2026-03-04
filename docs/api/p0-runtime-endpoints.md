@@ -212,6 +212,26 @@ GB28181 example:
     - `degraded`
     - `total_cost`
     - `streams[]` with `device_id`, `sample_fps`, `estimated_cost`
+  - scheduler input `fps_in` comes from latest runtime telemetry when available, otherwise falls back to default `8.0`
+
+- `GET /api/v1/runtime/telemetry`
+  - RBAC: requires `device:read`
+  - 200 envelope with `{ "items": [ { "tenant_id": "...", "site_id": "...", "box_id": "...", "device_id": "...", "fps_in": 12.0, "updated_at": "..." } ] }`
+
+- `POST /api/v1/runtime/telemetry`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "tenant_id": "t1",
+      "site_id": "s1",
+      "box_id": "b1",
+      "device_id": "cam-1",
+      "fps_in": 12.0,
+      "now": "2026-03-03T08:00:00+00:00"
+    }
+    ```
+  - 200 envelope with updated telemetry record
 
 ### Audit
 

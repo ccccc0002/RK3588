@@ -21,6 +21,8 @@ def required_get_action(path: str) -> str | None:
         return "device:write"
     if path == "/api/v1/network/policy":
         return "device:read"
+    if path == "/api/v1/runtime/telemetry":
+        return "device:read"
     return None
 
 
@@ -31,6 +33,8 @@ def required_post_action(path: str) -> str | None:
         return "device:write"
     if path == "/api/v1/runtime/schedule":
         return "device:read"
+    if path == "/api/v1/runtime/telemetry":
+        return "device:write"
     if path == "/api/v1/network/policy":
         return "device:write"
     if path.startswith("/api/v1/viewer-sessions/") and path.endswith("/join"):
