@@ -261,3 +261,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-iteration-10-policy-dead-letter-validated/20260304-114244
 - Summary: validated policy-denied immediate dead-letter behavior on local py3.11 and remote py3.8.10
 - Next: continue P1 closure backlog: telemetry-bound scheduler and configurable audit retention
+
+## [2026-03-04T11:50:46+08:00] P1-iteration-11-telemetry-scheduler-validated
+- Branch: stage/P1-capability-enhancement
+- Commit: 4caf66f
+- Tag: checkpoint/P1-iteration-11-telemetry-scheduler-validated/20260304-115046
+- Summary: bound scheduler to runtime telemetry API and validated on local py3.11 + remote py3.8.10
+- Next: implement configurable audit retention policy for final P1 closure
