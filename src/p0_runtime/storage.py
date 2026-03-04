@@ -202,6 +202,15 @@ class RuntimeStorage:
             )
             cur.execute(
                 """
+                CREATE TABLE IF NOT EXISTS gray_batch_cache_policy (
+                  singleton_id INTEGER PRIMARY KEY CHECK (singleton_id = 1),
+                  policy_json TEXT NOT NULL,
+                  updated_at TEXT NOT NULL
+                )
+                """
+            )
+            cur.execute(
+                """
                 CREATE TABLE IF NOT EXISTS audit_records (
                   id INTEGER PRIMARY KEY,
                   at TEXT NOT NULL,
@@ -727,6 +736,33 @@ class RuntimeStorage:
             )
             self._conn.commit()
 
+    def load_gray_batch_cache_policy(self) -> dict:
+        with self._lock:
+            row = self._conn.execute(
+                """
+                SELECT policy_json
+                FROM gray_batch_cache_policy
+                WHERE singleton_id = 1
+                """
+            ).fetchone()
+        if row is None:
+            return {"default_max_clear_entries": None}
+        return dict(json.loads(str(row["policy_json"])))
+
+    def replace_gray_batch_cache_policy(self, policy: dict) -> None:
+        payload = json.dumps(policy, sort_keys=True, separators=(",", ":"))
+        now = datetime.utcnow().isoformat()
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO gray_batch_cache_policy
+                (singleton_id, policy_json, updated_at)
+                VALUES (1, ?, ?)
+                """,
+                (payload, now),
+            )
+            self._conn.commit()
+
     def load_audit_records(self, limit: int = 2000) -> list[dict]:
         capped = max(1, min(5000, int(limit)))
         with self._lock:
@@ -833,6 +869,9 @@ class RuntimeStorage:
             audit_policy_count = int(self._conn.execute("SELECT COUNT(1) FROM audit_policy").fetchone()[0])
             network_policy_count = int(self._conn.execute("SELECT COUNT(1) FROM network_policy").fetchone()[0])
             gray_rollout_policy_count = int(self._conn.execute("SELECT COUNT(1) FROM gray_rollout_policy").fetchone()[0])
+            gray_batch_cache_policy_count = int(
+                self._conn.execute("SELECT COUNT(1) FROM gray_batch_cache_policy").fetchone()[0]
+            )
         return {
             "db_path": self._db_path,
             "device_count": device_count,
@@ -852,6 +891,7 @@ class RuntimeStorage:
             "audit_policy_count": audit_policy_count,
             "network_policy_count": network_policy_count,
             "gray_rollout_policy_count": gray_rollout_policy_count,
+            "gray_batch_cache_policy_count": gray_batch_cache_policy_count,
         }
 
     def close(self) -> None:

@@ -863,6 +863,8 @@ GB28181 example:
     - `default_max_clear_entries` (`null` disables default threshold policy)
   - validation:
     - `default_max_clear_entries` must be positive integer or `null`
+  - persistence:
+    - when runtime storage is enabled (sqlite), this policy is persisted and restored after restart
 
 - `GET /api/v1/gray-rollout/plan/batch/cache`
   - RBAC: requires `device:read`

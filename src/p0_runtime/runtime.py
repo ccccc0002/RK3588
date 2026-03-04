@@ -94,7 +94,12 @@ class P0Runtime:
         self._stream_telemetry: Dict[tuple[str, str, str, str], dict] = {}
         self._gray_rollout_batch_plan_cache: Dict[str, dict] = {}
         self._gray_rollout_batch_plan_cache_events: Deque[tuple[datetime, str]] = deque()
-        self._gray_rollout_batch_plan_cache_policy: dict = {"default_max_clear_entries": None}
+        self._gray_rollout_batch_plan_cache_policy: dict = (
+            self._storage.load_gray_batch_cache_policy() if self._storage else {"default_max_clear_entries": None}
+        )
+        self._gray_rollout_batch_plan_cache_policy = self._normalize_gray_rollout_batch_plan_cache_policy(
+            dict(self._gray_rollout_batch_plan_cache_policy)
+        )
 
         self._metrics = {
             "dispatch_runs": 0,
@@ -2101,6 +2106,8 @@ class P0Runtime:
         normalized = self._normalize_gray_rollout_batch_plan_cache_policy(dict(payload))
         with self._lock:
             self._gray_rollout_batch_plan_cache_policy = dict(normalized)
+            if self._storage is not None:
+                self._storage.replace_gray_batch_cache_policy(self._gray_rollout_batch_plan_cache_policy)
             self._append_audit_locked(
                 "gray_rollout.plan_batch.cache.policy.update",
                 {"policy": dict(self._gray_rollout_batch_plan_cache_policy)},

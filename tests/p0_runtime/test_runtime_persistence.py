@@ -692,6 +692,22 @@ class P0RuntimePersistenceTests(unittest.TestCase):
                 if rt2 is not None:
                     rt2.close()
 
+    def test_gray_batch_cache_policy_recovers_after_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "runtime.db")
+            rt1 = self._runtime(db_path)
+            rt2 = None
+            try:
+                rt1.update_gray_rollout_batch_plan_cache_policy({"default_max_clear_entries": 7})
+
+                rt2 = self._runtime(db_path)
+                policy = rt2.get_gray_rollout_batch_plan_cache_policy()
+                self.assertEqual(7, policy["default_max_clear_entries"])
+            finally:
+                rt1.close()
+                if rt2 is not None:
+                    rt2.close()
+
     def test_audit_records_recover_after_restart(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "runtime.db")
