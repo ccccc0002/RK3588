@@ -125,6 +125,22 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 
+    @app.post("/api/v1/devices/capabilities")
+    def update_device_capabilities_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(
+            authorization,
+            required_post_action("/api/v1/devices/capabilities") or "device:write",
+        )
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.update_device_capabilities(dict(payload)))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
     @app.post("/api/v1/viewer-sessions/{stream_id}/join")
     def viewer_join_ep(
         stream_id: str,

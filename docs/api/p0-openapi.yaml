@@ -73,6 +73,32 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/devices/capabilities:
+    post:
+      tags: [devices]
+      summary: Update OCR/face capabilities for a registered device
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDeviceCapabilitiesRequest'
+      responses:
+        '200':
+          description: Device capabilities updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/devices:
     get:
       tags: [devices]
@@ -446,10 +472,12 @@ components:
           description: Required for protocol `gb28181`
         enabled:
           type: boolean
+        capabilities:
+          $ref: '#/components/schemas/DeviceCapabilities'
 
     DeviceRecord:
       type: object
-      required: [tenant_id, site_id, box_id, device_id, protocol, stream_url, enabled, ingest_spec]
+      required: [tenant_id, site_id, box_id, device_id, protocol, stream_url, enabled, ingest_spec, capabilities]
       properties:
         tenant_id:
           type: string
@@ -468,6 +496,33 @@ components:
         ingest_spec:
           type: object
           additionalProperties: true
+        capabilities:
+          $ref: '#/components/schemas/DeviceCapabilities'
+
+    DeviceCapabilities:
+      type: object
+      required: [ocr, face]
+      properties:
+        ocr:
+          type: boolean
+        face:
+          type: boolean
+
+    UpdateDeviceCapabilitiesRequest:
+      type: object
+      required: [tenant_id, site_id, box_id, device_id, capabilities]
+      additionalProperties: true
+      properties:
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        device_id:
+          type: string
+        capabilities:
+          $ref: '#/components/schemas/DeviceCapabilities'
 
     DeviceListData:
       type: object

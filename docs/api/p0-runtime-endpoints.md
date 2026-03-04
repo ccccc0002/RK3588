@@ -108,6 +108,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run-p0-push-process-worker.ps
       "protocol": "rtsp",
       "stream_url": "rtsp://10.0.0.2/live",
       "enabled": true,
+      "capabilities": { "ocr": false, "face": false },
       "transport": "tcp"
     }
     ```
@@ -116,6 +117,19 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run-p0-push-process-worker.ps
     - `stream_url` is required for `rtsp|rtmp|onvif`
     - `gb28181` requires `sip_server`, `sip_port`, `channel_id`, `transport`
   - 200: envelope with registered record and `ingest_spec`
+
+- `POST /api/v1/devices/capabilities`
+  - body:
+    ```json
+    {
+      "tenant_id": "t1",
+      "site_id": "s1",
+      "box_id": "b1",
+      "device_id": "cam-1",
+      "capabilities": { "ocr": true, "face": true }
+    }
+    ```
+  - 200: envelope with updated device record (`capabilities` reflected in response)
 
 GB28181 example:
 

@@ -23,6 +23,8 @@ def required_get_action(path: str) -> str | None:
 def required_post_action(path: str) -> str | None:
     if path == "/api/v1/devices/register":
         return "device:write"
+    if path == "/api/v1/devices/capabilities":
+        return "device:write"
     if path.startswith("/api/v1/viewer-sessions/") and path.endswith("/join"):
         return "device:read"
     if path.startswith("/api/v1/viewer-sessions/") and path.endswith("/leave"):

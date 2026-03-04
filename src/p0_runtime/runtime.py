@@ -87,6 +87,11 @@ class P0Runtime:
         token = issue_token(user_id=user_id, role=role, issued_at=at, secret=self._token_secret)
         return {"token": token, "issued_at": at.isoformat()}
 
+    @staticmethod
+    def _normalize_capabilities(payload: dict | None) -> dict:
+        source = dict(payload or {})
+        return {"ocr": bool(source.get("ocr", False)), "face": bool(source.get("face", False))}
+
     def register_device(self, payload: dict) -> dict:
         required = ("tenant_id", "site_id", "box_id", "device_id", "protocol")
         for field in required:
@@ -107,6 +112,7 @@ class P0Runtime:
             "stream_url": str(payload.get("stream_url", "")),
             "enabled": bool(payload.get("enabled", True)),
             "ingest_spec": ingest_spec,
+            "capabilities": self._normalize_capabilities(payload.get("capabilities")),
         }
         key = (record["tenant_id"], record["site_id"], record["box_id"], record["device_id"])
         with self._lock:
@@ -114,6 +120,33 @@ class P0Runtime:
             if self._storage:
                 self._storage.upsert_device(record)
         return dict(record)
+
+    def update_device_capabilities(self, payload: dict) -> dict:
+        required = ("tenant_id", "site_id", "box_id", "device_id", "capabilities")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        key = (
+            str(payload["tenant_id"]),
+            str(payload["site_id"]),
+            str(payload["box_id"]),
+            str(payload["device_id"]),
+        )
+        capabilities = self._normalize_capabilities(dict(payload.get("capabilities", {})))
+
+        with self._lock:
+            existing = self._devices.get(key)
+            if existing is None:
+                raise ValueError("device not found")
+
+            updated = dict(existing)
+            updated["capabilities"] = capabilities
+            self._devices[key] = updated
+            if self._storage:
+                self._storage.upsert_device(updated)
+
+        return dict(updated)
 
     def list_devices(self) -> list[dict]:
         with self._lock:

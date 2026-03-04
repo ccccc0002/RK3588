@@ -46,6 +46,32 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertTrue(ok)
         self.assertEqual("admin", context["role"])
 
+    def test_update_device_capabilities(self) -> None:
+        self.runtime.register_device(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-1",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.2/live",
+                "enabled": True,
+            }
+        )
+        updated = self.runtime.update_device_capabilities(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-1",
+                "capabilities": {"ocr": True, "face": False},
+            }
+        )
+
+        self.assertEqual({"ocr": True, "face": False}, updated["capabilities"])
+        listed = self.runtime.list_devices()
+        self.assertEqual({"ocr": True, "face": False}, listed[0]["capabilities"])
+
 
 if __name__ == "__main__":
     unittest.main()

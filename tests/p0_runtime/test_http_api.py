@@ -174,6 +174,36 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertFalse(payload["success"])
         self.assertEqual("bad_request", payload["error"]["code"])
 
+    def test_update_device_capabilities_endpoint(self) -> None:
+        self._post(
+            "/api/v1/devices/register",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-cap",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.10/live",
+                "enabled": True,
+            },
+            token=self.operator_token,
+        )
+
+        update_status, update_payload = self._post(
+            "/api/v1/devices/capabilities",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-cap",
+                "capabilities": {"ocr": True, "face": True},
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, update_status)
+        self.assertTrue(update_payload["success"])
+        self.assertEqual({"ocr": True, "face": True}, update_payload["data"]["capabilities"])
+
     def test_push_worker_and_metrics_endpoints(self) -> None:
         self._post(
             "/api/v1/events",
