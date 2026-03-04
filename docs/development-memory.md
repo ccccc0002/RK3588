@@ -443,3 +443,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P3-iteration-8-sync-stream-cursor-local-gate/20260304-145919
 - Summary: added offline sync multi-stream cursor optimistic versioning contracts with storage/runtime/api/docs parity
 - Next: Run remote py3.8.10 validation on current commit via isolated bundle clone, then create validated checkpoint and push branch/tags
+
+## [2026-03-04T15:00:36+08:00] P3-iteration-8-sync-stream-cursor-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: bca1a33
+- Tag: checkpoint/P3-iteration-8-sync-stream-cursor-validated/20260304-150036
+- Summary: validated sync-stream-cursor iteration on local py3.11 and remote py3.8.10 with isolated bundle clone
+- Next: Push stage/P3-phase2-readiness and new checkpoint tags to GitHub, then decide P3 closure or remaining gray-rollout hardening
