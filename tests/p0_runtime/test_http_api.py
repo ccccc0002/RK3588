@@ -344,6 +344,42 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(get_payload["success"])
         self.assertTrue(any(item["cursor"] == "evt-300" for item in get_payload["data"]["items"]))
 
+    def test_gray_rollout_policy_endpoints(self) -> None:
+        update_status, update_payload = self._post(
+            "/api/v1/gray-rollout/policy",
+            {
+                "enabled": True,
+                "default_percent": 10,
+                "overrides": [
+                    {"tenant_id": "t1", "site_id": "s1", "box_id": "b1", "percent": 100},
+                ],
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, update_status)
+        self.assertTrue(update_payload["success"])
+        self.assertTrue(update_payload["data"]["enabled"])
+
+        get_status, get_payload = self._get("/api/v1/gray-rollout/policy", token=self.viewer_token)
+        self.assertEqual(200, get_status)
+        self.assertTrue(get_payload["success"])
+        self.assertEqual(10, get_payload["data"]["default_percent"])
+
+        eval_status, eval_payload = self._post(
+            "/api/v1/gray-rollout/evaluate",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "seed": "fixed-seed-001",
+            },
+            token=self.viewer_token,
+        )
+        self.assertEqual(200, eval_status)
+        self.assertTrue(eval_payload["success"])
+        self.assertTrue(eval_payload["data"]["enabled"])
+        self.assertEqual(100, eval_payload["data"]["percent"])
+
     def test_offline_jobs_endpoints(self) -> None:
         self._post(
             "/api/v1/offline-executors/upsert",
@@ -912,6 +948,14 @@ class P0HttpApiTests(unittest.TestCase):
                     "site_id": "s1",
                     "box_id": "b1",
                     "cursor": "evt-forbidden",
+                },
+            ),
+            (
+                "/api/v1/gray-rollout/policy",
+                {
+                    "enabled": True,
+                    "default_percent": 20,
+                    "overrides": [],
                 },
             ),
         ]

@@ -1,5 +1,6 @@
 ﻿import unittest
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
 from src.p0_runtime.runtime import P0Runtime
 
@@ -352,6 +353,41 @@ class P0RuntimeTests(unittest.TestCase):
             now=self.now,
         )
         self.assertEqual(2, updated["version"])
+
+    def test_gray_rollout_policy_evaluation_uses_scope_override(self) -> None:
+        updated = self.runtime.update_gray_rollout_policy(
+            {
+                "enabled": True,
+                "default_percent": 0,
+                "overrides": [
+                    {"tenant_id": "t1", "site_id": "s1", "box_id": "b1", "percent": 100},
+                ],
+            }
+        )
+        self.assertTrue(updated["enabled"])
+        self.assertEqual(0, updated["default_percent"])
+
+        decision = self.runtime.evaluate_gray_rollout(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "seed": str(uuid4()),
+            }
+        )
+        self.assertTrue(decision["enabled"])
+        self.assertEqual(100, decision["percent"])
+
+        other = self.runtime.evaluate_gray_rollout(
+            {
+                "tenant_id": "t9",
+                "site_id": "s9",
+                "box_id": "b9",
+                "seed": str(uuid4()),
+            }
+        )
+        self.assertFalse(other["enabled"])
+        self.assertEqual(0, other["percent"])
 
     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
         self.runtime.register_device(

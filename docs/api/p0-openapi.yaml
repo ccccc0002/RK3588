@@ -887,6 +887,74 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/gray-rollout/policy:
+    get:
+      tags: [runtime]
+      summary: Read gray rollout policy
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Gray rollout policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrayRolloutPolicyEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      tags: [runtime]
+      summary: Update gray rollout policy
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GrayRolloutPolicyData'
+      responses:
+        '200':
+          description: Updated gray rollout policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrayRolloutPolicyEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/gray-rollout/evaluate:
+    post:
+      tags: [runtime]
+      summary: Evaluate gray rollout decision for tenant/site/box scope
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GrayRolloutEvaluateRequest'
+      responses:
+        '200':
+          description: Gray rollout decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrayRolloutEvaluateEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/runtime/snapshot:
     get:
       tags: [runtime]
@@ -2029,6 +2097,73 @@ components:
           items:
             type: string
 
+    GrayRolloutOverride:
+      type: object
+      required: [tenant_id, site_id, box_id, percent]
+      properties:
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+
+    GrayRolloutPolicyData:
+      type: object
+      required: [enabled, default_percent, overrides]
+      properties:
+        enabled:
+          type: boolean
+        default_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        overrides:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrayRolloutOverride'
+
+    GrayRolloutEvaluateRequest:
+      type: object
+      required: [tenant_id, site_id, box_id]
+      additionalProperties: true
+      properties:
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        seed:
+          type: string
+
+    GrayRolloutEvaluateData:
+      type: object
+      required: [tenant_id, site_id, box_id, seed, percent, bucket, enabled]
+      properties:
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        seed:
+          type: string
+        percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        bucket:
+          type: integer
+          minimum: 1
+          maximum: 100
+        enabled:
+          type: boolean
+
     MetricsData:
       type: object
       required:
@@ -2361,6 +2496,22 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/NetworkPolicyData'
+
+    GrayRolloutPolicyEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/GrayRolloutPolicyData'
+
+    GrayRolloutEvaluateEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/GrayRolloutEvaluateData'
 
     MetricsEnvelope:
       allOf:

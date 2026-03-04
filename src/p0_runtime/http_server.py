@@ -144,6 +144,10 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             _json_response(self, 200, ok_payload(self.runtime.get_network_policy()))
             return
 
+        if parsed.path == "/api/v1/gray-rollout/policy":
+            _json_response(self, 200, ok_payload(self.runtime.get_gray_rollout_policy()))
+            return
+
         if parsed.path == "/api/v1/runtime/telemetry":
             _json_response(self, 200, ok_payload({"items": self.runtime.list_stream_telemetry()}))
             return
@@ -278,6 +282,16 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
 
             if parsed.path == "/api/v1/network/policy":
                 res = self.runtime.update_network_policy(dict(body))
+                _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/gray-rollout/policy":
+                res = self.runtime.update_gray_rollout_policy(dict(body))
+                _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/gray-rollout/evaluate":
+                res = self.runtime.evaluate_gray_rollout(dict(body))
                 _json_response(self, 200, ok_payload(res))
                 return
 

@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
 import re
 import threading
 from typing import Callable, Dict, Tuple
@@ -73,6 +74,12 @@ class P0Runtime:
         self._network_policy: dict = (
             self._storage.load_network_policy() if self._storage else {"enforce_allowlist": False, "webhook_allowlist": []}
         )
+        self._gray_rollout_policy: dict = (
+            self._storage.load_gray_rollout_policy()
+            if self._storage
+            else {"enabled": False, "default_percent": 0, "overrides": []}
+        )
+        self._gray_rollout_policy = self._normalize_gray_rollout_policy(dict(self._gray_rollout_policy))
         self._stream_telemetry: Dict[tuple[str, str, str, str], dict] = {}
 
         self._metrics = {
@@ -1037,6 +1044,105 @@ class P0Runtime:
                 self._storage.replace_network_policy(self._network_policy)
             self._append_audit_locked("network.policy.update", {"policy": dict(normalized)})
             return dict(self._network_policy)
+
+    @staticmethod
+    def _normalize_gray_rollout_policy(payload: dict) -> dict:
+        default_percent = int(payload.get("default_percent", 0))
+        if default_percent < 0 or default_percent > 100:
+            raise ValueError("default_percent must be between 0 and 100")
+
+        overrides_raw = payload.get("overrides", [])
+        if not isinstance(overrides_raw, list):
+            raise ValueError("overrides must be a list")
+
+        normalized_overrides: list[dict] = []
+        for item in overrides_raw:
+            if not isinstance(item, dict):
+                raise ValueError("each override must be an object")
+            tenant_id = str(item.get("tenant_id", "")).strip()
+            site_id = str(item.get("site_id", "")).strip()
+            box_id = str(item.get("box_id", "")).strip()
+            if not tenant_id or not site_id or not box_id:
+                raise ValueError("override tenant_id/site_id/box_id must not be empty")
+            percent = int(item.get("percent", 0))
+            if percent < 0 or percent > 100:
+                raise ValueError("override percent must be between 0 and 100")
+            normalized_overrides.append(
+                {
+                    "tenant_id": tenant_id,
+                    "site_id": site_id,
+                    "box_id": box_id,
+                    "percent": percent,
+                }
+            )
+
+        normalized_overrides.sort(key=lambda item: (item["tenant_id"], item["site_id"], item["box_id"]))
+        return {
+            "enabled": bool(payload.get("enabled", False)),
+            "default_percent": default_percent,
+            "overrides": normalized_overrides,
+        }
+
+    def get_gray_rollout_policy(self) -> dict:
+        with self._lock:
+            policy = dict(self._gray_rollout_policy)
+        policy["overrides"] = [dict(item) for item in policy.get("overrides", [])]
+        return policy
+
+    def update_gray_rollout_policy(self, payload: dict) -> dict:
+        normalized = self._normalize_gray_rollout_policy(dict(payload))
+        with self._lock:
+            self._gray_rollout_policy = normalized
+            if self._storage is not None:
+                self._storage.replace_gray_rollout_policy(self._gray_rollout_policy)
+            self._append_audit_locked("gray.rollout.policy.update", {"policy": dict(normalized)})
+            policy = dict(self._gray_rollout_policy)
+        policy["overrides"] = [dict(item) for item in policy.get("overrides", [])]
+        return policy
+
+    @staticmethod
+    def _scope_rollout_percent(policy: dict, tenant_id: str, site_id: str, box_id: str) -> int:
+        for item in policy.get("overrides", []):
+            if (
+                str(item.get("tenant_id", "")) == tenant_id
+                and str(item.get("site_id", "")) == site_id
+                and str(item.get("box_id", "")) == box_id
+            ):
+                return int(item.get("percent", 0))
+        return int(policy.get("default_percent", 0))
+
+    def evaluate_gray_rollout(self, payload: dict) -> dict:
+        required = ("tenant_id", "site_id", "box_id")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+        tenant_id = str(payload["tenant_id"]).strip()
+        site_id = str(payload["site_id"]).strip()
+        box_id = str(payload["box_id"]).strip()
+        if not tenant_id or not site_id or not box_id:
+            raise ValueError("tenant_id/site_id/box_id must not be empty")
+
+        seed = str(payload.get("seed", f"{tenant_id}/{site_id}/{box_id}")).strip()
+        if not seed:
+            raise ValueError("seed must not be empty")
+
+        with self._lock:
+            policy = dict(self._gray_rollout_policy)
+            policy["overrides"] = [dict(item) for item in policy.get("overrides", [])]
+
+        percent = self._scope_rollout_percent(policy, tenant_id, site_id, box_id)
+        digest = hashlib.sha256(seed.encode("utf-8")).hexdigest()
+        bucket = (int(digest[:8], 16) % 100) + 1
+        enabled = bool(policy.get("enabled", False)) and bucket <= percent
+        return {
+            "tenant_id": tenant_id,
+            "site_id": site_id,
+            "box_id": box_id,
+            "seed": seed,
+            "percent": percent,
+            "bucket": bucket,
+            "enabled": enabled,
+        }
 
     def _is_target_allowed(self, target_url: str) -> bool:
         with self._lock:

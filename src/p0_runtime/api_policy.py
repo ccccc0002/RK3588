@@ -31,6 +31,8 @@ def required_get_action(path: str) -> str | None:
         return "device:read"
     if path == "/api/v1/offline-sync/cursors":
         return "device:read"
+    if path == "/api/v1/gray-rollout/policy":
+        return "device:read"
     if path == "/api/v1/push/worker/status":
         return "device:read"
     if path == "/api/v1/audit/recent":
@@ -75,6 +77,10 @@ def required_post_action(path: str) -> str | None:
         return "device:write"
     if path == "/api/v1/offline-sync/cursors/upsert":
         return "device:write"
+    if path == "/api/v1/gray-rollout/policy":
+        return "device:write"
+    if path == "/api/v1/gray-rollout/evaluate":
+        return "device:read"
     if path == "/api/v1/runtime/schedule":
         return "device:read"
     if path == "/api/v1/audit/policy":

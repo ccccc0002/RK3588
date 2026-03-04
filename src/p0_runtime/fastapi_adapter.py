@@ -187,6 +187,13 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return denied
         return ok_payload(rt.get_network_policy())
 
+    @app.get("/api/v1/gray-rollout/policy")
+    def get_gray_rollout_policy_ep(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(authorization, required_get_action("/api/v1/gray-rollout/policy") or "device:read")
+        if denied is not None:
+            return denied
+        return ok_payload(rt.get_gray_rollout_policy())
+
     @app.post("/api/v1/auth/token")
     def issue_token_ep(
         payload: dict = Body(default_factory=dict),
@@ -517,6 +524,32 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return denied
         try:
             return ok_payload(rt.update_network_policy(dict(payload)))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/gray-rollout/policy")
+    def update_gray_rollout_policy_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, required_post_action("/api/v1/gray-rollout/policy") or "device:write")
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.update_gray_rollout_policy(dict(payload)))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/gray-rollout/evaluate")
+    def evaluate_gray_rollout_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, required_post_action("/api/v1/gray-rollout/evaluate") or "device:read")
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.evaluate_gray_rollout(dict(payload)))
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 

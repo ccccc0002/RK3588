@@ -263,6 +263,32 @@ class P0RuntimePersistenceTests(unittest.TestCase):
                 if rt2 is not None:
                     rt2.close()
 
+    def test_gray_rollout_policy_recovers_after_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "runtime.db")
+            rt1 = self._runtime(db_path)
+            rt2 = None
+            try:
+                rt1.update_gray_rollout_policy(
+                    {
+                        "enabled": True,
+                        "default_percent": 15,
+                        "overrides": [
+                            {"tenant_id": "t1", "site_id": "s1", "box_id": "b1", "percent": 100},
+                        ],
+                    }
+                )
+
+                rt2 = self._runtime(db_path)
+                policy = rt2.get_gray_rollout_policy()
+                self.assertTrue(policy["enabled"])
+                self.assertEqual(15, policy["default_percent"])
+                self.assertEqual(1, len(policy["overrides"]))
+            finally:
+                rt1.close()
+                if rt2 is not None:
+                    rt2.close()
+
     def test_push_queue_recovers_after_restart(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "runtime.db")

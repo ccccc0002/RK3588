@@ -517,6 +517,44 @@ GB28181 example:
   - 200 envelope with updated policy
   - effect: if `enforce_allowlist=true`, queued push tasks whose `target_url` does not match any prefix in `webhook_allowlist` are marked failed and moved directly to dead-letter
 
+### Gray Rollout
+
+- `GET /api/v1/gray-rollout/policy`
+  - RBAC: requires `device:read`
+  - 200 envelope with policy:
+    - `enabled`
+    - `default_percent` (0-100)
+    - `overrides[]` with `tenant_id/site_id/box_id/percent`
+
+- `POST /api/v1/gray-rollout/policy`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "enabled": true,
+      "default_percent": 10,
+      "overrides": [
+        { "tenant_id": "t1", "site_id": "s1", "box_id": "b1", "percent": 100 }
+      ]
+    }
+    ```
+  - 200 envelope with updated policy
+
+- `POST /api/v1/gray-rollout/evaluate`
+  - RBAC: requires `device:read`
+  - body:
+    ```json
+    {
+      "tenant_id": "t1",
+      "site_id": "s1",
+      "box_id": "b1",
+      "seed": "fixed-seed-001"
+    }
+    ```
+  - 200 envelope with deterministic decision:
+    - `percent`, `bucket`, `enabled`
+  - evaluation rule: `enabled=true` only when policy is enabled and `bucket <= percent`
+
 ## FastAPI Compatibility Layer
 
 File: `src/p0_runtime/fastapi_adapter.py`
