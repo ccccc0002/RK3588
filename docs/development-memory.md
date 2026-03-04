@@ -198,3 +198,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-iteration-5-capability-scheduler/20260304-111014
 - Summary: implemented capability-aware runtime schedule planning API and validated local+remote
 - Next: implement lane C audit trail model and query endpoint
+
+## [2026-03-04T11:14:48+08:00] P1-iteration-6-audit-trail
+- Branch: stage/P1-capability-enhancement
+- Commit: a8e831c
+- Tag: checkpoint/P1-iteration-6-audit-trail/20260304-111448
+- Summary: implemented audit trail model, RBAC-protected audit endpoint, and capability scheduler docs parity
+- Next: implement lane D network policy baseline with validation and persistence hooks
