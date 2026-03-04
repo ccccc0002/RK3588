@@ -1599,6 +1599,7 @@ class P0Runtime:
         execution_order = P0Runtime._topo_order_gray_dependencies(dependencies, dependency_graph)
         closure = set(execution_order)
         blocked_set: set[str] = set()
+        missing_set: set[str] = set()
         nodes: list[dict] = []
         for dependency in execution_order:
             prerequisites = [
@@ -1607,13 +1608,15 @@ class P0Runtime:
                 if str(item) in closure
             ]
             blocked_by = []
+            if dependency not in dependency_status_raw:
+                missing_set.add(dependency)
             if not bool(dependency_status_raw.get(dependency, False)):
                 blocked_by.append(dependency)
-            blocked_by.extend(
-                prerequisite
-                for prerequisite in prerequisites
-                if not bool(dependency_status_raw.get(prerequisite, False))
-            )
+            for prerequisite in prerequisites:
+                if prerequisite not in dependency_status_raw:
+                    missing_set.add(prerequisite)
+                if not bool(dependency_status_raw.get(prerequisite, False)):
+                    blocked_by.append(prerequisite)
             blocked_list = sorted(set(blocked_by))
             for item in blocked_list:
                 blocked_set.add(item)
@@ -1629,6 +1632,7 @@ class P0Runtime:
             "execution_order": execution_order,
             "nodes": nodes,
             "blocked_by": sorted(blocked_set),
+            "missing_status": sorted(missing_set),
         }
 
     def plan_gray_rollout_dependencies(self, payload: dict) -> dict:
@@ -1681,6 +1685,7 @@ class P0Runtime:
             "execution_order": [str(item) for item in dependency_plan["execution_order"]],
             "nodes": [dict(item) for item in dependency_plan["nodes"]],
             "blocked_by": blocked_by,
+            "missing_status": [str(item) for item in dependency_plan["missing_status"]],
             "enabled": enabled,
         }
 

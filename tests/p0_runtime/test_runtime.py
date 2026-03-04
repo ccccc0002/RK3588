@@ -994,13 +994,13 @@ class P0RuntimeTests(unittest.TestCase):
                 "dependency_status": {
                     "gray_ready": True,
                     "edge_sync_ready": True,
-                    "base_library_ready": False,
                 },
             }
         )
         self.assertEqual(["gray_ready"], plan["dependencies"])
         self.assertEqual(["base_library_ready", "edge_sync_ready", "gray_ready"], plan["execution_order"])
         self.assertEqual(["base_library_ready"], plan["blocked_by"])
+        self.assertEqual(["base_library_ready"], plan["missing_status"])
         self.assertFalse(plan["enabled"])
         self.assertEqual("base_library_ready", plan["nodes"][0]["dependency"])
         self.assertFalse(plan["nodes"][0]["ready"])

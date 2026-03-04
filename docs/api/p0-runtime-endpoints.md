@@ -723,8 +723,9 @@ GB28181 example:
     - `dependencies[]` root dependency keys from policy
     - `execution_order[]` topological order (prerequisites first)
     - `nodes[]` per-dependency readiness details (`dependency`, `prerequisites[]`, `ready`, `blocked_by[]`)
-    - `blocked_by[]`, `percent`, `bucket`, `enabled`
+    - `blocked_by[]`, `missing_status[]`, `percent`, `bucket`, `enabled`
   - planning rule: `execution_order[]` is deterministic and derived from policy `dependencies + dependency_graph`
+  - status rule: keys absent from request `dependency_status` are reported in `missing_status[]`
   - enablement rule: same as evaluate endpoint, `enabled=true` only when rollout percent hit and all planned dependencies are ready
 
 ## FastAPI Compatibility Layer

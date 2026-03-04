@@ -2574,7 +2574,7 @@ components:
     GrayRolloutPlanData:
       type: object
       required:
-        [tenant_id, site_id, box_id, seed, percent, bucket, dependencies, execution_order, nodes, blocked_by, enabled]
+        [tenant_id, site_id, box_id, seed, percent, bucket, dependencies, execution_order, nodes, blocked_by, missing_status, enabled]
       properties:
         tenant_id:
           type: string
@@ -2605,6 +2605,10 @@ components:
           items:
             $ref: '#/components/schemas/GrayRolloutDependencyNodeData'
         blocked_by:
+          type: array
+          items:
+            type: string
+        missing_status:
           type: array
           items:
             type: string

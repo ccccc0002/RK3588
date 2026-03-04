@@ -711,7 +711,6 @@ class P0HttpApiTests(unittest.TestCase):
                 "dependency_status": {
                     "gray_ready": True,
                     "edge_sync_ready": True,
-                    "base_library_ready": False,
                 },
             },
             token=self.viewer_token,
@@ -720,6 +719,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(plan_payload["success"])
         self.assertEqual(["base_library_ready", "edge_sync_ready", "gray_ready"], plan_payload["data"]["execution_order"])
         self.assertEqual(["base_library_ready"], plan_payload["data"]["blocked_by"])
+        self.assertEqual(["base_library_ready"], plan_payload["data"]["missing_status"])
         self.assertFalse(plan_payload["data"]["enabled"])
         self.assertEqual("base_library_ready", plan_payload["data"]["nodes"][0]["dependency"])
         self.assertFalse(plan_payload["data"]["nodes"][0]["ready"])
