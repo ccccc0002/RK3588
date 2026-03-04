@@ -464,3 +464,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P3-iteration-9-gray-dependency-local-gate/20260304-150848
 - Summary: added gray rollout dependency-gating contracts with dependency_status and blocked_by decision output
 - Next: Run remote py3.8.10 validation on current commit via isolated bundle clone, then create validated checkpoint and push branch/tags
+
+## [2026-03-04T15:12:10+08:00] P3-iteration-9-gray-dependency-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: a5a8d82
+- Tag: checkpoint/P3-iteration-9-gray-dependency-validated/20260304-151210
+- Summary: validated gray dependency gating iteration on local py3.11 and remote py3.8.10 with isolated bundle clone
+- Next: push stage/P3-phase2-readiness and tags, then continue P3 closure/backlog execution
