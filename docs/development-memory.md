@@ -387,3 +387,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P3-iteration-4-edge-job-lease-local-gate/20260304-142756
 - Summary: added edge-agent offline-job lease baseline contracts with persistence/rbac/docs and passed local unittest gate
 - Next: Run remote py3.8 validation on current commit via isolated bundle clone, then create validated checkpoint and push branch/tags
+
+## [2026-03-04T14:29:18+08:00] P3-iteration-4-edge-job-lease-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: f0c0f4a
+- Tag: checkpoint/P3-iteration-4-edge-job-lease-validated/20260304-142918
+- Summary: validated edge-job-lease iteration on local py3.11 and remote py3.8.10 with isolated bundle clone
+- Next: Push stage/P3-phase2-readiness and new checkpoint tags to GitHub, then continue P3 closure hardening
