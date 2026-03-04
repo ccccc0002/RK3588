@@ -205,6 +205,13 @@ GB28181 example:
 - `GET /api/v1/metrics`
   - 200 envelope with dispatch/worker metrics and storage stats (`storage_enabled`, `storage`)
 
+- `POST /api/v1/runtime/schedule`
+  - body: `{ "budget": 10.0 }`
+  - 200 envelope with capability-aware schedule:
+    - `degraded`
+    - `total_cost`
+    - `streams[]` with `device_id`, `sample_fps`, `estimated_cost`
+
 ## FastAPI Compatibility Layer
 
 File: `src/p0_runtime/fastapi_adapter.py`

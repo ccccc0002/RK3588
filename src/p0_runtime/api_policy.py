@@ -25,6 +25,8 @@ def required_post_action(path: str) -> str | None:
         return "device:write"
     if path == "/api/v1/devices/capabilities":
         return "device:write"
+    if path == "/api/v1/runtime/schedule":
+        return "device:read"
     if path.startswith("/api/v1/viewer-sessions/") and path.endswith("/join"):
         return "device:read"
     if path.startswith("/api/v1/viewer-sessions/") and path.endswith("/leave"):

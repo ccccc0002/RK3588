@@ -72,6 +72,40 @@ class P0RuntimeTests(unittest.TestCase):
         listed = self.runtime.list_devices()
         self.assertEqual({"ocr": True, "face": False}, listed[0]["capabilities"])
 
+    def test_capability_schedule_prioritizes_face_stream(self) -> None:
+        self.runtime.register_device(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-face",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.20/live",
+                "capabilities": {"ocr": True, "face": True},
+                "enabled": True,
+            }
+        )
+        self.runtime.register_device(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-basic",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.21/live",
+                "capabilities": {"ocr": False, "face": False},
+                "enabled": True,
+            }
+        )
+
+        plan = self.runtime.plan_capability_schedule(budget=10.0)
+        streams = {item["device_id"]: item for item in plan["streams"]}
+
+        self.assertTrue(plan["degraded"])
+        self.assertIn("cam-face", streams)
+        self.assertIn("cam-basic", streams)
+        self.assertGreaterEqual(streams["cam-face"]["sample_fps"], streams["cam-basic"]["sample_fps"])
+
 
 if __name__ == "__main__":
     unittest.main()

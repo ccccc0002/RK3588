@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import threading
 from typing import Callable, Dict, Tuple
 
+from src.p0_core.ai_scheduler import SchedulePlan, StreamLoad, build_schedule
 from src.p0_core.auth_license import is_action_allowed
 from src.p0_core.auth_service import issue_token, verify_token
 from src.p0_core.event_center import EventState, initial_event_state, normalize_raw_event, process_event
@@ -34,6 +35,7 @@ class P0Runtime:
         self._push_state: PushState = self._storage.load_push_state() if self._storage else initial_push_state()
         self._devices: Dict[tuple[str, str, str, str], dict] = self._storage.load_devices() if self._storage else {}
         self._push_worker: PushWorker | None = None
+        self._last_capability_schedule: SchedulePlan | None = None
 
         self._metrics = {
             "dispatch_runs": 0,
@@ -153,6 +155,43 @@ class P0Runtime:
             items = [dict(item) for item in self._devices.values()]
         items.sort(key=lambda item: (item["tenant_id"], item["site_id"], item["box_id"], item["device_id"]))
         return items
+
+    def plan_capability_schedule(self, budget: float) -> dict:
+        capped_budget = max(0.1, float(budget))
+        with self._lock:
+            devices = [dict(item) for item in self._devices.values() if bool(item.get("enabled", True))]
+            previous = self._last_capability_schedule
+
+        streams = []
+        for item in devices:
+            capabilities = self._normalize_capabilities(item.get("capabilities"))
+            priority = 3 if capabilities["face"] else (2 if capabilities["ocr"] else 1)
+            complexity = 1.0 + (0.6 if capabilities["face"] else 0.0) + (0.4 if capabilities["ocr"] else 0.0)
+            streams.append(
+                StreamLoad(
+                    stream_id=str(item["device_id"]),
+                    fps_in=8.0,
+                    complexity=complexity,
+                    priority=priority,
+                )
+            )
+
+        plan = build_schedule(tuple(streams), budget=capped_budget, previous=previous)
+        with self._lock:
+            self._last_capability_schedule = plan
+
+        return {
+            "degraded": bool(plan.degraded),
+            "total_cost": float(plan.total_cost),
+            "streams": [
+                {
+                    "device_id": item.stream_id,
+                    "sample_fps": float(item.sample_fps),
+                    "estimated_cost": float(item.estimated_cost),
+                }
+                for item in plan.streams
+            ],
+        }
 
     def authorize(self, token: str, required_action: str, now: datetime | None = None) -> Tuple[bool, dict | None]:
         at = self._now_or(now)

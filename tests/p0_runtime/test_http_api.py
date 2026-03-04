@@ -204,6 +204,47 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(update_payload["success"])
         self.assertEqual({"ocr": True, "face": True}, update_payload["data"]["capabilities"])
 
+    def test_runtime_schedule_endpoint(self) -> None:
+        self._post(
+            "/api/v1/devices/register",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-schedule-face",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.30/live",
+                "capabilities": {"ocr": True, "face": True},
+                "enabled": True,
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/devices/register",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-schedule-basic",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.31/live",
+                "capabilities": {"ocr": False, "face": False},
+                "enabled": True,
+            },
+            token=self.operator_token,
+        )
+
+        status, payload = self._post("/api/v1/runtime/schedule", {"budget": 10.0}, token=self.viewer_token)
+        self.assertEqual(200, status)
+        self.assertTrue(payload["success"])
+        streams = {item["device_id"]: item for item in payload["data"]["streams"]}
+        self.assertIn("cam-schedule-face", streams)
+        self.assertIn("cam-schedule-basic", streams)
+        self.assertGreaterEqual(
+            streams["cam-schedule-face"]["sample_fps"],
+            streams["cam-schedule-basic"]["sample_fps"],
+        )
+
     def test_push_worker_and_metrics_endpoints(self) -> None:
         self._post(
             "/api/v1/events",

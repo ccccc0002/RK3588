@@ -20,6 +20,7 @@ class ApiPolicyTests(unittest.TestCase):
     def test_required_post_action_mapping(self) -> None:
         self.assertEqual("device:write", required_post_action("/api/v1/devices/register"))
         self.assertEqual("device:write", required_post_action("/api/v1/devices/capabilities"))
+        self.assertEqual("device:read", required_post_action("/api/v1/runtime/schedule"))
         self.assertEqual("device:read", required_post_action("/api/v1/viewer-sessions/cam-1/join"))
         self.assertEqual("device:read", required_post_action("/api/v1/viewer-sessions/cam-1/leave"))
         self.assertEqual("device:write", required_post_action("/api/v1/events"))

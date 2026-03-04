@@ -310,6 +310,32 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/runtime/schedule:
+    post:
+      tags: [runtime]
+      summary: Build capability-aware sampling schedule for enabled devices
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuntimeScheduleRequest'
+      responses:
+        '200':
+          description: Capability-aware schedule result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeScheduleEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/metrics:
     get:
       tags: [runtime]
@@ -715,6 +741,39 @@ components:
           type: integer
           minimum: 0
 
+    RuntimeScheduleRequest:
+      type: object
+      additionalProperties: true
+      properties:
+        budget:
+          type: number
+          minimum: 0.1
+          default: 10.0
+
+    RuntimeScheduleStream:
+      type: object
+      required: [device_id, sample_fps, estimated_cost]
+      properties:
+        device_id:
+          type: string
+        sample_fps:
+          type: number
+        estimated_cost:
+          type: number
+
+    RuntimeScheduleData:
+      type: object
+      required: [degraded, total_cost, streams]
+      properties:
+        degraded:
+          type: boolean
+        total_cost:
+          type: number
+        streams:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuntimeScheduleStream'
+
     MetricsData:
       type: object
       required:
@@ -851,6 +910,14 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/RuntimeSnapshotData'
+
+    RuntimeScheduleEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/RuntimeScheduleData'
 
     MetricsEnvelope:
       allOf:

@@ -150,6 +150,12 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                 _json_response(self, 200, ok_payload(res))
                 return
 
+            if parsed.path == "/api/v1/runtime/schedule":
+                budget = float(body.get("budget", 10.0))
+                res = self.runtime.plan_capability_schedule(budget=budget)
+                _json_response(self, 200, ok_payload(res))
+                return
+
             if parsed.path.startswith("/api/v1/viewer-sessions/") and parsed.path.endswith("/join"):
                 stream_id = parsed.path[len("/api/v1/viewer-sessions/") : -len("/join")]
                 res = self.runtime.viewer_join(stream_id=stream_id, now=_parse_time(body.get("now")))
