@@ -1168,6 +1168,76 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(0, int(metrics_payload["data"]["gray_batch_plan_cache_misses"]))
         self.assertEqual(0, int(metrics_payload["data"]["gray_batch_plan_cache_conflicts"]))
 
+    def test_gray_rollout_batch_cache_list_endpoint(self) -> None:
+        self._post(
+            "/api/v1/gray-rollout/policy",
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {},
+                "overrides": [],
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "idempotency_key": "http-cache-list-001",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "http-cache-list-001",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
+        self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "idempotency_key": "http-cache-list-002",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t2",
+                        "site_id": "s2",
+                        "box_id": "b2",
+                        "seed": "http-cache-list-002",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
+
+        list_status, list_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache?limit=1&include_events=true",
+            token=self.viewer_token,
+        )
+        self.assertEqual(200, list_status)
+        self.assertTrue(list_payload["success"])
+        self.assertEqual(1, int(list_payload["data"]["returned_entries"]))
+        self.assertEqual(1, int(list_payload["data"]["limit"]))
+        self.assertGreaterEqual(int(list_payload["data"]["total_entries"]), 2)
+        self.assertIn("event_window", list_payload["data"])
+        self.assertGreaterEqual(int(list_payload["data"]["event_window"]["event_count"]), 2)
+        self.assertEqual(1, len(list_payload["data"]["items"]))
+        self.assertIn("idempotency_key", list_payload["data"]["items"][0])
+        self.assertIn("ttl_remaining_seconds", list_payload["data"]["items"][0])
+
+        bad_status, bad_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache?limit=bad",
+            token=self.viewer_token,
+        )
+        self.assertEqual(400, bad_status)
+        self.assertFalse(bad_payload["success"])
+        self.assertEqual("bad_request", bad_payload["error"]["code"])
+
     def test_offline_jobs_endpoints(self) -> None:
         self._post(
             "/api/v1/offline-executors/upsert",

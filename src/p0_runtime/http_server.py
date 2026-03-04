@@ -152,6 +152,19 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             _json_response(self, 200, ok_payload(self.runtime.get_gray_rollout_policy()))
             return
 
+        if parsed.path == "/api/v1/gray-rollout/plan/batch/cache":
+            query = parse_qs(parsed.query)
+            payload: dict[str, object] = {}
+            if "limit" in query:
+                payload["limit"] = (query.get("limit", ["20"]) or ["20"])[0]
+            if "include_events" in query:
+                payload["include_events"] = (query.get("include_events", ["false"]) or ["false"])[0]
+            try:
+                _json_response(self, 200, ok_payload(self.runtime.list_gray_rollout_batch_plan_cache(payload)))
+            except ValueError as exc:
+                _json_response(self, 400, error_payload("bad_request", str(exc)))
+            return
+
         if parsed.path == "/api/v1/runtime/telemetry":
             _json_response(self, 200, ok_payload({"items": self.runtime.list_stream_telemetry()}))
             return

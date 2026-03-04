@@ -1662,6 +1662,75 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_evicted_expired"])
         self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_evicted_overflow"])
 
+    def test_list_gray_rollout_batch_plan_cache(self) -> None:
+        self.runtime.update_gray_rollout_policy(
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "overrides": [],
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {},
+            }
+        )
+        self.runtime.batch_plan_gray_rollout_dependencies_report(
+            {
+                "idempotency_key": "plan-batch-list-001",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "plan-list-seed-001",
+                        "dependency_status": {"gray_ready": True},
+                    },
+                ],
+            }
+        )
+        self.runtime.batch_plan_gray_rollout_dependencies_report(
+            {
+                "idempotency_key": "plan-batch-list-002",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t2",
+                        "site_id": "s2",
+                        "box_id": "b2",
+                        "seed": "plan-list-seed-002",
+                        "dependency_status": {"gray_ready": True},
+                    },
+                ],
+            }
+        )
+
+        listed = self.runtime.list_gray_rollout_batch_plan_cache()
+        self.assertEqual(2, listed["total_entries"])
+        self.assertEqual(2, listed["returned_entries"])
+        self.assertEqual(20, listed["limit"])
+        self.assertEqual(200, listed["max_limit"])
+        self.assertEqual(512, listed["max_entries"])
+        self.assertEqual(300, listed["default_ttl_seconds"])
+        self.assertEqual(3600, listed["max_ttl_seconds"])
+        self.assertEqual(2, len(listed["items"]))
+        self.assertNotIn("event_window", listed)
+        self.assertIn("idempotency_key", listed["items"][0])
+        self.assertIn("created_at", listed["items"][0])
+        self.assertIn("expires_at", listed["items"][0])
+        self.assertIn("ttl_remaining_seconds", listed["items"][0])
+        self.assertIn("age_seconds", listed["items"][0])
+
+        listed_with_events = self.runtime.list_gray_rollout_batch_plan_cache({"limit": 1, "include_events": True})
+        self.assertEqual(1, listed_with_events["returned_entries"])
+        self.assertIn("event_window", listed_with_events)
+        self.assertGreaterEqual(int(listed_with_events["event_window"]["event_count"]), 2)
+
+        with self.assertRaisesRegex(ValueError, "limit must be within \\[1, 200\\]"):
+            self.runtime.list_gray_rollout_batch_plan_cache({"limit": 0})
+        with self.assertRaisesRegex(ValueError, "limit must be within \\[1, 200\\]"):
+            self.runtime.list_gray_rollout_batch_plan_cache({"limit": 201})
+        with self.assertRaisesRegex(ValueError, "limit must be an integer"):
+            self.runtime.list_gray_rollout_batch_plan_cache({"limit": "bad"})
+
     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
         self.runtime.register_device(
             {

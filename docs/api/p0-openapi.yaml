@@ -1181,6 +1181,41 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/gray-rollout/plan/batch/cache:
+    get:
+      tags: [runtime]
+      summary: List in-memory gray rollout batch-plan idempotency cache entries
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 20
+        - in: query
+          name: include_events
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Gray rollout batch-plan cache snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrayRolloutPlanBatchCacheListEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/gray-rollout/plan/batch/cache/clear:
     post:
       tags: [runtime]
@@ -2842,6 +2877,103 @@ components:
           type: integer
           minimum: 0
 
+    GrayRolloutPlanBatchCacheListItem:
+      type: object
+      required:
+        - idempotency_key
+        - fingerprint
+        - created_at
+        - expires_at
+        - ttl_remaining_seconds
+        - age_seconds
+      properties:
+        idempotency_key:
+          type: string
+        fingerprint:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        ttl_remaining_seconds:
+          type: integer
+          minimum: 0
+        age_seconds:
+          type: integer
+          minimum: 0
+
+    GrayRolloutPlanBatchCacheEventWindow:
+      type: object
+      required:
+        - event_count
+        - last_minute_requests
+        - last_minute_hits
+        - last_minute_misses
+        - last_minute_conflicts
+        - last_minute_hit_rate_percent
+      properties:
+        event_count:
+          type: integer
+          minimum: 0
+        last_minute_requests:
+          type: integer
+          minimum: 0
+        last_minute_hits:
+          type: integer
+          minimum: 0
+        last_minute_misses:
+          type: integer
+          minimum: 0
+        last_minute_conflicts:
+          type: integer
+          minimum: 0
+        last_minute_hit_rate_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+
+    GrayRolloutPlanBatchCacheListData:
+      type: object
+      required:
+        - limit
+        - max_limit
+        - total_entries
+        - returned_entries
+        - max_entries
+        - default_ttl_seconds
+        - max_ttl_seconds
+        - items
+      properties:
+        limit:
+          type: integer
+          minimum: 1
+        max_limit:
+          type: integer
+          minimum: 1
+        total_entries:
+          type: integer
+          minimum: 0
+        returned_entries:
+          type: integer
+          minimum: 0
+        max_entries:
+          type: integer
+          minimum: 1
+        default_ttl_seconds:
+          type: integer
+          minimum: 1
+        max_ttl_seconds:
+          type: integer
+          minimum: 1
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrayRolloutPlanBatchCacheListItem'
+        event_window:
+          $ref: '#/components/schemas/GrayRolloutPlanBatchCacheEventWindow'
+
     GrayRolloutPlanBatchCacheClearRequest:
       type: object
       additionalProperties: true
@@ -3367,6 +3499,14 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/GrayRolloutPlanBatchData'
+
+    GrayRolloutPlanBatchCacheListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/GrayRolloutPlanBatchCacheListData'
 
     GrayRolloutPlanBatchCacheClearEnvelope:
       allOf:

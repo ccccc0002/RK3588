@@ -166,6 +166,32 @@ class P0Runtime:
             raise ValueError(f"cache_ttl_seconds must be <= {self._GRAY_BATCH_PLAN_CACHE_MAX_TTL_SECONDS}")
         return value
 
+    def _normalize_gray_batch_plan_cache_list_limit(self, payload: dict) -> int:
+        max_limit = 200
+        raw = payload.get("limit", 20)
+        if isinstance(raw, bool):
+            raise ValueError("limit must be an integer")
+        try:
+            value = int(raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("limit must be an integer") from exc
+        if value < 1 or value > max_limit:
+            raise ValueError(f"limit must be within [1, {max_limit}]")
+        return value
+
+    def _normalize_gray_batch_plan_cache_include_events(self, payload: dict) -> bool:
+        raw = payload.get("include_events", False)
+        if isinstance(raw, bool):
+            return raw
+        if raw is None:
+            return False
+        value = str(raw).strip().lower()
+        if value in {"1", "true", "yes", "on"}:
+            return True
+        if value in {"0", "false", "no", "off"}:
+            return False
+        raise ValueError("include_events must be a boolean")
+
     @staticmethod
     def _build_gray_batch_plan_cache_payload(payload: dict) -> dict:
         return {
@@ -1956,6 +1982,63 @@ class P0Runtime:
             }
             self._evict_gray_batch_plan_cache_locked()
         return cached_report
+
+    def list_gray_rollout_batch_plan_cache(self, payload: dict | None = None) -> dict:
+        source = dict(payload or {})
+        limit = self._normalize_gray_batch_plan_cache_list_limit(source)
+        include_events = self._normalize_gray_batch_plan_cache_include_events(source)
+        max_limit = 200
+        with self._lock:
+            self._evict_gray_batch_plan_cache_locked()
+            at = self._now_or(None)
+            ordered = sorted(
+                self._gray_rollout_batch_plan_cache.items(),
+                key=lambda item: item[1].get("created_at", at),
+                reverse=True,
+            )
+            items: list[dict] = []
+            for key, entry in ordered[:limit]:
+                created_at = entry.get("created_at")
+                if not isinstance(created_at, datetime):
+                    created_at = at
+                expires_at = entry.get("expires_at")
+                if not isinstance(expires_at, datetime):
+                    expires_at = at
+                ttl_remaining_seconds = max(0, int((expires_at - at).total_seconds()))
+                age_seconds = max(0, int((at - created_at).total_seconds()))
+                items.append(
+                    {
+                        "idempotency_key": str(key),
+                        "fingerprint": str(entry.get("fingerprint", "")),
+                        "created_at": created_at.isoformat(),
+                        "expires_at": expires_at.isoformat(),
+                        "ttl_remaining_seconds": ttl_remaining_seconds,
+                        "age_seconds": age_seconds,
+                    }
+                )
+            result = {
+                "limit": limit,
+                "max_limit": max_limit,
+                "total_entries": len(self._gray_rollout_batch_plan_cache),
+                "returned_entries": len(items),
+                "max_entries": self._GRAY_BATCH_PLAN_CACHE_MAX_ENTRIES,
+                "default_ttl_seconds": self._GRAY_BATCH_PLAN_CACHE_DEFAULT_TTL_SECONDS,
+                "max_ttl_seconds": self._GRAY_BATCH_PLAN_CACHE_MAX_TTL_SECONDS,
+                "items": items,
+            }
+            if include_events:
+                cache_last_minute = self._gray_batch_plan_cache_last_minute_stats_locked(now=at)
+                result["event_window"] = {
+                    "event_count": len(self._gray_rollout_batch_plan_cache_events),
+                    "last_minute_requests": int(cache_last_minute.get("gray_batch_plan_cache_last_minute_requests", 0)),
+                    "last_minute_hits": int(cache_last_minute.get("gray_batch_plan_cache_last_minute_hits", 0)),
+                    "last_minute_misses": int(cache_last_minute.get("gray_batch_plan_cache_last_minute_misses", 0)),
+                    "last_minute_conflicts": int(cache_last_minute.get("gray_batch_plan_cache_last_minute_conflicts", 0)),
+                    "last_minute_hit_rate_percent": int(
+                        cache_last_minute.get("gray_batch_plan_cache_last_minute_hit_rate_percent", 0)
+                    ),
+                }
+            return result
 
     def clear_gray_rollout_batch_plan_cache(self, payload: dict | None = None) -> dict:
         source = dict(payload or {})

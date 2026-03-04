@@ -1,0 +1,547 @@
+diff --git a/docs/api/p0-openapi.yaml b/docs/api/p0-openapi.yaml
+index c2a778e..0fcaba3 100644
+--- a/docs/api/p0-openapi.yaml
++++ b/docs/api/p0-openapi.yaml
+@@ -1181,6 +1181,41 @@ paths:
+         '403':
+           $ref: '#/components/responses/ForbiddenError'
+ 
++  /api/v1/gray-rollout/plan/batch/cache:
++    get:
++      tags: [runtime]
++      summary: List in-memory gray rollout batch-plan idempotency cache entries
++      security:
++        - BearerAuth: []
++      parameters:
++        - in: query
++          name: limit
++          required: false
++          schema:
++            type: integer
++            minimum: 1
++            maximum: 200
++            default: 20
++        - in: query
++          name: include_events
++          required: false
++          schema:
++            type: boolean
++            default: false
++      responses:
++        '200':
++          description: Gray rollout batch-plan cache snapshot
++          content:
++            application/json:
++              schema:
++                $ref: '#/components/schemas/GrayRolloutPlanBatchCacheListEnvelope'
++        '400':
++          $ref: '#/components/responses/BadRequestError'
++        '401':
++          $ref: '#/components/responses/UnauthorizedError'
++        '403':
++          $ref: '#/components/responses/ForbiddenError'
++
+   /api/v1/gray-rollout/plan/batch/cache/clear:
+     post:
+       tags: [runtime]
+@@ -2842,6 +2877,103 @@ components:
+           type: integer
+           minimum: 0
+ 
++    GrayRolloutPlanBatchCacheListItem:
++      type: object
++      required:
++        - idempotency_key
++        - fingerprint
++        - created_at
++        - expires_at
++        - ttl_remaining_seconds
++        - age_seconds
++      properties:
++        idempotency_key:
++          type: string
++        fingerprint:
++          type: string
++        created_at:
++          type: string
++          format: date-time
++        expires_at:
++          type: string
++          format: date-time
++        ttl_remaining_seconds:
++          type: integer
++          minimum: 0
++        age_seconds:
++          type: integer
++          minimum: 0
++
++    GrayRolloutPlanBatchCacheEventWindow:
++      type: object
++      required:
++        - event_count
++        - last_minute_requests
++        - last_minute_hits
++        - last_minute_misses
++        - last_minute_conflicts
++        - last_minute_hit_rate_percent
++      properties:
++        event_count:
++          type: integer
++          minimum: 0
++        last_minute_requests:
++          type: integer
++          minimum: 0
++        last_minute_hits:
++          type: integer
++          minimum: 0
++        last_minute_misses:
++          type: integer
++          minimum: 0
++        last_minute_conflicts:
++          type: integer
++          minimum: 0
++        last_minute_hit_rate_percent:
++          type: integer
++          minimum: 0
++          maximum: 100
++
++    GrayRolloutPlanBatchCacheListData:
++      type: object
++      required:
++        - limit
++        - max_limit
++        - total_entries
++        - returned_entries
++        - max_entries
++        - default_ttl_seconds
++        - max_ttl_seconds
++        - items
++      properties:
++        limit:
++          type: integer
++          minimum: 1
++        max_limit:
++          type: integer
++          minimum: 1
++        total_entries:
++          type: integer
++          minimum: 0
++        returned_entries:
++          type: integer
++          minimum: 0
++        max_entries:
++          type: integer
++          minimum: 1
++        default_ttl_seconds:
++          type: integer
++          minimum: 1
++        max_ttl_seconds:
++          type: integer
++          minimum: 1
++        items:
++          type: array
++          items:
++            $ref: '#/components/schemas/GrayRolloutPlanBatchCacheListItem'
++        event_window:
++          $ref: '#/components/schemas/GrayRolloutPlanBatchCacheEventWindow'
++
+     GrayRolloutPlanBatchCacheClearRequest:
+       type: object
+       additionalProperties: true
+@@ -3368,6 +3500,14 @@ components:
+             data:
+               $ref: '#/components/schemas/GrayRolloutPlanBatchData'
+ 
++    GrayRolloutPlanBatchCacheListEnvelope:
++      allOf:
++        - $ref: '#/components/schemas/ApiSuccessEnvelope'
++        - type: object
++          properties:
++            data:
++              $ref: '#/components/schemas/GrayRolloutPlanBatchCacheListData'
++
+     GrayRolloutPlanBatchCacheClearEnvelope:
+       allOf:
+         - $ref: '#/components/schemas/ApiSuccessEnvelope'
+diff --git a/docs/api/p0-runtime-endpoints.md b/docs/api/p0-runtime-endpoints.md
+index f14bf5e..5fad29d 100644
+--- a/docs/api/p0-runtime-endpoints.md
++++ b/docs/api/p0-runtime-endpoints.md
+@@ -842,6 +842,24 @@ GB28181 example:
+     - when `dry_run=true`, no cache entries/events or counters are changed
+     - response still returns `would_clear_entries` / `would_clear_events` for operational preview
+ 
++- `GET /api/v1/gray-rollout/plan/batch/cache`
++  - RBAC: requires `device:read`
++  - query params (optional):
++    - `limit` (default `20`, valid range `1..200`)
++    - `include_events` (`true|false`, default `false`)
++  - 200 envelope:
++    - `limit`, `max_limit`, `total_entries`, `returned_entries`
++    - cache policy: `max_entries`, `default_ttl_seconds`, `max_ttl_seconds`
++    - `items[]` ordered by `created_at` desc:
++      - `idempotency_key`, `fingerprint`, `created_at`, `expires_at`
++      - `ttl_remaining_seconds`, `age_seconds`
++    - optional `event_window` (when `include_events=true`):
++      - `event_count`, `last_minute_requests`, `last_minute_hits`, `last_minute_misses`
++      - `last_minute_conflicts`, `last_minute_hit_rate_percent`
++  - validation:
++    - `limit` must be integer within `[1, 200]`
++    - `include_events` must be boolean-like (`true/false/1/0/yes/no/on/off`)
++
+ ## FastAPI Compatibility Layer
+ 
+ File: `src/p0_runtime/fastapi_adapter.py`
+diff --git a/src/p0_runtime/api_policy.py b/src/p0_runtime/api_policy.py
+index ded0e22..cdcd9b1 100644
+--- a/src/p0_runtime/api_policy.py
++++ b/src/p0_runtime/api_policy.py
+@@ -35,6 +35,8 @@ def required_get_action(path: str) -> str | None:
+         return "device:read"
+     if path == "/api/v1/gray-rollout/policy":
+         return "device:read"
++    if path == "/api/v1/gray-rollout/plan/batch/cache":
++        return "device:read"
+     if path == "/api/v1/push/worker/status":
+         return "device:read"
+     if path == "/api/v1/audit/recent":
+diff --git a/src/p0_runtime/fastapi_adapter.py b/src/p0_runtime/fastapi_adapter.py
+index 56b2182..9be7781 100644
+--- a/src/p0_runtime/fastapi_adapter.py
++++ b/src/p0_runtime/fastapi_adapter.py
+@@ -201,6 +201,25 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str =
+             return denied
+         return ok_payload(rt.get_gray_rollout_policy())
+ 
++    @app.get("/api/v1/gray-rollout/plan/batch/cache")
++    def list_gray_rollout_batch_cache_ep(
++        limit: int = 20,
++        include_events: bool = False,
++        authorization: str = Header(default="", alias="Authorization"),
++    ):
++        denied = _authorize_request(
++            authorization,
++            required_get_action("/api/v1/gray-rollout/plan/batch/cache") or "device:read",
++        )
++        if denied is not None:
++            return denied
++        try:
++            return ok_payload(
++                rt.list_gray_rollout_batch_plan_cache({"limit": limit, "include_events": include_events})
++            )
++        except ValueError as exc:
++            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
++
+     @app.post("/api/v1/auth/token")
+     def issue_token_ep(
+         payload: dict = Body(default_factory=dict),
+diff --git a/src/p0_runtime/http_server.py b/src/p0_runtime/http_server.py
+index d680b8f..8556a2b 100644
+--- a/src/p0_runtime/http_server.py
++++ b/src/p0_runtime/http_server.py
+@@ -152,6 +152,19 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
+             _json_response(self, 200, ok_payload(self.runtime.get_gray_rollout_policy()))
+             return
+ 
++        if parsed.path == "/api/v1/gray-rollout/plan/batch/cache":
++            query = parse_qs(parsed.query)
++            payload: dict[str, object] = {}
++            if "limit" in query:
++                payload["limit"] = (query.get("limit", ["20"]) or ["20"])[0]
++            if "include_events" in query:
++                payload["include_events"] = (query.get("include_events", ["false"]) or ["false"])[0]
++            try:
++                _json_response(self, 200, ok_payload(self.runtime.list_gray_rollout_batch_plan_cache(payload)))
++            except ValueError as exc:
++                _json_response(self, 400, error_payload("bad_request", str(exc)))
++            return
++
+         if parsed.path == "/api/v1/runtime/telemetry":
+             _json_response(self, 200, ok_payload({"items": self.runtime.list_stream_telemetry()}))
+             return
+diff --git a/src/p0_runtime/runtime.py b/src/p0_runtime/runtime.py
+index 0906065..fc96e55 100644
+--- a/src/p0_runtime/runtime.py
++++ b/src/p0_runtime/runtime.py
+@@ -166,6 +166,32 @@ class P0Runtime:
+             raise ValueError(f"cache_ttl_seconds must be <= {self._GRAY_BATCH_PLAN_CACHE_MAX_TTL_SECONDS}")
+         return value
+ 
++    def _normalize_gray_batch_plan_cache_list_limit(self, payload: dict) -> int:
++        max_limit = 200
++        raw = payload.get("limit", 20)
++        if isinstance(raw, bool):
++            raise ValueError("limit must be an integer")
++        try:
++            value = int(raw)
++        except (TypeError, ValueError) as exc:
++            raise ValueError("limit must be an integer") from exc
++        if value < 1 or value > max_limit:
++            raise ValueError(f"limit must be within [1, {max_limit}]")
++        return value
++
++    def _normalize_gray_batch_plan_cache_include_events(self, payload: dict) -> bool:
++        raw = payload.get("include_events", False)
++        if isinstance(raw, bool):
++            return raw
++        if raw is None:
++            return False
++        value = str(raw).strip().lower()
++        if value in {"1", "true", "yes", "on"}:
++            return True
++        if value in {"0", "false", "no", "off"}:
++            return False
++        raise ValueError("include_events must be a boolean")
++
+     @staticmethod
+     def _build_gray_batch_plan_cache_payload(payload: dict) -> dict:
+         return {
+@@ -1957,6 +1983,63 @@ class P0Runtime:
+             self._evict_gray_batch_plan_cache_locked()
+         return cached_report
+ 
++    def list_gray_rollout_batch_plan_cache(self, payload: dict | None = None) -> dict:
++        source = dict(payload or {})
++        limit = self._normalize_gray_batch_plan_cache_list_limit(source)
++        include_events = self._normalize_gray_batch_plan_cache_include_events(source)
++        max_limit = 200
++        with self._lock:
++            self._evict_gray_batch_plan_cache_locked()
++            at = self._now_or(None)
++            ordered = sorted(
++                self._gray_rollout_batch_plan_cache.items(),
++                key=lambda item: item[1].get("created_at", at),
++                reverse=True,
++            )
++            items: list[dict] = []
++            for key, entry in ordered[:limit]:
++                created_at = entry.get("created_at")
++                if not isinstance(created_at, datetime):
++                    created_at = at
++                expires_at = entry.get("expires_at")
++                if not isinstance(expires_at, datetime):
++                    expires_at = at
++                ttl_remaining_seconds = max(0, int((expires_at - at).total_seconds()))
++                age_seconds = max(0, int((at - created_at).total_seconds()))
++                items.append(
++                    {
++                        "idempotency_key": str(key),
++                        "fingerprint": str(entry.get("fingerprint", "")),
++                        "created_at": created_at.isoformat(),
++                        "expires_at": expires_at.isoformat(),
++                        "ttl_remaining_seconds": ttl_remaining_seconds,
++                        "age_seconds": age_seconds,
++                    }
++                )
++            result = {
++                "limit": limit,
++                "max_limit": max_limit,
++                "total_entries": len(self._gray_rollout_batch_plan_cache),
++                "returned_entries": len(items),
++                "max_entries": self._GRAY_BATCH_PLAN_CACHE_MAX_ENTRIES,
++                "default_ttl_seconds": self._GRAY_BATCH_PLAN_CACHE_DEFAULT_TTL_SECONDS,
++                "max_ttl_seconds": self._GRAY_BATCH_PLAN_CACHE_MAX_TTL_SECONDS,
++                "items": items,
++            }
++            if include_events:
++                cache_last_minute = self._gray_batch_plan_cache_last_minute_stats_locked(now=at)
++                result["event_window"] = {
++                    "event_count": len(self._gray_rollout_batch_plan_cache_events),
++                    "last_minute_requests": int(cache_last_minute.get("gray_batch_plan_cache_last_minute_requests", 0)),
++                    "last_minute_hits": int(cache_last_minute.get("gray_batch_plan_cache_last_minute_hits", 0)),
++                    "last_minute_misses": int(cache_last_minute.get("gray_batch_plan_cache_last_minute_misses", 0)),
++                    "last_minute_conflicts": int(cache_last_minute.get("gray_batch_plan_cache_last_minute_conflicts", 0)),
++                    "last_minute_hit_rate_percent": int(
++                        cache_last_minute.get("gray_batch_plan_cache_last_minute_hit_rate_percent", 0)
++                    ),
++                }
++            return result
++
+     def clear_gray_rollout_batch_plan_cache(self, payload: dict | None = None) -> dict:
+         source = dict(payload or {})
+         reset_counters = bool(source.get("reset_counters", False))
+diff --git a/tests/p0_runtime/test_api_policy.py b/tests/p0_runtime/test_api_policy.py
+index 954f5cd..a43087a 100644
+--- a/tests/p0_runtime/test_api_policy.py
++++ b/tests/p0_runtime/test_api_policy.py
+@@ -24,6 +24,7 @@ class ApiPolicyTests(unittest.TestCase):
+         self.assertEqual("device:read", required_get_action("/api/v1/offline-sync/cursors"))
+         self.assertEqual("device:read", required_get_action("/api/v1/offline-sync/streams"))
+         self.assertEqual("device:read", required_get_action("/api/v1/gray-rollout/policy"))
++        self.assertEqual("device:read", required_get_action("/api/v1/gray-rollout/plan/batch/cache"))
+         self.assertEqual("device:read", required_get_action("/api/v1/push/worker/status"))
+         self.assertEqual("device:write", required_get_action("/api/v1/audit/recent"))
+         self.assertEqual("device:read", required_get_action("/api/v1/audit/policy"))
+diff --git a/tests/p0_runtime/test_fastapi_adapter.py b/tests/p0_runtime/test_fastapi_adapter.py
+index 45419ac..81d0a91 100644
+--- a/tests/p0_runtime/test_fastapi_adapter.py
++++ b/tests/p0_runtime/test_fastapi_adapter.py
+@@ -45,6 +45,7 @@ class FastApiAdapterTests(unittest.TestCase):
+             self.assertIn("/api/v1/gray-rollout/evaluate", paths)
+             self.assertIn("/api/v1/gray-rollout/plan", paths)
+             self.assertIn("/api/v1/gray-rollout/plan/batch", paths)
++            self.assertIn("/api/v1/gray-rollout/plan/batch/cache", paths)
+             self.assertIn("/api/v1/gray-rollout/plan/batch/cache/clear", paths)
+             self.assertIn("/api/v1/runtime/schedule", paths)
+             self.assertIn("/api/v1/runtime/telemetry", paths)
+diff --git a/tests/p0_runtime/test_http_api.py b/tests/p0_runtime/test_http_api.py
+index f0a19f5..1be7e52 100644
+--- a/tests/p0_runtime/test_http_api.py
++++ b/tests/p0_runtime/test_http_api.py
+@@ -1168,6 +1168,76 @@ class P0HttpApiTests(unittest.TestCase):
+         self.assertEqual(0, int(metrics_payload["data"]["gray_batch_plan_cache_misses"]))
+         self.assertEqual(0, int(metrics_payload["data"]["gray_batch_plan_cache_conflicts"]))
+ 
++    def test_gray_rollout_batch_cache_list_endpoint(self) -> None:
++        self._post(
++            "/api/v1/gray-rollout/policy",
++            {
++                "enabled": True,
++                "default_percent": 100,
++                "dependencies": ["gray_ready"],
++                "dependency_graph": {},
++                "overrides": [],
++            },
++            token=self.operator_token,
++        )
++        self._post(
++            "/api/v1/gray-rollout/plan/batch",
++            {
++                "idempotency_key": "http-cache-list-001",
++                "continue_on_error": True,
++                "items": [
++                    {
++                        "tenant_id": "t1",
++                        "site_id": "s1",
++                        "box_id": "b1",
++                        "seed": "http-cache-list-001",
++                        "dependency_status": {"gray_ready": True},
++                    }
++                ],
++            },
++            token=self.viewer_token,
++        )
++        self._post(
++            "/api/v1/gray-rollout/plan/batch",
++            {
++                "idempotency_key": "http-cache-list-002",
++                "continue_on_error": True,
++                "items": [
++                    {
++                        "tenant_id": "t2",
++                        "site_id": "s2",
++                        "box_id": "b2",
++                        "seed": "http-cache-list-002",
++                        "dependency_status": {"gray_ready": True},
++                    }
++                ],
++            },
++            token=self.viewer_token,
++        )
++
++        list_status, list_payload = self._get(
++            "/api/v1/gray-rollout/plan/batch/cache?limit=1&include_events=true",
++            token=self.viewer_token,
++        )
++        self.assertEqual(200, list_status)
++        self.assertTrue(list_payload["success"])
++        self.assertEqual(1, int(list_payload["data"]["returned_entries"]))
++        self.assertEqual(1, int(list_payload["data"]["limit"]))
++        self.assertGreaterEqual(int(list_payload["data"]["total_entries"]), 2)
++        self.assertIn("event_window", list_payload["data"])
++        self.assertGreaterEqual(int(list_payload["data"]["event_window"]["event_count"]), 2)
++        self.assertEqual(1, len(list_payload["data"]["items"]))
++        self.assertIn("idempotency_key", list_payload["data"]["items"][0])
++        self.assertIn("ttl_remaining_seconds", list_payload["data"]["items"][0])
++
++        bad_status, bad_payload = self._get(
++            "/api/v1/gray-rollout/plan/batch/cache?limit=bad",
++            token=self.viewer_token,
++        )
++        self.assertEqual(400, bad_status)
++        self.assertFalse(bad_payload["success"])
++        self.assertEqual("bad_request", bad_payload["error"]["code"])
++
+     def test_offline_jobs_endpoints(self) -> None:
+         self._post(
+             "/api/v1/offline-executors/upsert",
+diff --git a/tests/p0_runtime/test_runtime.py b/tests/p0_runtime/test_runtime.py
+index 24f1093..5770ff6 100644
+--- a/tests/p0_runtime/test_runtime.py
++++ b/tests/p0_runtime/test_runtime.py
+@@ -1662,6 +1662,75 @@ class P0RuntimeTests(unittest.TestCase):
+         self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_evicted_expired"])
+         self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_evicted_overflow"])
+ 
++    def test_list_gray_rollout_batch_plan_cache(self) -> None:
++        self.runtime.update_gray_rollout_policy(
++            {
++                "enabled": True,
++                "default_percent": 100,
++                "overrides": [],
++                "dependencies": ["gray_ready"],
++                "dependency_graph": {},
++            }
++        )
++        self.runtime.batch_plan_gray_rollout_dependencies_report(
++            {
++                "idempotency_key": "plan-batch-list-001",
++                "continue_on_error": True,
++                "items": [
++                    {
++                        "tenant_id": "t1",
++                        "site_id": "s1",
++                        "box_id": "b1",
++                        "seed": "plan-list-seed-001",
++                        "dependency_status": {"gray_ready": True},
++                    },
++                ],
++            }
++        )
++        self.runtime.batch_plan_gray_rollout_dependencies_report(
++            {
++                "idempotency_key": "plan-batch-list-002",
++                "continue_on_error": True,
++                "items": [
++                    {
++                        "tenant_id": "t2",
++                        "site_id": "s2",
++                        "box_id": "b2",
++                        "seed": "plan-list-seed-002",
++                        "dependency_status": {"gray_ready": True},
++                    },
++                ],
++            }
++        )
++
++        listed = self.runtime.list_gray_rollout_batch_plan_cache()
++        self.assertEqual(2, listed["total_entries"])
++        self.assertEqual(2, listed["returned_entries"])
++        self.assertEqual(20, listed["limit"])
++        self.assertEqual(200, listed["max_limit"])
++        self.assertEqual(512, listed["max_entries"])
++        self.assertEqual(300, listed["default_ttl_seconds"])
++        self.assertEqual(3600, listed["max_ttl_seconds"])
++        self.assertEqual(2, len(listed["items"]))
++        self.assertNotIn("event_window", listed)
++        self.assertIn("idempotency_key", listed["items"][0])
++        self.assertIn("created_at", listed["items"][0])
++        self.assertIn("expires_at", listed["items"][0])
++        self.assertIn("ttl_remaining_seconds", listed["items"][0])
++        self.assertIn("age_seconds", listed["items"][0])
++
++        listed_with_events = self.runtime.list_gray_rollout_batch_plan_cache({"limit": 1, "include_events": True})
++        self.assertEqual(1, listed_with_events["returned_entries"])
++        self.assertIn("event_window", listed_with_events)
++        self.assertGreaterEqual(int(listed_with_events["event_window"]["event_count"]), 2)
++
++        with self.assertRaisesRegex(ValueError, "limit must be within \\[1, 200\\]"):
++            self.runtime.list_gray_rollout_batch_plan_cache({"limit": 0})
++        with self.assertRaisesRegex(ValueError, "limit must be within \\[1, 200\\]"):
++            self.runtime.list_gray_rollout_batch_plan_cache({"limit": 201})
++        with self.assertRaisesRegex(ValueError, "limit must be an integer"):
++            self.runtime.list_gray_rollout_batch_plan_cache({"limit": "bad"})
++
+     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
+         self.runtime.register_device(
+             {

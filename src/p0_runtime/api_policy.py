@@ -35,6 +35,8 @@ def required_get_action(path: str) -> str | None:
         return "device:read"
     if path == "/api/v1/gray-rollout/policy":
         return "device:read"
+    if path == "/api/v1/gray-rollout/plan/batch/cache":
+        return "device:read"
     if path == "/api/v1/push/worker/status":
         return "device:read"
     if path == "/api/v1/audit/recent":

@@ -842,6 +842,24 @@ GB28181 example:
     - when `dry_run=true`, no cache entries/events or counters are changed
     - response still returns `would_clear_entries` / `would_clear_events` for operational preview
 
+- `GET /api/v1/gray-rollout/plan/batch/cache`
+  - RBAC: requires `device:read`
+  - query params (optional):
+    - `limit` (default `20`, valid range `1..200`)
+    - `include_events` (`true|false`, default `false`)
+  - 200 envelope:
+    - `limit`, `max_limit`, `total_entries`, `returned_entries`
+    - cache policy: `max_entries`, `default_ttl_seconds`, `max_ttl_seconds`
+    - `items[]` ordered by `created_at` desc:
+      - `idempotency_key`, `fingerprint`, `created_at`, `expires_at`
+      - `ttl_remaining_seconds`, `age_seconds`
+    - optional `event_window` (when `include_events=true`):
+      - `event_count`, `last_minute_requests`, `last_minute_hits`, `last_minute_misses`
+      - `last_minute_conflicts`, `last_minute_hit_rate_percent`
+  - validation:
+    - `limit` must be integer within `[1, 200]`
+    - `include_events` must be boolean-like (`true/false/1/0/yes/no/on/off`)
+
 ## FastAPI Compatibility Layer
 
 File: `src/p0_runtime/fastapi_adapter.py`
