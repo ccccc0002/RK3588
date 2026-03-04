@@ -897,6 +897,13 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual([10], batch_plan_offset_payload["data"]["retry_hint"]["failed_indices"])
         self.assertEqual(10, batch_plan_offset_payload["data"]["errors"][0]["index"])
 
+        metrics_before_status, metrics_before_payload = self._get("/api/v1/metrics", token=self.viewer_token)
+        self.assertEqual(200, metrics_before_status)
+        self.assertTrue(metrics_before_payload["success"])
+        cache_hits_before = int(metrics_before_payload["data"].get("gray_batch_plan_cache_hits", 0))
+        cache_misses_before = int(metrics_before_payload["data"].get("gray_batch_plan_cache_misses", 0))
+        cache_conflicts_before = int(metrics_before_payload["data"].get("gray_batch_plan_cache_conflicts", 0))
+
         batch_plan_idem_status, batch_plan_idem_payload = self._post(
             "/api/v1/gray-rollout/plan/batch",
             {
@@ -968,6 +975,23 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertFalse(batch_plan_idem_conflict_payload["success"])
         self.assertEqual("bad_request", batch_plan_idem_conflict_payload["error"]["code"])
         self.assertIn("idempotency_key conflict with different payload", batch_plan_idem_conflict_payload["error"]["message"])
+
+        metrics_after_status, metrics_after_payload = self._get("/api/v1/metrics", token=self.viewer_token)
+        self.assertEqual(200, metrics_after_status)
+        self.assertTrue(metrics_after_payload["success"])
+        self.assertGreaterEqual(
+            int(metrics_after_payload["data"]["gray_batch_plan_cache_hits"]),
+            cache_hits_before + 1,
+        )
+        self.assertGreaterEqual(
+            int(metrics_after_payload["data"]["gray_batch_plan_cache_misses"]),
+            cache_misses_before + 1,
+        )
+        self.assertGreaterEqual(
+            int(metrics_after_payload["data"]["gray_batch_plan_cache_conflicts"]),
+            cache_conflicts_before + 1,
+        )
+        self.assertGreaterEqual(int(metrics_after_payload["data"]["gray_batch_plan_cache_entries"]), 1)
 
         batch_plan_ttl_requires_key_status, batch_plan_ttl_requires_key_payload = self._post(
             "/api/v1/gray-rollout/plan/batch",

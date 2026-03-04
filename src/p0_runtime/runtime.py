@@ -101,6 +101,9 @@ class P0Runtime:
             "worker_start_count": 0,
             "worker_stop_count": 0,
             "last_dispatch_at": None,
+            "gray_batch_plan_cache_hits": 0,
+            "gray_batch_plan_cache_misses": 0,
+            "gray_batch_plan_cache_conflicts": 0,
         }
 
     def close(self) -> None:
@@ -1785,10 +1788,15 @@ class P0Runtime:
                 if cached is not None:
                     cached_fingerprint = str(cached.get("fingerprint", ""))
                     if cached_fingerprint != request_fingerprint:
+                        self._metrics["gray_batch_plan_cache_conflicts"] = (
+                            int(self._metrics["gray_batch_plan_cache_conflicts"]) + 1
+                        )
                         raise ValueError("idempotency_key conflict with different payload")
                     cached_report = dict(cached.get("report", {}))
                     cached_report["cache_hit"] = True
+                    self._metrics["gray_batch_plan_cache_hits"] = int(self._metrics["gray_batch_plan_cache_hits"]) + 1
                     return cached_report
+                self._metrics["gray_batch_plan_cache_misses"] = int(self._metrics["gray_batch_plan_cache_misses"]) + 1
         items_raw = payload.get("items", [])
         if not isinstance(items_raw, list):
             raise ValueError("items must be a list")
@@ -2173,6 +2181,7 @@ class P0Runtime:
     def get_metrics(self) -> dict:
         storage = self._storage
         with self._lock:
+            self._evict_gray_batch_plan_cache_locked()
             data = dict(self._metrics)
             data["queue_current"] = len(self._push_state.tasks)
             data["dead_letter_current"] = len(self._push_state.dead_letters)
@@ -2183,6 +2192,7 @@ class P0Runtime:
             data["offline_executor_count"] = len(self._offline_executors)
             data["offline_job_count"] = len(self._offline_jobs)
             data["telemetry_count"] = len(self._stream_telemetry)
+            data["gray_batch_plan_cache_entries"] = len(self._gray_rollout_batch_plan_cache)
             data["audit_max_records"] = int(self._audit_policy.get("max_records", 2000))
             data["storage_enabled"] = bool(storage is not None)
         if storage is not None:

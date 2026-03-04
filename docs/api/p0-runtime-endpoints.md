@@ -581,6 +581,11 @@ GB28181 example:
 - `GET /api/v1/metrics`
   - 200 envelope with dispatch/worker metrics and storage stats (`storage_enabled`, `storage`)
   - includes counts for `algorithm_count`, `base_library_count`, `base_library_mapping_count`, `offline_executor_count`, `offline_job_count`
+  - includes gray batch idempotency cache observability:
+    - `gray_batch_plan_cache_entries`
+    - `gray_batch_plan_cache_hits`
+    - `gray_batch_plan_cache_misses`
+    - `gray_batch_plan_cache_conflicts`
 
 - `POST /api/v1/runtime/schedule`
   - body: `{ "budget": 10.0 }`

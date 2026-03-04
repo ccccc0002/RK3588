@@ -2790,6 +2790,10 @@ components:
         - offline_executor_count
         - offline_job_count
         - telemetry_count
+        - gray_batch_plan_cache_entries
+        - gray_batch_plan_cache_hits
+        - gray_batch_plan_cache_misses
+        - gray_batch_plan_cache_conflicts
         - audit_max_records
         - storage_enabled
         - storage
@@ -2844,6 +2848,18 @@ components:
           type: integer
           minimum: 0
         telemetry_count:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_entries:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_hits:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_misses:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_conflicts:
           type: integer
           minimum: 0
         audit_max_records:
