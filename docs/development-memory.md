@@ -611,3 +611,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-17-gray-plan-cache-clear-threshold-guard-validated/20260304-175229
 - Summary: added max_clear_entries threshold guard for gray batch cache clear endpoint and validated local+remote py3.8 gates
 - Next: continue post-P3 hardening with cache operation policy controls and auditability
+
+## [2026-03-04T18:00:43+08:00] P4-iteration-18-gray-plan-cache-ops-audit-visibility-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: fc354b4
+- Tag: checkpoint/P4-iteration-18-gray-plan-cache-ops-audit-visibility-validated/20260304-180043
+- Summary: added gray batch cache clear-ops audit endpoint and blocked-attempt audit trace with local+remote py3.8 validation
+- Next: continue post-P3 hardening with cache operation governance and policy controls
