@@ -555,3 +555,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-9-gray-plan-idempotency-ttl-validated/20260304-165158
 - Summary: hardened gray rollout batch idempotency cache contract with cache_ttl_seconds guardrails and validated runtime/http regression coverage on local+remote
 - Next: sync stage/P3-phase2-readiness and iteration-9 checkpoint tags to GitHub, then continue P4 next hardening slice
+
+## [2026-03-04T16:58:27+08:00] P4-iteration-10-gray-plan-idempotency-metrics-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 5849629
+- Tag: checkpoint/P4-iteration-10-gray-plan-idempotency-metrics-validated/20260304-165827
+- Summary: added gray batch idempotency cache observability metrics to runtime metrics endpoint with local+remote validated tests and docs parity
+- Next: sync stage/P3-phase2-readiness and iteration-10 checkpoint tags to GitHub, then continue next P4 hardening slice
