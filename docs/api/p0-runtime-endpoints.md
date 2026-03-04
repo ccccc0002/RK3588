@@ -211,6 +211,27 @@ GB28181 example:
   - 200 envelope with upserted mapping record
   - validation: target device must exist, referenced base library must exist and be `active`
 
+- `POST /api/v1/base-libraries/mappings/batch-upsert`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "items": [
+        {
+          "tenant_id": "t1",
+          "site_id": "s1",
+          "box_id": "b1",
+          "device_id": "cam-1",
+          "capability": "face",
+          "library_id": "lib-face-core",
+          "library_version": "2026.03"
+        }
+      ]
+    }
+    ```
+  - 200 envelope with `{ "items": [ ...BaseLibraryMappingRecord ] }`
+  - validation: each item follows single upsert validation rules
+
 - `GET /api/v1/base-libraries/compatibility/policy`
   - RBAC: requires `device:read`
   - 200 envelope with compatibility policy:
@@ -286,6 +307,20 @@ GB28181 example:
     - `queued -> queued|running|failed|canceled`
     - `running -> running|succeeded|failed|canceled`
     - terminal statuses (`succeeded|failed|canceled`) are immutable
+
+- `POST /api/v1/offline-jobs/status/batch`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "items": [
+        { "job_id": "job-001", "status": "running" },
+        { "job_id": "job-002", "status": "running" }
+      ]
+    }
+    ```
+  - 200 envelope with `{ "items": [ ...OfflineJobRecord ] }`
+  - validation: each item follows single status-update transition rules
 
 ### Viewer sessions
 

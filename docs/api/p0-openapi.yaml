@@ -249,6 +249,32 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/base-libraries/mappings/batch-upsert:
+    post:
+      tags: [runtime]
+      summary: Batch upsert device-to-base-library mappings
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchUpsertBaseLibraryMappingsRequest'
+      responses:
+        '200':
+          description: Upserted base library mapping list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseLibraryMappingListEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/base-libraries/compatibility/policy:
     get:
       tags: [runtime]
@@ -398,6 +424,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OfflineJobEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/offline-jobs/status/batch:
+    post:
+      tags: [runtime]
+      summary: Batch update offline analysis job status
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchUpdateOfflineJobStatusRequest'
+      responses:
+        '200':
+          description: Updated offline analysis job list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfflineJobListEnvelope'
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
@@ -1110,6 +1162,16 @@ components:
         library_version:
           type: string
 
+    BatchUpsertBaseLibraryMappingsRequest:
+      type: object
+      required: [items]
+      additionalProperties: true
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpsertBaseLibraryMappingRequest'
+
     BaseLibraryMappingRecord:
       type: object
       required: [tenant_id, site_id, box_id, device_id, capability, library_id, library_version, updated_at]
@@ -1239,6 +1301,16 @@ components:
         now:
           type: string
           format: date-time
+
+    BatchUpdateOfflineJobStatusRequest:
+      type: object
+      required: [items]
+      additionalProperties: true
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpdateOfflineJobStatusRequest'
 
     OfflineJobRecord:
       type: object

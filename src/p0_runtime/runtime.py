@@ -449,6 +449,20 @@ class P0Runtime:
         items.sort(key=lambda item: (item["tenant_id"], item["site_id"], item["box_id"], item["device_id"], item["capability"]))
         return items
 
+    def batch_upsert_base_library_mappings(self, payload: dict) -> list[dict]:
+        if "items" not in payload:
+            raise ValueError("missing required field: items")
+        items_raw = payload.get("items")
+        if not isinstance(items_raw, list):
+            raise ValueError("items must be a list")
+
+        updated: list[dict] = []
+        for item in items_raw:
+            if not isinstance(item, dict):
+                raise ValueError("each item must be an object")
+            updated.append(self.upsert_base_library_mapping(dict(item)))
+        return updated
+
     @staticmethod
     def _normalize_offline_executor_status(value: str) -> str:
         status = str(value).strip().lower()
@@ -628,6 +642,20 @@ class P0Runtime:
                 },
             )
             return dict(updated)
+
+    def batch_update_offline_job_status(self, payload: dict, now: datetime | None = None) -> list[dict]:
+        if "items" not in payload:
+            raise ValueError("missing required field: items")
+        items_raw = payload.get("items")
+        if not isinstance(items_raw, list):
+            raise ValueError("items must be a list")
+
+        updated: list[dict] = []
+        for item in items_raw:
+            if not isinstance(item, dict):
+                raise ValueError("each item must be an object")
+            updated.append(self.update_offline_job_status(dict(item), now=now))
+        return updated
 
     def list_offline_jobs(self) -> list[dict]:
         with self._lock:

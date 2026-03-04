@@ -211,6 +211,103 @@ class P0RuntimeTests(unittest.TestCase):
         )
         self.assertEqual("exec-1", job["executor_id"])
 
+    def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
+        self.runtime.register_device(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-batch-1",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.121/live",
+                "enabled": True,
+            }
+        )
+        self.runtime.register_device(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-batch-2",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.122/live",
+                "enabled": True,
+            }
+        )
+        self.runtime.upsert_base_library(
+            {
+                "library_id": "lib-face-batch",
+                "version": "2026.05",
+                "capability": "face",
+                "status": "active",
+            }
+        )
+
+        mappings = self.runtime.batch_upsert_base_library_mappings(
+            {
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "device_id": "cam-batch-1",
+                        "capability": "face",
+                        "library_id": "lib-face-batch",
+                        "library_version": "2026.05",
+                    },
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "device_id": "cam-batch-2",
+                        "capability": "face",
+                        "library_id": "lib-face-batch",
+                        "library_version": "2026.05",
+                    },
+                ]
+            }
+        )
+        self.assertEqual(2, len(mappings))
+
+        self.runtime.upsert_algorithm(
+            {
+                "algorithm_id": "offline-batch",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            }
+        )
+        self.runtime.create_offline_job(
+            {
+                "job_id": "job-batch-1",
+                "source_scope": {"tenant_id": "t1", "site_id": "s1"},
+                "algorithm_id": "offline-batch",
+                "algorithm_version": "1.0.0",
+            },
+            now=self.now,
+        )
+        self.runtime.create_offline_job(
+            {
+                "job_id": "job-batch-2",
+                "source_scope": {"tenant_id": "t1", "site_id": "s1"},
+                "algorithm_id": "offline-batch",
+                "algorithm_version": "1.0.0",
+            },
+            now=self.now,
+        )
+
+        updates = self.runtime.batch_update_offline_job_status(
+            {
+                "items": [
+                    {"job_id": "job-batch-1", "status": "running"},
+                    {"job_id": "job-batch-2", "status": "running"},
+                ]
+            },
+            now=self.now.replace(second=8),
+        )
+        self.assertEqual(2, len(updates))
+        self.assertTrue(all(item["status"] == "running" for item in updates))
+
     def test_offline_job_lifecycle(self) -> None:
         self.runtime.upsert_algorithm(
             {

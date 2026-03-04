@@ -300,6 +300,85 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(list_payload["success"])
         self.assertTrue(any(item["job_id"] == "job-http-1" for item in list_payload["data"]["items"]))
 
+    def test_batch_governance_endpoints(self) -> None:
+        self._post(
+            "/api/v1/devices/register",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-lib-batch-http",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.131/live",
+                "enabled": True,
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/base-libraries/upsert",
+            {
+                "library_id": "lib-face-batch-http",
+                "version": "2026.06",
+                "capability": "face",
+                "status": "active",
+            },
+            token=self.operator_token,
+        )
+        map_status, map_payload = self._post(
+            "/api/v1/base-libraries/mappings/batch-upsert",
+            {
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "device_id": "cam-lib-batch-http",
+                        "capability": "face",
+                        "library_id": "lib-face-batch-http",
+                        "library_version": "2026.06",
+                    }
+                ]
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, map_status)
+        self.assertTrue(map_payload["success"])
+        self.assertEqual(1, len(map_payload["data"]["items"]))
+
+        self._post(
+            "/api/v1/algorithms/upsert",
+            {
+                "algorithm_id": "offline-http-batch",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/offline-jobs/create",
+            {
+                "job_id": "job-http-batch-1",
+                "source_scope": {"tenant_id": "t1", "site_id": "s1"},
+                "algorithm_id": "offline-http-batch",
+                "algorithm_version": "1.0.0",
+            },
+            token=self.operator_token,
+        )
+        status_status, status_payload = self._post(
+            "/api/v1/offline-jobs/status/batch",
+            {
+                "items": [
+                    {"job_id": "job-http-batch-1", "status": "running"},
+                ]
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, status_status)
+        self.assertTrue(status_payload["success"])
+        self.assertEqual(1, len(status_payload["data"]["items"]))
+        self.assertEqual("running", status_payload["data"]["items"][0]["status"])
+
     def test_register_gb28181_device_endpoint(self) -> None:
         reg_status, reg_payload = self._post(
             "/api/v1/devices/register",
@@ -667,6 +746,33 @@ class P0HttpApiTests(unittest.TestCase):
                 {
                     "job_id": "job-viewer-forbidden",
                     "status": "running",
+                },
+            ),
+            (
+                "/api/v1/base-libraries/mappings/batch-upsert",
+                {
+                    "items": [
+                        {
+                            "tenant_id": "t1",
+                            "site_id": "s1",
+                            "box_id": "b1",
+                            "device_id": "cam-1",
+                            "capability": "face",
+                            "library_id": "lib-face-core",
+                            "library_version": "2026.03",
+                        }
+                    ]
+                },
+            ),
+            (
+                "/api/v1/offline-jobs/status/batch",
+                {
+                    "items": [
+                        {
+                            "job_id": "job-viewer-forbidden",
+                            "status": "running",
+                        }
+                    ]
                 },
             ),
         ]

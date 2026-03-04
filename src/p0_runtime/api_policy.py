@@ -51,6 +51,8 @@ def required_post_action(path: str) -> str | None:
         return "device:write"
     if path == "/api/v1/base-libraries/mappings/upsert":
         return "device:write"
+    if path == "/api/v1/base-libraries/mappings/batch-upsert":
+        return "device:write"
     if path == "/api/v1/base-libraries/compatibility/policy":
         return "device:write"
     if path == "/api/v1/offline-executors/upsert":
@@ -58,6 +60,8 @@ def required_post_action(path: str) -> str | None:
     if path == "/api/v1/offline-jobs/create":
         return "device:write"
     if path == "/api/v1/offline-jobs/status":
+        return "device:write"
+    if path == "/api/v1/offline-jobs/status/batch":
         return "device:write"
     if path == "/api/v1/runtime/schedule":
         return "device:read"

@@ -268,6 +268,22 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 
+    @app.post("/api/v1/base-libraries/mappings/batch-upsert")
+    def batch_upsert_base_library_mapping_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(
+            authorization,
+            required_post_action("/api/v1/base-libraries/mappings/batch-upsert") or "device:write",
+        )
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload({"items": rt.batch_upsert_base_library_mappings(dict(payload))})
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
     @app.post("/api/v1/base-libraries/compatibility/policy")
     def update_base_library_compatibility_policy_ep(
         payload: dict = Body(default_factory=dict),
@@ -320,6 +336,22 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return denied
         try:
             return ok_payload(rt.update_offline_job_status(dict(payload), now=_parse_time(payload.get("now"))))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/offline-jobs/status/batch")
+    def batch_update_offline_job_status_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(
+            authorization,
+            required_post_action("/api/v1/offline-jobs/status/batch") or "device:write",
+        )
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload({"items": rt.batch_update_offline_job_status(dict(payload), now=_parse_time(payload.get("now")))})
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 

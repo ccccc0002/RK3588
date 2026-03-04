@@ -207,6 +207,11 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                 _json_response(self, 200, ok_payload(res))
                 return
 
+            if parsed.path == "/api/v1/base-libraries/mappings/batch-upsert":
+                res = self.runtime.batch_upsert_base_library_mappings(dict(body))
+                _json_response(self, 200, ok_payload({"items": res}))
+                return
+
             if parsed.path == "/api/v1/base-libraries/compatibility/policy":
                 res = self.runtime.update_base_library_compatibility_policy(dict(body))
                 _json_response(self, 200, ok_payload(res))
@@ -225,6 +230,11 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/v1/offline-jobs/status":
                 res = self.runtime.update_offline_job_status(dict(body), now=_parse_time(body.get("now")))
                 _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/offline-jobs/status/batch":
+                res = self.runtime.batch_update_offline_job_status(dict(body), now=_parse_time(body.get("now")))
+                _json_response(self, 200, ok_payload({"items": res}))
                 return
 
             if parsed.path == "/api/v1/runtime/schedule":
