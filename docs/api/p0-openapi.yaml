@@ -2648,6 +2648,10 @@ components:
         continue_on_error:
           type: boolean
           default: false
+        max_errors:
+          type: integer
+          minimum: 1
+          nullable: true
         items:
           type: array
           items:
@@ -2665,7 +2669,7 @@ components:
 
     GrayRolloutPlanBatchData:
       type: object
-      required: [items, errors, continue_on_error, total, success_count, error_count]
+      required: [items, errors, continue_on_error, max_errors, total, processed_count, success_count, error_count, stopped_early, duration_ms]
       properties:
         items:
           type: array
@@ -2677,13 +2681,25 @@ components:
             $ref: '#/components/schemas/GrayRolloutBatchErrorData'
         continue_on_error:
           type: boolean
+        max_errors:
+          type: integer
+          minimum: 1
+          nullable: true
         total:
+          type: integer
+          minimum: 0
+        processed_count:
           type: integer
           minimum: 0
         success_count:
           type: integer
           minimum: 0
         error_count:
+          type: integer
+          minimum: 0
+        stopped_early:
+          type: boolean
+        duration_ms:
           type: integer
           minimum: 0
 

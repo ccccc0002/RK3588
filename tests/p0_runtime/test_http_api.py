@@ -791,12 +791,56 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(batch_plan_coe_payload["success"])
         self.assertTrue(batch_plan_coe_payload["data"]["continue_on_error"])
         self.assertEqual(2, batch_plan_coe_payload["data"]["total"])
+        self.assertEqual(2, batch_plan_coe_payload["data"]["processed_count"])
         self.assertEqual(1, batch_plan_coe_payload["data"]["success_count"])
         self.assertEqual(1, batch_plan_coe_payload["data"]["error_count"])
+        self.assertFalse(batch_plan_coe_payload["data"]["stopped_early"])
+        self.assertIsNone(batch_plan_coe_payload["data"]["max_errors"])
+        self.assertGreaterEqual(batch_plan_coe_payload["data"]["duration_ms"], 0)
         self.assertEqual(1, len(batch_plan_coe_payload["data"]["items"]))
         self.assertEqual(1, len(batch_plan_coe_payload["data"]["errors"]))
         self.assertEqual(0, batch_plan_coe_payload["data"]["errors"][0]["index"])
         self.assertIn("missing required field: tenant_id", batch_plan_coe_payload["data"]["errors"][0]["error"])
+
+        batch_plan_stop_status, batch_plan_stop_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "continue_on_error": True,
+                "max_errors": 1,
+                "items": [
+                    {
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "dependency_status": {"gray_ready": True},
+                    },
+                    {
+                        "tenant_id": "t2",
+                        "site_id": "s2",
+                        "box_id": "b2",
+                        "seed": "fixed-seed-002",
+                        "dependency_status": {
+                            "gray_ready": True,
+                            "edge_sync_ready": True,
+                            "base_library_ready": True,
+                        },
+                    },
+                ],
+            },
+            token=self.viewer_token,
+        )
+        self.assertEqual(200, batch_plan_stop_status)
+        self.assertTrue(batch_plan_stop_payload["success"])
+        self.assertTrue(batch_plan_stop_payload["data"]["continue_on_error"])
+        self.assertEqual(1, batch_plan_stop_payload["data"]["max_errors"])
+        self.assertEqual(2, batch_plan_stop_payload["data"]["total"])
+        self.assertEqual(1, batch_plan_stop_payload["data"]["processed_count"])
+        self.assertEqual(0, batch_plan_stop_payload["data"]["success_count"])
+        self.assertEqual(1, batch_plan_stop_payload["data"]["error_count"])
+        self.assertTrue(batch_plan_stop_payload["data"]["stopped_early"])
+        self.assertGreaterEqual(batch_plan_stop_payload["data"]["duration_ms"], 0)
+        self.assertEqual(0, len(batch_plan_stop_payload["data"]["items"]))
+        self.assertEqual(1, len(batch_plan_stop_payload["data"]["errors"]))
+        self.assertEqual(0, batch_plan_stop_payload["data"]["errors"][0]["index"])
 
         batch_plan_fail_status, batch_plan_fail_payload = self._post(
             "/api/v1/gray-rollout/plan/batch",

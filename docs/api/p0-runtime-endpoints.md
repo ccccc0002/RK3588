@@ -734,6 +734,7 @@ GB28181 example:
     ```json
     {
       "continue_on_error": true,
+      "max_errors": 2,
       "items": [
         {
           "tenant_id": "t1",
@@ -762,10 +763,11 @@ GB28181 example:
   - 200 envelope:
     - `items[]` list of successful per-scope plan results
     - `errors[]` list of item-level errors with `index` and `error`
-    - `continue_on_error`, `total`, `success_count`, `error_count`
+    - `continue_on_error`, `max_errors`, `total`, `processed_count`, `success_count`, `error_count`, `stopped_early`, `duration_ms`
   - batch rule:
     - default (`continue_on_error=false`): any invalid item fails entire request with `400` (`items[i]: ...`)
     - tolerant mode (`continue_on_error=true`): request returns `200` with partial successes in `items[]` and failures in `errors[]`
+  - early-stop rule: when `max_errors` is provided in tolerant mode, processing stops once accumulated item errors reach `max_errors`
 
 ## FastAPI Compatibility Layer
 
