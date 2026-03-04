@@ -1,6 +1,6 @@
 ﻿# P3 Pre-Closure Review
 
-Last updated: 2026-03-04T18:10:00+08:00  
+Last updated: 2026-03-04T18:25:00+08:00  
 Branch: `stage/P3-phase2-readiness`
 
 ## Delivered in P3 So Far
@@ -32,19 +32,24 @@ Branch: `stage/P3-phase2-readiness`
    - policy field `dependencies[]`
    - evaluate input `dependency_status{}` and output `blocked_by[]`
    - enabled decision now requires both percent-hit and dependency-ready
+12. Gray rollout dependency DAG baseline:
+   - policy field `dependency_graph{dependency:[prerequisites...]}`
+   - policy update rejects cyclic graphs (`dependency_graph must be acyclic`)
+   - evaluate resolves transitive prerequisites and reports aggregated `blocked_by[]`
 
 ## Verification Summary
 
 1. Local gate: `python -m unittest discover -s tests -p 'test_*.py'`  
-   Result: 125 tests pass on Python 3.11 (iteration-9 local).
-2. Remote gate on `192.168.1.104` (Python 3.8.10): 125 tests pass for iteration-9 via isolated bundle clone.
-3. GitHub sync: pending for iteration-9 checkpoint and tags.
+   Result: 127 tests pass on Python 3.11 (iteration-10 local DAG update).
+2. Remote gate on `192.168.1.104` (Python 3.8.10): 125 tests passed for iteration-9; iteration-10 rerun pending.
+3. GitHub sync: iteration-9 checkpoint/tags are synced; iteration-10 sync pending remote validation.
 
 ## Current Gaps Before P3 Closure
 
-1. Gray rollout dependency model is still flat key-list baseline; DAG-level dependency orchestration/execution remains out of scope.
+1. Gray rollout dependency graph now supports DAG-level evaluation only; no dependency execution planner/scheduler is implemented.
 
 ## Recommended Final P3 Closure Tasks
 
-1. Decide whether flat dependency-gating baseline is sufficient for P3 closure or if DAG orchestration must be added now.
-2. Run final P3 closure review and decide whether to close stage or continue hardening backlog.
+1. Run remote py3.8.10 validation on iteration-10 DAG commit and sync checkpoint/tags.
+2. Decide whether evaluation-only DAG baseline is sufficient for P3 closure or if execution planning must be added now.
+3. Run final P3 closure review and decide whether to close stage or continue hardening backlog.

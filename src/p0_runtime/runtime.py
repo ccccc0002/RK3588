@@ -80,7 +80,7 @@ class P0Runtime:
         self._gray_rollout_policy: dict = (
             self._storage.load_gray_rollout_policy()
             if self._storage
-            else {"enabled": False, "default_percent": 0, "overrides": [], "dependencies": []}
+            else {"enabled": False, "default_percent": 0, "overrides": [], "dependencies": [], "dependency_graph": {}}
         )
         self._gray_rollout_policy = self._normalize_gray_rollout_policy(dict(self._gray_rollout_policy))
         self._stream_telemetry: Dict[tuple[str, str, str, str], dict] = {}
@@ -1419,6 +1419,25 @@ class P0Runtime:
             return dict(self._network_policy)
 
     @staticmethod
+    def _validate_dependency_graph_acyclic(graph: dict[str, list[str]]) -> None:
+        visiting: set[str] = set()
+        visited: set[str] = set()
+
+        def visit(node: str) -> None:
+            if node in visited:
+                return
+            if node in visiting:
+                raise ValueError("dependency_graph must be acyclic")
+            visiting.add(node)
+            for dep in graph.get(node, []):
+                visit(dep)
+            visiting.remove(node)
+            visited.add(node)
+
+        for node in graph.keys():
+            visit(str(node))
+
+    @staticmethod
     def _normalize_gray_rollout_policy(payload: dict) -> dict:
         default_percent = int(payload.get("default_percent", 0))
         if default_percent < 0 or default_percent > 100:
@@ -1434,6 +1453,27 @@ class P0Runtime:
                 if str(item).strip()
             }
         )
+
+        dependency_graph_raw = payload.get("dependency_graph", {})
+        if dependency_graph_raw is None:
+            dependency_graph_raw = {}
+        if not isinstance(dependency_graph_raw, dict):
+            raise ValueError("dependency_graph must be an object")
+        normalized_dependency_graph: dict[str, list[str]] = {}
+        for key, value in dependency_graph_raw.items():
+            node = str(key).strip()
+            if not node:
+                raise ValueError("dependency_graph keys must not be empty")
+            if not isinstance(value, list):
+                raise ValueError("dependency_graph values must be a list")
+            normalized_dependency_graph[node] = sorted(
+                {
+                    str(item).strip()
+                    for item in value
+                    if str(item).strip()
+                }
+            )
+        P0Runtime._validate_dependency_graph_acyclic(normalized_dependency_graph)
 
         overrides_raw = payload.get("overrides", [])
         if not isinstance(overrides_raw, list):
@@ -1465,14 +1505,24 @@ class P0Runtime:
             "enabled": bool(payload.get("enabled", False)),
             "default_percent": default_percent,
             "dependencies": normalized_dependencies,
+            "dependency_graph": normalized_dependency_graph,
             "overrides": normalized_overrides,
         }
 
+    @staticmethod
+    def _copy_gray_rollout_policy(policy: dict) -> dict:
+        cloned = dict(policy)
+        cloned["overrides"] = [dict(item) for item in cloned.get("overrides", [])]
+        cloned["dependencies"] = [str(item) for item in cloned.get("dependencies", [])]
+        cloned["dependency_graph"] = {
+            str(node): [str(dep) for dep in deps]
+            for node, deps in dict(cloned.get("dependency_graph", {})).items()
+        }
+        return cloned
+
     def get_gray_rollout_policy(self) -> dict:
         with self._lock:
-            policy = dict(self._gray_rollout_policy)
-        policy["overrides"] = [dict(item) for item in policy.get("overrides", [])]
-        policy["dependencies"] = [str(item) for item in policy.get("dependencies", [])]
+            policy = self._copy_gray_rollout_policy(self._gray_rollout_policy)
         return policy
 
     def update_gray_rollout_policy(self, payload: dict) -> dict:
@@ -1482,8 +1532,7 @@ class P0Runtime:
             if self._storage is not None:
                 self._storage.replace_gray_rollout_policy(self._gray_rollout_policy)
             self._append_audit_locked("gray.rollout.policy.update", {"policy": dict(normalized)})
-            policy = dict(self._gray_rollout_policy)
-        policy["overrides"] = [dict(item) for item in policy.get("overrides", [])]
+            policy = self._copy_gray_rollout_policy(self._gray_rollout_policy)
         return policy
 
     @staticmethod
@@ -1513,9 +1562,7 @@ class P0Runtime:
             raise ValueError("seed must not be empty")
 
         with self._lock:
-            policy = dict(self._gray_rollout_policy)
-            policy["overrides"] = [dict(item) for item in policy.get("overrides", [])]
-            policy["dependencies"] = [str(item) for item in policy.get("dependencies", [])]
+            policy = self._copy_gray_rollout_policy(self._gray_rollout_policy)
 
         percent = self._scope_rollout_percent(policy, tenant_id, site_id, box_id)
         digest = hashlib.sha256(seed.encode("utf-8")).hexdigest()
@@ -1527,7 +1574,27 @@ class P0Runtime:
             raise ValueError("dependency_status must be an object")
 
         dependencies = [str(item) for item in policy.get("dependencies", [])]
-        blocked_by = [dep for dep in dependencies if not bool(dependency_status_raw.get(dep, False))]
+        dependency_graph = {
+            str(node): [str(dep) for dep in deps]
+            for node, deps in dict(policy.get("dependency_graph", {})).items()
+        }
+
+        blocked_set: set[str] = set()
+        visited: set[str] = set()
+
+        def visit_dependency(node: str) -> None:
+            if not bool(dependency_status_raw.get(node, False)):
+                blocked_set.add(node)
+            if node in visited:
+                return
+            visited.add(node)
+            for child in dependency_graph.get(node, []):
+                visit_dependency(str(child))
+
+        for dep in dependencies:
+            visit_dependency(dep)
+
+        blocked_by = sorted(blocked_set)
         enabled = bool(policy.get("enabled", False)) and bucket <= percent and not blocked_by
         return {
             "tenant_id": tenant_id,

@@ -2460,7 +2460,7 @@ components:
 
     GrayRolloutPolicyData:
       type: object
-      required: [enabled, default_percent, dependencies, overrides]
+      required: [enabled, default_percent, dependencies, dependency_graph, overrides]
       properties:
         enabled:
           type: boolean
@@ -2472,6 +2472,12 @@ components:
           type: array
           items:
             type: string
+        dependency_graph:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
         overrides:
           type: array
           items:

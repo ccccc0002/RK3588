@@ -908,6 +908,69 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertTrue(allowed["enabled"])
         self.assertEqual([], allowed["blocked_by"])
 
+    def test_gray_rollout_dependency_graph_blocks_transitive_dependencies(self) -> None:
+        updated = self.runtime.update_gray_rollout_policy(
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "overrides": [],
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {
+                    "gray_ready": ["edge_sync_ready"],
+                    "edge_sync_ready": ["base_library_ready"],
+                },
+            }
+        )
+        self.assertEqual(["gray_ready"], updated["dependencies"])
+        self.assertEqual(["edge_sync_ready"], updated["dependency_graph"]["gray_ready"])
+
+        blocked = self.runtime.evaluate_gray_rollout(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "seed": "dep-graph-seed-001",
+                "dependency_status": {
+                    "gray_ready": True,
+                    "edge_sync_ready": True,
+                    "base_library_ready": False,
+                },
+            }
+        )
+        self.assertFalse(blocked["enabled"])
+        self.assertEqual(["base_library_ready"], blocked["blocked_by"])
+
+        allowed = self.runtime.evaluate_gray_rollout(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "seed": "dep-graph-seed-001",
+                "dependency_status": {
+                    "gray_ready": True,
+                    "edge_sync_ready": True,
+                    "base_library_ready": True,
+                },
+            }
+        )
+        self.assertTrue(allowed["enabled"])
+        self.assertEqual([], allowed["blocked_by"])
+
+    def test_gray_rollout_dependency_graph_rejects_cycles(self) -> None:
+        with self.assertRaisesRegex(ValueError, "dependency_graph must be acyclic"):
+            self.runtime.update_gray_rollout_policy(
+                {
+                    "enabled": True,
+                    "default_percent": 100,
+                    "overrides": [],
+                    "dependencies": ["gray_ready"],
+                    "dependency_graph": {
+                        "gray_ready": ["edge_sync_ready"],
+                        "edge_sync_ready": ["gray_ready"],
+                    },
+                }
+            )
+
     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
         self.runtime.register_device(
             {

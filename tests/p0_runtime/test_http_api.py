@@ -631,7 +631,11 @@ class P0HttpApiTests(unittest.TestCase):
             {
                 "enabled": True,
                 "default_percent": 100,
-                "dependencies": ["edge_sync_ready", "base_library_ready"],
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {
+                    "gray_ready": ["edge_sync_ready"],
+                    "edge_sync_ready": ["base_library_ready"],
+                },
                 "overrides": [
                     {"tenant_id": "t1", "site_id": "s1", "box_id": "b1", "percent": 100},
                 ],
@@ -646,7 +650,15 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(200, get_status)
         self.assertTrue(get_payload["success"])
         self.assertEqual(100, get_payload["data"]["default_percent"])
-        self.assertEqual(["base_library_ready", "edge_sync_ready"], get_payload["data"]["dependencies"])
+        self.assertEqual(["gray_ready"], get_payload["data"]["dependencies"])
+        self.assertEqual(
+            ["base_library_ready"],
+            get_payload["data"]["dependency_graph"]["edge_sync_ready"],
+        )
+        self.assertEqual(
+            ["edge_sync_ready"],
+            get_payload["data"]["dependency_graph"]["gray_ready"],
+        )
 
         eval_status, eval_payload = self._post(
             "/api/v1/gray-rollout/evaluate",
@@ -655,7 +667,11 @@ class P0HttpApiTests(unittest.TestCase):
                 "site_id": "s1",
                 "box_id": "b1",
                 "seed": "fixed-seed-001",
-                "dependency_status": {"edge_sync_ready": True, "base_library_ready": False},
+                "dependency_status": {
+                    "gray_ready": True,
+                    "edge_sync_ready": True,
+                    "base_library_ready": False,
+                },
             },
             token=self.viewer_token,
         )
@@ -672,7 +688,11 @@ class P0HttpApiTests(unittest.TestCase):
                 "site_id": "s1",
                 "box_id": "b1",
                 "seed": "fixed-seed-001",
-                "dependency_status": {"edge_sync_ready": True, "base_library_ready": True},
+                "dependency_status": {
+                    "gray_ready": True,
+                    "edge_sync_ready": True,
+                    "base_library_ready": True,
+                },
             },
             token=self.viewer_token,
         )
