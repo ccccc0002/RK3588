@@ -62,6 +62,9 @@ class P0Runtime:
         self._offline_sync_cursors: Dict[tuple[str, str, str], dict] = (
             self._storage.load_offline_sync_cursors() if self._storage else {}
         )
+        self._offline_sync_stream_cursors: Dict[tuple[str, str, str, str], dict] = (
+            self._storage.load_offline_sync_stream_cursors() if self._storage else {}
+        )
         self._push_worker: PushWorker | None = None
         self._last_capability_schedule: SchedulePlan | None = None
         self._audit_records: list[dict] = self._storage.load_audit_records() if self._storage else []
@@ -1121,6 +1124,61 @@ class P0Runtime:
         with self._lock:
             items = [dict(item) for item in self._offline_sync_cursors.values()]
         items.sort(key=lambda item: (item["tenant_id"], item["site_id"], item["box_id"]))
+        return items
+
+    def upsert_offline_sync_stream_cursor(self, payload: dict, now: datetime | None = None) -> dict:
+        required = ("tenant_id", "site_id", "box_id", "stream_id", "cursor")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        key = (
+            str(payload["tenant_id"]).strip(),
+            str(payload["site_id"]).strip(),
+            str(payload["box_id"]).strip(),
+            str(payload["stream_id"]).strip(),
+        )
+        cursor = str(payload["cursor"]).strip()
+        if not all(key) or not cursor:
+            raise ValueError("tenant_id/site_id/box_id/stream_id/cursor must not be empty")
+
+        expected_version_raw = payload.get("expected_version")
+        expected_version = None if expected_version_raw is None else int(expected_version_raw)
+        at = self._now_or(now).isoformat()
+        with self._lock:
+            existing = self._offline_sync_stream_cursors.get(key)
+            current_version = int(existing["version"]) if existing is not None else 0
+            if expected_version is not None and expected_version != current_version:
+                raise ValueError("offline sync stream cursor version conflict")
+
+            record = {
+                "tenant_id": key[0],
+                "site_id": key[1],
+                "box_id": key[2],
+                "stream_id": key[3],
+                "cursor": cursor,
+                "version": current_version + 1,
+                "updated_at": at,
+            }
+            self._offline_sync_stream_cursors[key] = record
+            if self._storage:
+                self._storage.upsert_offline_sync_stream_cursor(record)
+            self._append_audit_locked(
+                "offline.sync.stream.cursor.upsert",
+                {
+                    "tenant_id": key[0],
+                    "site_id": key[1],
+                    "box_id": key[2],
+                    "stream_id": key[3],
+                    "version": record["version"],
+                },
+            )
+            return dict(record)
+
+    def list_offline_sync_stream_cursors(self) -> list[dict]:
+        with self._lock:
+            items = [dict(item) for item in self._offline_sync_stream_cursors.values()]
+        items.sort(key=lambda item: (item["tenant_id"], item["site_id"], item["box_id"], item["stream_id"]))
         return items
 
     @staticmethod

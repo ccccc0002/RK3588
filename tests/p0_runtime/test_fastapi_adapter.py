@@ -39,6 +39,8 @@ class FastApiAdapterTests(unittest.TestCase):
             self.assertIn("/api/v1/edge-agents/offline-jobs/lease/complete", paths)
             self.assertIn("/api/v1/offline-sync/cursors", paths)
             self.assertIn("/api/v1/offline-sync/cursors/upsert", paths)
+            self.assertIn("/api/v1/offline-sync/streams", paths)
+            self.assertIn("/api/v1/offline-sync/streams/upsert", paths)
             self.assertIn("/api/v1/gray-rollout/policy", paths)
             self.assertIn("/api/v1/gray-rollout/evaluate", paths)
             self.assertIn("/api/v1/runtime/schedule", paths)

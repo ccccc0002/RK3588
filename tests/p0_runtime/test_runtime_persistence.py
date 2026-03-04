@@ -527,6 +527,34 @@ class P0RuntimePersistenceTests(unittest.TestCase):
                 if rt2 is not None:
                     rt2.close()
 
+    def test_offline_sync_stream_cursor_recovers_after_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "runtime.db")
+            rt1 = self._runtime(db_path)
+            rt2 = None
+            try:
+                rt1.upsert_offline_sync_stream_cursor(
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "stream_id": "cam-1",
+                        "cursor": "evt-s200",
+                    },
+                    now=self.now,
+                )
+
+                rt2 = self._runtime(db_path)
+                cursors = rt2.list_offline_sync_stream_cursors()
+                self.assertEqual(1, len(cursors))
+                self.assertEqual("cam-1", cursors[0]["stream_id"])
+                self.assertEqual("evt-s200", cursors[0]["cursor"])
+                self.assertEqual(1, cursors[0]["version"])
+            finally:
+                rt1.close()
+                if rt2 is not None:
+                    rt2.close()
+
     def test_gray_rollout_policy_recovers_after_restart(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "runtime.db")

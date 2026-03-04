@@ -126,6 +126,10 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             _json_response(self, 200, ok_payload({"items": self.runtime.list_offline_sync_cursors()}))
             return
 
+        if parsed.path == "/api/v1/offline-sync/streams":
+            _json_response(self, 200, ok_payload({"items": self.runtime.list_offline_sync_stream_cursors()}))
+            return
+
         if parsed.path == "/api/v1/push/worker/status":
             _json_response(self, 200, ok_payload(self.runtime.push_worker_status()))
             return
@@ -276,6 +280,11 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
 
             if parsed.path == "/api/v1/offline-sync/cursors/upsert":
                 res = self.runtime.upsert_offline_sync_cursor(dict(body), now=_parse_time(body.get("now")))
+                _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/offline-sync/streams/upsert":
+                res = self.runtime.upsert_offline_sync_stream_cursor(dict(body), now=_parse_time(body.get("now")))
                 _json_response(self, 200, ok_payload(res))
                 return
 

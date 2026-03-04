@@ -344,6 +344,42 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(get_payload["success"])
         self.assertTrue(any(item["cursor"] == "evt-300" for item in get_payload["data"]["items"]))
 
+        s_cur_status, s_cur_payload = self._post(
+            "/api/v1/offline-sync/streams/upsert",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "stream_id": "cam-1",
+                "cursor": "evt-s300",
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, s_cur_status)
+        self.assertTrue(s_cur_payload["success"])
+        self.assertEqual(1, s_cur_payload["data"]["version"])
+
+        s_conflict_status, s_conflict_payload = self._post(
+            "/api/v1/offline-sync/streams/upsert",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "stream_id": "cam-1",
+                "cursor": "evt-s301",
+                "expected_version": 0,
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(400, s_conflict_status)
+        self.assertFalse(s_conflict_payload["success"])
+        self.assertEqual("bad_request", s_conflict_payload["error"]["code"])
+
+        s_get_status, s_get_payload = self._get("/api/v1/offline-sync/streams", token=self.viewer_token)
+        self.assertEqual(200, s_get_status)
+        self.assertTrue(s_get_payload["success"])
+        self.assertTrue(any(item["stream_id"] == "cam-1" for item in s_get_payload["data"]["items"]))
+
     def test_edge_agent_offline_job_lease_endpoint(self) -> None:
         self._post(
             "/api/v1/edge-agents/register",
@@ -1232,6 +1268,16 @@ class P0HttpApiTests(unittest.TestCase):
                     "site_id": "s1",
                     "box_id": "b1",
                     "cursor": "evt-forbidden",
+                },
+            ),
+            (
+                "/api/v1/offline-sync/streams/upsert",
+                {
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "stream_id": "cam-forbidden",
+                    "cursor": "evt-stream-forbidden",
                 },
             ),
             (

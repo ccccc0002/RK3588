@@ -31,6 +31,8 @@ def required_get_action(path: str) -> str | None:
         return "device:read"
     if path == "/api/v1/offline-sync/cursors":
         return "device:read"
+    if path == "/api/v1/offline-sync/streams":
+        return "device:read"
     if path == "/api/v1/gray-rollout/policy":
         return "device:read"
     if path == "/api/v1/push/worker/status":
@@ -86,6 +88,8 @@ def required_post_action(path: str) -> str | None:
     if path == "/api/v1/edge-agents/offline-jobs/lease/complete":
         return "device:write"
     if path == "/api/v1/offline-sync/cursors/upsert":
+        return "device:write"
+    if path == "/api/v1/offline-sync/streams/upsert":
         return "device:write"
     if path == "/api/v1/gray-rollout/policy":
         return "device:write"

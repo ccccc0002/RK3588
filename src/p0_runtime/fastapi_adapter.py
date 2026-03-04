@@ -146,6 +146,13 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return denied
         return ok_payload({"items": rt.list_offline_sync_cursors()})
 
+    @app.get("/api/v1/offline-sync/streams")
+    def list_offline_sync_stream_cursors(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(authorization, required_get_action("/api/v1/offline-sync/streams") or "device:read")
+        if denied is not None:
+            return denied
+        return ok_payload({"items": rt.list_offline_sync_stream_cursors()})
+
     @app.get("/api/v1/push/worker/status")
     def push_worker_status(authorization: str = Header(default="", alias="Authorization")):
         denied = _authorize_request(authorization, required_get_action("/api/v1/push/worker/status") or "device:read")
@@ -469,6 +476,22 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return denied
         try:
             return ok_payload(rt.upsert_offline_sync_cursor(dict(payload), now=_parse_time(payload.get("now"))))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/offline-sync/streams/upsert")
+    def upsert_offline_sync_stream_cursor_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(
+            authorization,
+            required_post_action("/api/v1/offline-sync/streams/upsert") or "device:write",
+        )
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.upsert_offline_sync_stream_cursor(dict(payload), now=_parse_time(payload.get("now"))))
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 

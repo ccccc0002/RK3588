@@ -794,6 +794,50 @@ class P0RuntimeTests(unittest.TestCase):
         )
         self.assertEqual(2, updated["version"])
 
+    def test_offline_sync_stream_cursor_conflict_detection(self) -> None:
+        created = self.runtime.upsert_offline_sync_stream_cursor(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "stream_id": "cam-1",
+                "cursor": "evt-s100",
+            },
+            now=self.now,
+        )
+        self.assertEqual(1, created["version"])
+
+        with self.assertRaises(ValueError):
+            self.runtime.upsert_offline_sync_stream_cursor(
+                {
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "stream_id": "cam-1",
+                    "cursor": "evt-s101",
+                    "expected_version": 0,
+                },
+                now=self.now,
+            )
+
+        updated = self.runtime.upsert_offline_sync_stream_cursor(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "stream_id": "cam-1",
+                "cursor": "evt-s102",
+                "expected_version": 1,
+            },
+            now=self.now,
+        )
+        self.assertEqual(2, updated["version"])
+
+        listed = self.runtime.list_offline_sync_stream_cursors()
+        self.assertEqual(1, len(listed))
+        self.assertEqual("cam-1", listed[0]["stream_id"])
+        self.assertEqual("evt-s102", listed[0]["cursor"])
+
     def test_gray_rollout_policy_evaluation_uses_scope_override(self) -> None:
         updated = self.runtime.update_gray_rollout_policy(
             {

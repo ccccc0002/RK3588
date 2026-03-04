@@ -1,6 +1,6 @@
 ﻿# P3 Pre-Closure Review
 
-Last updated: 2026-03-04T17:35:00+08:00  
+Last updated: 2026-03-04T17:50:00+08:00  
 Branch: `stage/P3-phase2-readiness`
 
 ## Delivered in P3 So Far
@@ -24,19 +24,21 @@ Branch: `stage/P3-phase2-readiness`
 9. Edge lease completion contract:
    - `POST /api/v1/edge-agents/offline-jobs/lease/complete`
    - lease-scoped transition to terminal status (`succeeded|failed|canceled`)
+10. Offline sync multi-stream cursor baseline:
+   - `GET /api/v1/offline-sync/streams`
+   - `POST /api/v1/offline-sync/streams/upsert`
+   - per-stream optimistic versioning contract (`tenant/site/box/stream_id`)
 
 ## Verification Summary
 
 1. Local gate: `python -m unittest discover -s tests -p 'test_*.py'`  
-   Result: 122 tests pass on Python 3.11 (iteration-7 local).
-2. Remote gate on `192.168.1.104`: `python3.8 -m unittest discover -s tests -p 'test_*.py'`  
-   Result: pass on Python 3.8.10 with 122 tests (validated against current iteration-7 local-gate commit in isolated remote clone).
-3. GitHub sync: pending for iteration-7 checkpoint and tags.
+   Result: 124 tests pass on Python 3.11 (iteration-8 local).
+2. Remote gate on `192.168.1.104` (Python 3.8.10): pending rerun against iteration-8 commit.
+3. GitHub sync: pending for iteration-8 checkpoint and tags.
 
 ## Current Gaps Before P3 Closure
 
-1. Offline sync remains single-cursor baseline without multi-stream reconciliation.
-2. Gray rollout remains policy-driven baseline without dependency-graph orchestration.
+1. Gray rollout remains policy-driven baseline without dependency-graph orchestration.
 
 ## Recommended Final P3 Closure Tasks
 

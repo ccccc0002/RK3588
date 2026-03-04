@@ -504,6 +504,28 @@ GB28181 example:
   - 200 envelope with upserted cursor record (version auto-increments)
   - conflict behavior: if `expected_version` does not match current version, returns `400 bad_request`
 
+### Offline Sync Stream Cursor
+
+- `GET /api/v1/offline-sync/streams`
+  - RBAC: requires `device:read`
+  - 200 envelope with `{ "items": [ { "tenant_id": "...", "site_id": "...", "box_id": "...", "stream_id": "...", "cursor": "...", "version": 1, "updated_at": "..." } ] }`
+
+- `POST /api/v1/offline-sync/streams/upsert`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "tenant_id": "t1",
+      "site_id": "s1",
+      "box_id": "b1",
+      "stream_id": "cam-1",
+      "cursor": "evt-s300",
+      "expected_version": 1
+    }
+    ```
+  - 200 envelope with upserted stream cursor record (version auto-increments)
+  - conflict behavior: if `expected_version` does not match current stream cursor version, returns `400 bad_request`
+
 ### Viewer sessions
 
 - `POST /api/v1/viewer-sessions/{streamId}/join`

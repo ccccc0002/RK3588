@@ -727,6 +727,50 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/offline-sync/streams:
+    get:
+      tags: [runtime]
+      summary: List offline sync stream cursors
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Offline sync stream cursor list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfflineSyncStreamCursorListEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/offline-sync/streams/upsert:
+    post:
+      tags: [runtime]
+      summary: Upsert offline sync stream cursor with optimistic version check
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertOfflineSyncStreamCursorRequest'
+      responses:
+        '200':
+          description: Updated offline sync stream cursor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfflineSyncStreamCursorEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/viewer-sessions/{streamId}/join:
     post:
       tags: [viewer]
@@ -1875,6 +1919,58 @@ components:
           items:
             $ref: '#/components/schemas/OfflineSyncCursorRecord'
 
+    UpsertOfflineSyncStreamCursorRequest:
+      type: object
+      required: [tenant_id, site_id, box_id, stream_id, cursor]
+      additionalProperties: true
+      properties:
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        stream_id:
+          type: string
+        cursor:
+          type: string
+        expected_version:
+          type: integer
+          minimum: 0
+        now:
+          type: string
+          format: date-time
+
+    OfflineSyncStreamCursorRecord:
+      type: object
+      required: [tenant_id, site_id, box_id, stream_id, cursor, version, updated_at]
+      properties:
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        stream_id:
+          type: string
+        cursor:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        updated_at:
+          type: string
+          format: date-time
+
+    OfflineSyncStreamCursorListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OfflineSyncStreamCursorRecord'
+
     CreateOfflineJobRequest:
       type: object
       required: [job_id, source_scope, algorithm_id, algorithm_version]
@@ -2650,6 +2746,22 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/OfflineSyncCursorListData'
+
+    OfflineSyncStreamCursorEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/OfflineSyncStreamCursorRecord'
+
+    OfflineSyncStreamCursorListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/OfflineSyncStreamCursorListData'
 
     ViewerSessionEnvelope:
       allOf:
