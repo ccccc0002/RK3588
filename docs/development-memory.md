@@ -576,3 +576,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-12-runtime-snapshot-cache-observability-validated/20260304-170537
 - Summary: extended runtime snapshot with gray batch cache observability fields and validated runtime/http contract parity on local+remote
 - Next: sync stage/P3-phase2-readiness and iteration-12 checkpoint tags to GitHub, then continue next P4 hardening slice
+
+## [2026-03-04T17:19:28+08:00] P4-iteration-13-gray-plan-cache-minute-window-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: fc1758a
+- Tag: checkpoint/P4-iteration-13-gray-plan-cache-minute-window-validated/20260304-171928
+- Summary: added minute-window gray batch cache observability across metrics and runtime snapshot with local+remote validation
+- Next: sync stage/P3-phase2-readiness and iteration-13 checkpoint tags to GitHub, then continue next P4 hardening slice
