@@ -142,3 +142,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P0-stage-closure/20260304-103250
 - Summary: P0 closed-loop finalized with local+remote(py3.8) validation and API contract alignment
 - Next: start P1 capability-enhancement planning (GB28181/OCR/face/audit/network)
+
+## [2026-03-04T10:34:45+08:00] P1-planning-kickoff
+- Branch: stage/P0-closed-loop
+- Commit: 12de917
+- Tag: checkpoint/P1-planning-kickoff/20260304-103445
+- Summary: initialized P1 capability enhancement plan and execution gates after P0 stage closure
+- Next: create stage/P1-capability-enhancement branch and implement lane A GB28181 scaffold with tests first
