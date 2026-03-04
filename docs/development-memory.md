@@ -268,3 +268,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-iteration-11-telemetry-scheduler-validated/20260304-115046
 - Summary: bound scheduler to runtime telemetry API and validated on local py3.11 + remote py3.8.10
 - Next: implement configurable audit retention policy for final P1 closure
+
+## [2026-03-04T11:57:00+08:00] P1-iteration-12-audit-retention-validated
+- Branch: stage/P1-capability-enhancement
+- Commit: 8de6f0f
+- Tag: checkpoint/P1-iteration-12-audit-retention-validated/20260304-115700
+- Summary: added configurable persisted audit retention policy and validated local+remote test gates
+- Next: create P1 stage closure checkpoint
