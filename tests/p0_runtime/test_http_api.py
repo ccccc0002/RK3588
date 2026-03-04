@@ -216,17 +216,20 @@ class P0HttpApiTests(unittest.TestCase):
                 "enforce_capability_match": True,
                 "required_status": "active",
                 "version_regex_by_capability": {"face": "^2026\\."},
+                "semver_range_by_capability": {"face": {"min": "1.0.0", "max": "2.0.0"}},
             },
             token=self.operator_token,
         )
         self.assertEqual(200, update_status)
         self.assertTrue(update_payload["success"])
         self.assertEqual("active", update_payload["data"]["required_status"])
+        self.assertIn("face", update_payload["data"]["semver_range_by_capability"])
 
         get_status, get_payload = self._get("/api/v1/base-libraries/compatibility/policy", token=self.viewer_token)
         self.assertEqual(200, get_status)
         self.assertTrue(get_payload["success"])
         self.assertIn("face", get_payload["data"]["version_regex_by_capability"])
+        self.assertIn("face", get_payload["data"]["semver_range_by_capability"])
 
     def test_offline_executor_endpoints(self) -> None:
         upsert_status, upsert_payload = self._post(
@@ -247,6 +250,30 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(200, list_status)
         self.assertTrue(list_payload["success"])
         self.assertTrue(any(item["executor_id"] == "exec-http-1" for item in list_payload["data"]["items"]))
+
+    def test_offline_executor_heartbeat_endpoint(self) -> None:
+        self._post(
+            "/api/v1/offline-executors/upsert",
+            {
+                "executor_id": "exec-http-heartbeat",
+                "endpoint": "http://executor.local:9103",
+                "status": "active",
+                "capabilities": ["face"],
+            },
+            token=self.operator_token,
+        )
+        hb_status, hb_payload = self._post(
+            "/api/v1/offline-executors/heartbeat",
+            {
+                "executor_id": "exec-http-heartbeat",
+                "now": datetime.now(timezone.utc).isoformat(),
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, hb_status)
+        self.assertTrue(hb_payload["success"])
+        self.assertEqual("healthy", hb_payload["data"]["health_state"])
+        self.assertTrue(bool(hb_payload["data"]["last_heartbeat_at"]))
 
     def test_offline_jobs_endpoints(self) -> None:
         self._post(
@@ -301,6 +328,16 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(any(item["job_id"] == "job-http-1" for item in list_payload["data"]["items"]))
 
     def test_batch_governance_endpoints(self) -> None:
+        self._post(
+            "/api/v1/base-libraries/compatibility/policy",
+            {
+                "enforce_capability_match": True,
+                "required_status": "active",
+                "version_regex_by_capability": {},
+                "semver_range_by_capability": {},
+            },
+            token=self.operator_token,
+        )
         self._post(
             "/api/v1/devices/register",
             {
@@ -773,6 +810,12 @@ class P0HttpApiTests(unittest.TestCase):
                             "status": "running",
                         }
                     ]
+                },
+            ),
+            (
+                "/api/v1/offline-executors/heartbeat",
+                {
+                    "executor_id": "exec-http-heartbeat",
                 },
             ),
         ]

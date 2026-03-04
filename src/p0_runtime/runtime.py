@@ -49,7 +49,11 @@ class P0Runtime:
                 "enforce_capability_match": True,
                 "required_status": "active",
                 "version_regex_by_capability": {},
+                "semver_range_by_capability": {},
             }
+        )
+        self._base_library_compatibility_policy = self._normalize_base_library_compatibility_policy(
+            dict(self._base_library_compatibility_policy)
         )
         self._offline_executors: Dict[str, dict] = self._storage.load_offline_executors() if self._storage else {}
         self._offline_jobs: Dict[str, dict] = self._storage.load_offline_jobs() if self._storage else {}
@@ -333,6 +337,14 @@ class P0Runtime:
         return items
 
     @staticmethod
+    def _parse_semver_tuple(value: str) -> tuple[int, int, int] | None:
+        text = str(value).strip()
+        match = re.match(r"^(\d+)\.(\d+)\.(\d+)$", text)
+        if match is None:
+            return None
+        return (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+
+    @staticmethod
     def _normalize_base_library_compatibility_policy(payload: dict) -> dict:
         required_status = str(payload.get("required_status", "active")).strip().lower()
         if required_status not in {"draft", "active", "disabled"}:
@@ -356,10 +368,40 @@ class P0Runtime:
                 raise ValueError(f"invalid regex for capability {capability}: {pattern}")
             matrix[capability] = pattern
 
+        semver_raw = payload.get("semver_range_by_capability", {})
+        if semver_raw is None:
+            semver_raw = {}
+        if not isinstance(semver_raw, dict):
+            raise ValueError("semver_range_by_capability must be an object")
+
+        semver_map: dict[str, dict[str, str]] = {}
+        for key, value in semver_raw.items():
+            capability = str(key).strip().lower()
+            if not capability:
+                continue
+            if not isinstance(value, dict):
+                raise ValueError(f"semver_range_by_capability[{capability}] must be an object")
+
+            min_version = str(value.get("min", "")).strip()
+            max_version = str(value.get("max", "")).strip()
+            if not min_version and not max_version:
+                continue
+            if min_version and P0Runtime._parse_semver_tuple(min_version) is None:
+                raise ValueError(f"invalid semantic min version for capability {capability}: {min_version}")
+            if max_version and P0Runtime._parse_semver_tuple(max_version) is None:
+                raise ValueError(f"invalid semantic max version for capability {capability}: {max_version}")
+            if min_version and max_version:
+                min_tuple = P0Runtime._parse_semver_tuple(min_version)
+                max_tuple = P0Runtime._parse_semver_tuple(max_version)
+                if min_tuple is not None and max_tuple is not None and min_tuple > max_tuple:
+                    raise ValueError(f"semantic range min greater than max for capability {capability}")
+            semver_map[capability] = {"min": min_version, "max": max_version}
+
         return {
             "enforce_capability_match": bool(payload.get("enforce_capability_match", True)),
             "required_status": required_status,
             "version_regex_by_capability": matrix,
+            "semver_range_by_capability": semver_map,
         }
 
     def get_base_library_compatibility_policy(self) -> dict:
@@ -415,6 +457,22 @@ class P0Runtime:
             pattern = str(regex_map.get(capability, "")).strip()
             if pattern and re.match(pattern, library_key[1]) is None:
                 raise ValueError("base library version does not satisfy compatibility policy")
+            semver_map = dict(policy.get("semver_range_by_capability", {}))
+            semver_rule = semver_map.get(capability)
+            if isinstance(semver_rule, dict) and semver_rule:
+                version_tuple = self._parse_semver_tuple(library_key[1])
+                if version_tuple is None:
+                    raise ValueError("base library version must be semantic version for compatibility policy")
+                min_version = str(semver_rule.get("min", "")).strip()
+                max_version = str(semver_rule.get("max", "")).strip()
+                if min_version:
+                    min_tuple = self._parse_semver_tuple(min_version)
+                    if min_tuple is not None and version_tuple < min_tuple:
+                        raise ValueError("base library version below semantic compatibility minimum")
+                if max_version:
+                    max_tuple = self._parse_semver_tuple(max_version)
+                    if max_tuple is not None and version_tuple > max_tuple:
+                        raise ValueError("base library version above semantic compatibility maximum")
 
             record = {
                 "tenant_id": key[0],
@@ -470,6 +528,28 @@ class P0Runtime:
             raise ValueError(f"unsupported offline executor status: {status}")
         return status
 
+    def _executor_health_state(self, record: dict, now: datetime | None = None) -> str:
+        raw = str(record.get("last_heartbeat_at", "")).strip()
+        if not raw:
+            return "unknown"
+        try:
+            heartbeat_at = datetime.fromisoformat(raw)
+        except ValueError:
+            return "unknown"
+        if heartbeat_at.tzinfo is None:
+            heartbeat_at = heartbeat_at.replace(tzinfo=timezone.utc)
+        reference = self._now_or(now)
+        age_seconds = (reference - heartbeat_at).total_seconds()
+        if age_seconds <= 300:
+            return "healthy"
+        return "stale"
+
+    def _with_executor_health(self, record: dict, now: datetime | None = None) -> dict:
+        enriched = dict(record)
+        enriched["last_heartbeat_at"] = str(enriched.get("last_heartbeat_at", "")).strip()
+        enriched["health_state"] = self._executor_health_state(enriched, now=now)
+        return enriched
+
     def upsert_offline_executor(self, payload: dict) -> dict:
         required = ("executor_id", "endpoint", "status")
         for field in required:
@@ -480,19 +560,33 @@ class P0Runtime:
         if not isinstance(capabilities_raw, list):
             raise ValueError("capabilities must be a list")
 
-        record = {
-            "executor_id": str(payload["executor_id"]).strip(),
-            "endpoint": str(payload["endpoint"]).strip(),
-            "status": self._normalize_offline_executor_status(str(payload["status"])),
-            "capabilities": [str(item).strip().lower() for item in capabilities_raw if str(item).strip()],
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }
-        if not record["executor_id"]:
+        executor_id = str(payload["executor_id"]).strip()
+        endpoint = str(payload["endpoint"]).strip()
+        status = self._normalize_offline_executor_status(str(payload["status"]))
+        if not executor_id:
             raise ValueError("executor_id must not be empty")
-        if not (record["endpoint"].startswith("http://") or record["endpoint"].startswith("https://")):
+        if not (endpoint.startswith("http://") or endpoint.startswith("https://")):
             raise ValueError("endpoint must start with http:// or https://")
-
+        last_heartbeat = str(payload.get("last_heartbeat_at", "")).strip()
+        if last_heartbeat:
+            try:
+                datetime.fromisoformat(last_heartbeat)
+            except ValueError:
+                raise ValueError("last_heartbeat_at must be ISO datetime")
+        at = datetime.now(timezone.utc).isoformat()
         with self._lock:
+            existing = dict(self._offline_executors.get(executor_id, {}))
+            resolved_heartbeat = last_heartbeat or str(existing.get("last_heartbeat_at", "")).strip()
+            record = {
+                "executor_id": executor_id,
+                "endpoint": endpoint,
+                "status": status,
+                "capabilities": [str(item).strip().lower() for item in capabilities_raw if str(item).strip()],
+                "last_heartbeat_at": resolved_heartbeat,
+                "health_state": "",
+                "updated_at": at,
+            }
+            record["health_state"] = self._executor_health_state(record)
             self._offline_executors[record["executor_id"]] = record
             if self._storage:
                 self._storage.upsert_offline_executor(record)
@@ -502,13 +596,42 @@ class P0Runtime:
                     "executor_id": record["executor_id"],
                     "status": record["status"],
                     "capabilities": list(record["capabilities"]),
+                    "health_state": record["health_state"],
                 },
             )
             return dict(record)
 
-    def list_offline_executors(self) -> list[dict]:
+    def heartbeat_offline_executor(self, payload: dict, now: datetime | None = None) -> dict:
+        if "executor_id" not in payload:
+            raise ValueError("missing required field: executor_id")
+        executor_id = str(payload["executor_id"]).strip()
+        if not executor_id:
+            raise ValueError("executor_id must not be empty")
+        at = self._now_or(now).isoformat()
         with self._lock:
-            items = [dict(item) for item in self._offline_executors.values()]
+            existing = self._offline_executors.get(executor_id)
+            if existing is None:
+                raise ValueError("offline executor not found")
+            updated = dict(existing)
+            updated["last_heartbeat_at"] = at
+            updated["health_state"] = "healthy"
+            updated["updated_at"] = at
+            self._offline_executors[executor_id] = updated
+            if self._storage:
+                self._storage.upsert_offline_executor(updated)
+            self._append_audit_locked(
+                "offline.executor.heartbeat",
+                {
+                    "executor_id": executor_id,
+                    "last_heartbeat_at": at,
+                    "health_state": "healthy",
+                },
+            )
+            return dict(updated)
+
+    def list_offline_executors(self, now: datetime | None = None) -> list[dict]:
+        with self._lock:
+            items = [self._with_executor_health(dict(item), now=now) for item in self._offline_executors.values()]
         items.sort(key=lambda item: item["executor_id"])
         return items
 
@@ -519,7 +642,12 @@ class P0Runtime:
             raise ValueError(f"unsupported offline job status: {status}")
         return status
 
-    def _select_executor_locked(self, algorithm_capabilities: list[str], requested_executor_id: str) -> str:
+    def _select_executor_locked(
+        self,
+        algorithm_capabilities: list[str],
+        requested_executor_id: str,
+        now: datetime,
+    ) -> str:
         if requested_executor_id:
             executor = self._offline_executors.get(requested_executor_id)
             if executor is None:
@@ -529,10 +657,14 @@ class P0Runtime:
             capabilities = set(str(item).strip().lower() for item in executor.get("capabilities", []))
             if capabilities and algorithm_capabilities and capabilities.isdisjoint(set(algorithm_capabilities)):
                 raise ValueError("offline executor capability mismatch")
+            health_state = self._executor_health_state(dict(executor), now=now)
+            if health_state == "stale":
+                raise ValueError("offline executor is stale")
             return requested_executor_id
 
-        active = [dict(item) for item in self._offline_executors.values() if str(item.get("status", "")).lower() == "active"]
-        active.sort(key=lambda item: str(item.get("executor_id", "")))
+        active = [self._with_executor_health(dict(item), now=now) for item in self._offline_executors.values() if str(item.get("status", "")).lower() == "active"]
+        priority = {"healthy": 0, "unknown": 1, "stale": 2}
+        active.sort(key=lambda item: (priority.get(str(item.get("health_state", "")), 3), str(item.get("executor_id", ""))))
         for executor in active:
             capabilities = set(str(item).strip().lower() for item in executor.get("capabilities", []))
             if not capabilities or not algorithm_capabilities or not capabilities.isdisjoint(set(algorithm_capabilities)):
@@ -556,7 +688,8 @@ class P0Runtime:
         if not algorithm_key[0] or not algorithm_key[1]:
             raise ValueError("algorithm_id and algorithm_version must not be empty")
 
-        at = self._now_or(now).isoformat()
+        at_dt = self._now_or(now)
+        at = at_dt.isoformat()
         with self._lock:
             existing = self._offline_jobs.get(job_id)
             if existing is not None:
@@ -569,7 +702,11 @@ class P0Runtime:
                 raise ValueError("algorithm must be active for offline job")
             algorithm_capabilities = [str(item).strip().lower() for item in algorithm.get("capabilities", []) if str(item).strip()]
             requested_executor_id = str(payload.get("executor_id", "")).strip()
-            selected_executor_id = self._select_executor_locked(algorithm_capabilities, requested_executor_id)
+            selected_executor_id = self._select_executor_locked(
+                algorithm_capabilities,
+                requested_executor_id,
+                now=at_dt,
+            )
 
             record = {
                 "job_id": job_id,

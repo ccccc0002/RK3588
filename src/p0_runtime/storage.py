@@ -338,6 +338,7 @@ class RuntimeStorage:
                 "enforce_capability_match": True,
                 "required_status": "active",
                 "version_regex_by_capability": {},
+                "semver_range_by_capability": {},
             }
         return dict(json.loads(str(row["policy_json"])))
 

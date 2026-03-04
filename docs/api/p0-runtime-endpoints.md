@@ -238,6 +238,7 @@ GB28181 example:
     - `enforce_capability_match`
     - `required_status`
     - `version_regex_by_capability`
+    - `semver_range_by_capability` (optional semantic min/max per capability)
 
 - `POST /api/v1/base-libraries/compatibility/policy`
   - RBAC: requires `device:write`
@@ -246,7 +247,10 @@ GB28181 example:
     {
       "enforce_capability_match": true,
       "required_status": "active",
-      "version_regex_by_capability": { "face": "^2026\\." }
+      "version_regex_by_capability": { "face": "^2026\\." },
+      "semver_range_by_capability": {
+        "face": { "min": "1.0.0", "max": "2.0.0" }
+      }
     }
     ```
   - 200 envelope with updated compatibility policy
@@ -255,7 +259,7 @@ GB28181 example:
 
 - `GET /api/v1/offline-executors`
   - RBAC: requires `device:read`
-  - 200 envelope with `{ "items": [ { "executor_id": "...", "endpoint": "http://...", "status": "active|drain|disabled", "capabilities": [], "updated_at": "..." } ] }`
+  - 200 envelope with `{ "items": [ { "executor_id": "...", "endpoint": "http://...", "status": "active|drain|disabled", "capabilities": [], "last_heartbeat_at": "...|''", "health_state": "healthy|unknown|stale", "updated_at": "..." } ] }`
 
 - `POST /api/v1/offline-executors/upsert`
   - RBAC: requires `device:write`
@@ -265,10 +269,22 @@ GB28181 example:
       "executor_id": "exec-1",
       "endpoint": "http://executor.local:9001",
       "status": "active",
-      "capabilities": ["face"]
+      "capabilities": ["face"],
+      "last_heartbeat_at": "2026-03-03T08:00:00+00:00"
     }
     ```
   - 200 envelope with upserted executor record
+
+- `POST /api/v1/offline-executors/heartbeat`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "executor_id": "exec-1",
+      "now": "2026-03-03T08:01:00+00:00"
+    }
+    ```
+  - 200 envelope with updated executor heartbeat fields (`last_heartbeat_at`, `health_state=healthy`)
 
 ### Offline Analysis Jobs
 
@@ -289,7 +305,7 @@ GB28181 example:
     }
     ```
   - 200 envelope with created job
-  - created job includes `executor_id` (auto-selected from active executor pool when available, or explicitly set by request)
+  - created job includes `executor_id` (auto-selected from active executor pool with health-aware preference: `healthy`/`unknown` before `stale`, or explicitly set by request)
   - validation: referenced algorithm must exist and be `active`
 
 - `POST /api/v1/offline-jobs/status`

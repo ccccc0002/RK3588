@@ -1,5 +1,5 @@
 ﻿import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from src.p0_runtime.runtime import P0Runtime
 
@@ -183,6 +183,48 @@ class P0RuntimeTests(unittest.TestCase):
                 }
             )
 
+    def test_base_library_compatibility_policy_rejects_semver_out_of_range(self) -> None:
+        self.runtime.register_device(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-lib-semver",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.113/live",
+                "enabled": True,
+            }
+        )
+        self.runtime.upsert_base_library(
+            {
+                "library_id": "lib-face-semver",
+                "version": "1.2.0",
+                "capability": "face",
+                "status": "active",
+            }
+        )
+        self.runtime.update_base_library_compatibility_policy(
+            {
+                "enforce_capability_match": True,
+                "required_status": "active",
+                "version_regex_by_capability": {},
+                "semver_range_by_capability": {"face": {"min": "1.3.0", "max": "2.0.0"}},
+            }
+        )
+
+        with self.assertRaises(ValueError):
+            self.runtime.upsert_base_library_mapping(
+                {
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "device_id": "cam-lib-semver",
+                    "capability": "face",
+                    "library_id": "lib-face-semver",
+                    "library_version": "1.2.0",
+                }
+            )
+
     def test_offline_executor_binding_auto_selects_active_executor(self) -> None:
         self.runtime.upsert_algorithm(
             {
@@ -210,6 +252,46 @@ class P0RuntimeTests(unittest.TestCase):
             now=self.now,
         )
         self.assertEqual("exec-1", job["executor_id"])
+
+    def test_offline_executor_heartbeat_prefers_fresh_executor(self) -> None:
+        self.runtime.upsert_algorithm(
+            {
+                "algorithm_id": "offline-detector-heartbeat",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            }
+        )
+        self.runtime.upsert_offline_executor(
+            {
+                "executor_id": "exec-stale",
+                "endpoint": "http://executor.local:9201",
+                "status": "active",
+                "capabilities": ["face"],
+                "last_heartbeat_at": (self.now - timedelta(minutes=10)).isoformat(),
+            }
+        )
+        self.runtime.upsert_offline_executor(
+            {
+                "executor_id": "exec-fresh",
+                "endpoint": "http://executor.local:9202",
+                "status": "active",
+                "capabilities": ["face"],
+                "last_heartbeat_at": (self.now - timedelta(seconds=15)).isoformat(),
+            }
+        )
+        self.runtime.heartbeat_offline_executor({"executor_id": "exec-fresh"}, now=self.now)
+
+        job = self.runtime.create_offline_job(
+            {
+                "job_id": "job-heartbeat-001",
+                "source_scope": {"tenant_id": "t1", "site_id": "s1"},
+                "algorithm_id": "offline-detector-heartbeat",
+                "algorithm_version": "1.0.0",
+            },
+            now=self.now,
+        )
+        self.assertEqual("exec-fresh", job["executor_id"])
 
     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
         self.runtime.register_device(

@@ -134,6 +134,7 @@ class P0RuntimePersistenceTests(unittest.TestCase):
                         "enforce_capability_match": True,
                         "required_status": "active",
                         "version_regex_by_capability": {"face": r"^2026\\."},
+                        "semver_range_by_capability": {"face": {"min": "1.0.0", "max": "2.0.0"}},
                     }
                 )
 
@@ -142,6 +143,7 @@ class P0RuntimePersistenceTests(unittest.TestCase):
                 self.assertTrue(policy["enforce_capability_match"])
                 self.assertEqual("active", policy["required_status"])
                 self.assertIn("face", policy["version_regex_by_capability"])
+                self.assertIn("face", policy["semver_range_by_capability"])
             finally:
                 rt1.close()
                 if rt2 is not None:
@@ -159,6 +161,7 @@ class P0RuntimePersistenceTests(unittest.TestCase):
                         "endpoint": "http://executor.local:9002",
                         "status": "active",
                         "capabilities": ["ocr"],
+                        "last_heartbeat_at": self.now.isoformat(),
                     }
                 )
 
@@ -166,6 +169,7 @@ class P0RuntimePersistenceTests(unittest.TestCase):
                 executors = rt2.list_offline_executors()
                 self.assertEqual(1, len(executors))
                 self.assertEqual("exec-persist-1", executors[0]["executor_id"])
+                self.assertEqual(self.now.isoformat(), executors[0]["last_heartbeat_at"])
             finally:
                 rt1.close()
                 if rt2 is not None:

@@ -361,6 +361,32 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/offline-executors/heartbeat:
+    post:
+      tags: [runtime]
+      summary: Update offline executor heartbeat
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OfflineExecutorHeartbeatRequest'
+      responses:
+        '200':
+          description: Offline executor heartbeat updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfflineExecutorEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/offline-jobs:
     get:
       tags: [runtime]
@@ -1216,6 +1242,20 @@ components:
           type: object
           additionalProperties:
             type: string
+        semver_range_by_capability:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SemverRangeRule'
+
+    SemverRangeRule:
+      type: object
+      properties:
+        min:
+          type: string
+          pattern: '^\d+\.\d+\.\d+$'
+        max:
+          type: string
+          pattern: '^\d+\.\d+\.\d+$'
 
     UpsertOfflineExecutorRequest:
       type: object
@@ -1233,10 +1273,24 @@ components:
           type: array
           items:
             type: string
+        last_heartbeat_at:
+          type: string
+          format: date-time
+
+    OfflineExecutorHeartbeatRequest:
+      type: object
+      required: [executor_id]
+      additionalProperties: true
+      properties:
+        executor_id:
+          type: string
+        now:
+          type: string
+          format: date-time
 
     OfflineExecutorRecord:
       type: object
-      required: [executor_id, endpoint, status, capabilities, updated_at]
+      required: [executor_id, endpoint, status, capabilities, last_heartbeat_at, health_state, updated_at]
       properties:
         executor_id:
           type: string
@@ -1249,6 +1303,11 @@ components:
           type: array
           items:
             type: string
+        last_heartbeat_at:
+          type: string
+        health_state:
+          type: string
+          enum: [healthy, unknown, stale]
         updated_at:
           type: string
           format: date-time

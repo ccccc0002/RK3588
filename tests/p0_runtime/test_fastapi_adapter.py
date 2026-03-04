@@ -24,6 +24,7 @@ class FastApiAdapterTests(unittest.TestCase):
             self.assertIn("/api/v1/base-libraries/compatibility/policy", paths)
             self.assertIn("/api/v1/offline-executors", paths)
             self.assertIn("/api/v1/offline-executors/upsert", paths)
+            self.assertIn("/api/v1/offline-executors/heartbeat", paths)
             self.assertIn("/api/v1/offline-jobs", paths)
             self.assertIn("/api/v1/offline-jobs/create", paths)
             self.assertIn("/api/v1/offline-jobs/status", paths)

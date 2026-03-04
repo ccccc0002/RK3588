@@ -36,6 +36,7 @@ class ApiPolicyTests(unittest.TestCase):
         self.assertEqual("device:write", required_post_action("/api/v1/base-libraries/mappings/batch-upsert"))
         self.assertEqual("device:write", required_post_action("/api/v1/base-libraries/compatibility/policy"))
         self.assertEqual("device:write", required_post_action("/api/v1/offline-executors/upsert"))
+        self.assertEqual("device:write", required_post_action("/api/v1/offline-executors/heartbeat"))
         self.assertEqual("device:write", required_post_action("/api/v1/offline-jobs/create"))
         self.assertEqual("device:write", required_post_action("/api/v1/offline-jobs/status"))
         self.assertEqual("device:write", required_post_action("/api/v1/offline-jobs/status/batch"))

@@ -57,6 +57,8 @@ def required_post_action(path: str) -> str | None:
         return "device:write"
     if path == "/api/v1/offline-executors/upsert":
         return "device:write"
+    if path == "/api/v1/offline-executors/heartbeat":
+        return "device:write"
     if path == "/api/v1/offline-jobs/create":
         return "device:write"
     if path == "/api/v1/offline-jobs/status":

@@ -222,6 +222,11 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                 _json_response(self, 200, ok_payload(res))
                 return
 
+            if parsed.path == "/api/v1/offline-executors/heartbeat":
+                res = self.runtime.heartbeat_offline_executor(dict(body), now=_parse_time(body.get("now")))
+                _json_response(self, 200, ok_payload(res))
+                return
+
             if parsed.path == "/api/v1/offline-jobs/create":
                 res = self.runtime.create_offline_job(dict(body), now=_parse_time(body.get("now")))
                 _json_response(self, 200, ok_payload(res))
