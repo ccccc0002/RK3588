@@ -625,3 +625,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-19-gray-plan-cache-clear-policy-governance-validated/20260304-180936
 - Summary: added gray batch cache clear policy endpoint with default threshold governance and clear source attribution under local+remote py3.8 validation
 - Next: continue post-P3 hardening with cache policy persistence and rollout governance integration
+
+## [2026-03-04T18:13:18+08:00] P4-iteration-20-gray-plan-cache-policy-persistence-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: c46b977
+- Tag: checkpoint/P4-iteration-20-gray-plan-cache-policy-persistence-validated/20260304-181318
+- Summary: persisted gray batch cache clear policy in sqlite with runtime restore and validated local+remote py3.8 gates
+- Next: continue post-P3 hardening with cache policy observability and failure-domain guardrails
