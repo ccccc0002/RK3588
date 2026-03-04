@@ -310,3 +310,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P2-iteration-3-governance-rbac-validated/20260304-125627
 - Summary: hardened P2 endpoint RBAC coverage and added P2 pre-closure review baseline
 - Next: continue P2 closure gaps: offline executor binding and compatibility policy
+
+## [2026-03-04T13:16:59+08:00] P2-iteration-4-executor-compatibility-local-gate
+- Branch: stage/P2-business-expansion
+- Commit: 8b55ee4
+- Tag: checkpoint/P2-iteration-4-executor-compatibility-local-gate/20260304-131659
+- Summary: executor binding + compatibility policy delivered with full local test pass
+- Next: rerun remote py3.8 validation after SSH credential recovery, then issue remote-validated checkpoint
