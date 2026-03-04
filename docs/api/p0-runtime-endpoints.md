@@ -823,7 +823,7 @@ GB28181 example:
     - `dry_run`
     - `cleared_entries`, `cleared_events` (actual cleared values)
     - `would_clear_entries`, `would_clear_events` (pre-clear snapshot)
-    - `reset_counters`, `reset_counters_applied`, `max_clear_entries`, `cleared_at`
+    - `reset_counters`, `reset_counters_applied`, `max_clear_entries`, `max_clear_entries_source`, `cleared_at`
     - post-clear cache counters:
       - `gray_batch_plan_cache_entries`
       - `gray_batch_plan_cache_hits`
@@ -844,6 +844,25 @@ GB28181 example:
     - response still returns `would_clear_entries` / `would_clear_events` for operational preview
   - guard rule:
     - when `max_clear_entries` is provided and `dry_run=false`, clear is rejected if `would_clear_entries` exceeds that threshold
+    - when `max_clear_entries` is omitted, server uses cache policy `default_max_clear_entries` if configured
+
+- `GET /api/v1/gray-rollout/plan/batch/cache/policy`
+  - RBAC: requires `device:read`
+  - 200 envelope:
+    - `default_max_clear_entries` (`null` means disabled)
+
+- `POST /api/v1/gray-rollout/plan/batch/cache/policy`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "default_max_clear_entries": 100
+    }
+    ```
+  - 200 envelope:
+    - `default_max_clear_entries` (`null` disables default threshold policy)
+  - validation:
+    - `default_max_clear_entries` must be positive integer or `null`
 
 - `GET /api/v1/gray-rollout/plan/batch/cache`
   - RBAC: requires `device:read`

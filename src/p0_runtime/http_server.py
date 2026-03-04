@@ -152,6 +152,10 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             _json_response(self, 200, ok_payload(self.runtime.get_gray_rollout_policy()))
             return
 
+        if parsed.path == "/api/v1/gray-rollout/plan/batch/cache/policy":
+            _json_response(self, 200, ok_payload(self.runtime.get_gray_rollout_batch_plan_cache_policy()))
+            return
+
         if parsed.path == "/api/v1/gray-rollout/plan/batch/cache":
             query = parse_qs(parsed.query)
             payload: dict[str, object] = {}
@@ -367,6 +371,11 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                     idx = int(first_error.get("index", 0))
                     message = str(first_error.get("error", "batch item invalid"))
                     raise ValueError(f"items[{idx}]: {message}")
+                _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/gray-rollout/plan/batch/cache/policy":
+                res = self.runtime.update_gray_rollout_batch_plan_cache_policy(dict(body))
                 _json_response(self, 200, ok_payload(res))
                 return
 

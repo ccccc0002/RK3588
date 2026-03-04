@@ -35,6 +35,8 @@ def required_get_action(path: str) -> str | None:
         return "device:read"
     if path == "/api/v1/gray-rollout/policy":
         return "device:read"
+    if path == "/api/v1/gray-rollout/plan/batch/cache/policy":
+        return "device:read"
     if path == "/api/v1/gray-rollout/plan/batch/cache":
         return "device:read"
     if path == "/api/v1/gray-rollout/plan/batch/cache/ops":
@@ -103,6 +105,8 @@ def required_post_action(path: str) -> str | None:
         return "device:read"
     if path == "/api/v1/gray-rollout/plan/batch":
         return "device:read"
+    if path == "/api/v1/gray-rollout/plan/batch/cache/policy":
+        return "device:write"
     if path == "/api/v1/gray-rollout/plan/batch/cache/clear":
         return "device:write"
     if path == "/api/v1/runtime/schedule":

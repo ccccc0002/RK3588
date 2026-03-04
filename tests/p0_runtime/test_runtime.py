@@ -2129,6 +2129,71 @@ class P0RuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "limit must be an integer"):
             self.runtime.list_gray_rollout_batch_plan_cache_operations(limit="bad")
 
+    def test_gray_rollout_batch_cache_policy_default_max_clear_entries(self) -> None:
+        updated = self.runtime.update_gray_rollout_batch_plan_cache_policy({"default_max_clear_entries": 1})
+        self.assertEqual(1, updated["default_max_clear_entries"])
+        self.assertEqual(1, self.runtime.get_gray_rollout_batch_plan_cache_policy()["default_max_clear_entries"])
+
+        self.runtime.update_gray_rollout_policy(
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "overrides": [],
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {},
+            }
+        )
+        self.runtime.batch_plan_gray_rollout_dependencies_report(
+            {
+                "idempotency_key": "policy-cache-001",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "policy-cache-seed-001",
+                        "dependency_status": {"gray_ready": True},
+                    },
+                ],
+            }
+        )
+        self.runtime.batch_plan_gray_rollout_dependencies_report(
+            {
+                "idempotency_key": "policy-cache-002",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t2",
+                        "site_id": "s2",
+                        "box_id": "b2",
+                        "seed": "policy-cache-seed-002",
+                        "dependency_status": {"gray_ready": True},
+                    },
+                ],
+            }
+        )
+        with self.assertRaisesRegex(ValueError, "exceeds max_clear_entries=1"):
+            self.runtime.clear_gray_rollout_batch_plan_cache({})
+
+        dry_run = self.runtime.clear_gray_rollout_batch_plan_cache({"dry_run": True})
+        self.assertEqual(1, dry_run["max_clear_entries"])
+        self.assertEqual("policy", dry_run["max_clear_entries_source"])
+
+        cleared = self.runtime.clear_gray_rollout_batch_plan_cache({"max_clear_entries": 2})
+        self.assertEqual(2, cleared["max_clear_entries"])
+        self.assertEqual("request", cleared["max_clear_entries_source"])
+        self.assertEqual(0, cleared["gray_batch_plan_cache_entries"])
+
+        disabled = self.runtime.update_gray_rollout_batch_plan_cache_policy({"default_max_clear_entries": None})
+        self.assertIsNone(disabled["default_max_clear_entries"])
+        self.assertIsNone(self.runtime.get_gray_rollout_batch_plan_cache_policy()["default_max_clear_entries"])
+
+        with self.assertRaisesRegex(ValueError, "default_max_clear_entries must be a positive integer or null"):
+            self.runtime.update_gray_rollout_batch_plan_cache_policy({"default_max_clear_entries": 0})
+        with self.assertRaisesRegex(ValueError, "default_max_clear_entries must be a positive integer or null"):
+            self.runtime.update_gray_rollout_batch_plan_cache_policy({"default_max_clear_entries": "bad"})
+
     def test_update_and_get_network_policy(self) -> None:
         updated = self.runtime.update_network_policy(
             {

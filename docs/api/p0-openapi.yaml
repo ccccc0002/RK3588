@@ -1181,6 +1181,48 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/gray-rollout/plan/batch/cache/policy:
+    get:
+      tags: [runtime]
+      summary: Get gray rollout batch cache clear policy
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Gray rollout batch cache clear policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrayRolloutPlanBatchCachePolicyEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      tags: [runtime]
+      summary: Update gray rollout batch cache clear policy
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GrayRolloutPlanBatchCachePolicyRequest'
+      responses:
+        '200':
+          description: Gray rollout batch cache clear policy updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrayRolloutPlanBatchCachePolicyEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/gray-rollout/plan/batch/cache:
     get:
       tags: [runtime]
@@ -3003,6 +3045,25 @@ components:
         event_window:
           $ref: '#/components/schemas/GrayRolloutPlanBatchCacheEventWindow'
 
+    GrayRolloutPlanBatchCachePolicyRequest:
+      type: object
+      required: [default_max_clear_entries]
+      properties:
+        default_max_clear_entries:
+          type: integer
+          nullable: true
+          minimum: 1
+          description: Default clear-threshold guard used when clear request omits max_clear_entries.
+
+    GrayRolloutPlanBatchCachePolicyData:
+      type: object
+      required: [default_max_clear_entries]
+      properties:
+        default_max_clear_entries:
+          type: integer
+          nullable: true
+          minimum: 1
+
     GrayRolloutPlanBatchCacheClearRequest:
       type: object
       additionalProperties: true
@@ -3031,6 +3092,7 @@ components:
         - reset_counters
         - reset_counters_applied
         - max_clear_entries
+        - max_clear_entries_source
         - cleared_at
         - gray_batch_plan_cache_entries
         - gray_batch_plan_cache_hits
@@ -3066,6 +3128,9 @@ components:
           type: integer
           nullable: true
           minimum: 1
+        max_clear_entries_source:
+          type: string
+          enum: [request, policy, none]
         cleared_at:
           type: string
           format: date-time
@@ -3537,6 +3602,14 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/GrayRolloutPlanBatchData'
+
+    GrayRolloutPlanBatchCachePolicyEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/GrayRolloutPlanBatchCachePolicyData'
 
     GrayRolloutPlanBatchCacheListEnvelope:
       allOf:

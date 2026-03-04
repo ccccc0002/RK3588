@@ -1732,6 +1732,107 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertFalse(bad_payload["success"])
         self.assertEqual("bad_request", bad_payload["error"]["code"])
 
+    def test_gray_rollout_batch_cache_policy_endpoints(self) -> None:
+        get_status, get_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache/policy",
+            token=self.viewer_token,
+        )
+        self.assertEqual(200, get_status)
+        self.assertTrue(get_payload["success"])
+        self.assertIsNone(get_payload["data"]["default_max_clear_entries"])
+
+        viewer_update_status, viewer_update_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch/cache/policy",
+            {"default_max_clear_entries": 1},
+            token=self.viewer_token,
+        )
+        self.assertEqual(403, viewer_update_status)
+        self.assertFalse(viewer_update_payload["success"])
+        self.assertEqual("forbidden", viewer_update_payload["error"]["code"])
+
+        op_update_status, op_update_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch/cache/policy",
+            {"default_max_clear_entries": 1},
+            token=self.operator_token,
+        )
+        self.assertEqual(200, op_update_status)
+        self.assertTrue(op_update_payload["success"])
+        self.assertEqual(1, int(op_update_payload["data"]["default_max_clear_entries"]))
+
+        self._post(
+            "/api/v1/gray-rollout/policy",
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {},
+                "overrides": [],
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "idempotency_key": "policy-http-001",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "policy-http-seed-001",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
+        self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "idempotency_key": "policy-http-002",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t2",
+                        "site_id": "s2",
+                        "box_id": "b2",
+                        "seed": "policy-http-seed-002",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
+
+        blocked_status, blocked_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch/cache/clear",
+            {},
+            token=self.operator_token,
+        )
+        self.assertEqual(400, blocked_status)
+        self.assertFalse(blocked_payload["success"])
+        self.assertIn("max_clear_entries=1", blocked_payload["error"]["message"])
+
+        clear_status, clear_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch/cache/clear",
+            {"max_clear_entries": 1000},
+            token=self.operator_token,
+        )
+        self.assertEqual(200, clear_status)
+        self.assertTrue(clear_payload["success"])
+        self.assertEqual("request", clear_payload["data"]["max_clear_entries_source"])
+        self.assertEqual(0, int(clear_payload["data"]["gray_batch_plan_cache_entries"]))
+
+        disable_status, disable_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch/cache/policy",
+            {"default_max_clear_entries": None},
+            token=self.operator_token,
+        )
+        self.assertEqual(200, disable_status)
+        self.assertTrue(disable_payload["success"])
+        self.assertIsNone(disable_payload["data"]["default_max_clear_entries"])
+
     def test_network_policy_endpoints(self) -> None:
         update_status, update_payload = self._post(
             "/api/v1/network/policy",

@@ -45,6 +45,7 @@ class FastApiAdapterTests(unittest.TestCase):
             self.assertIn("/api/v1/gray-rollout/evaluate", paths)
             self.assertIn("/api/v1/gray-rollout/plan", paths)
             self.assertIn("/api/v1/gray-rollout/plan/batch", paths)
+            self.assertIn("/api/v1/gray-rollout/plan/batch/cache/policy", paths)
             self.assertIn("/api/v1/gray-rollout/plan/batch/cache", paths)
             self.assertIn("/api/v1/gray-rollout/plan/batch/cache/ops", paths)
             self.assertIn("/api/v1/gray-rollout/plan/batch/cache/clear", paths)

@@ -201,6 +201,16 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return denied
         return ok_payload(rt.get_gray_rollout_policy())
 
+    @app.get("/api/v1/gray-rollout/plan/batch/cache/policy")
+    def get_gray_rollout_batch_cache_policy_ep(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(
+            authorization,
+            required_get_action("/api/v1/gray-rollout/plan/batch/cache/policy") or "device:read",
+        )
+        if denied is not None:
+            return denied
+        return ok_payload(rt.get_gray_rollout_batch_plan_cache_policy())
+
     @app.get("/api/v1/gray-rollout/plan/batch/cache")
     def list_gray_rollout_batch_cache_ep(
         limit: int = 20,
@@ -723,6 +733,22 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
                 message = str(first_error.get("error", "batch item invalid"))
                 raise ValueError(f"items[{idx}]: {message}")
             return ok_payload(result)
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/gray-rollout/plan/batch/cache/policy")
+    def update_gray_rollout_batch_cache_policy_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(
+            authorization,
+            required_post_action("/api/v1/gray-rollout/plan/batch/cache/policy") or "device:write",
+        )
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.update_gray_rollout_batch_plan_cache_policy(dict(payload)))
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 

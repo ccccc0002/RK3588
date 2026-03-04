@@ -94,6 +94,7 @@ class P0Runtime:
         self._stream_telemetry: Dict[tuple[str, str, str, str], dict] = {}
         self._gray_rollout_batch_plan_cache: Dict[str, dict] = {}
         self._gray_rollout_batch_plan_cache_events: Deque[tuple[datetime, str]] = deque()
+        self._gray_rollout_batch_plan_cache_policy: dict = {"default_max_clear_entries": None}
 
         self._metrics = {
             "dispatch_runs": 0,
@@ -2075,6 +2076,37 @@ class P0Runtime:
                 }
             return result
 
+    @staticmethod
+    def _normalize_gray_rollout_batch_plan_cache_policy(payload: dict) -> dict:
+        if "default_max_clear_entries" not in payload:
+            raise ValueError("missing required field: default_max_clear_entries")
+        raw = payload.get("default_max_clear_entries")
+        if raw is None:
+            return {"default_max_clear_entries": None}
+        if isinstance(raw, bool):
+            raise ValueError("default_max_clear_entries must be a positive integer or null")
+        try:
+            value = int(raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("default_max_clear_entries must be a positive integer or null") from exc
+        if value <= 0:
+            raise ValueError("default_max_clear_entries must be a positive integer or null")
+        return {"default_max_clear_entries": value}
+
+    def get_gray_rollout_batch_plan_cache_policy(self) -> dict:
+        with self._lock:
+            return dict(self._gray_rollout_batch_plan_cache_policy)
+
+    def update_gray_rollout_batch_plan_cache_policy(self, payload: dict) -> dict:
+        normalized = self._normalize_gray_rollout_batch_plan_cache_policy(dict(payload))
+        with self._lock:
+            self._gray_rollout_batch_plan_cache_policy = dict(normalized)
+            self._append_audit_locked(
+                "gray_rollout.plan_batch.cache.policy.update",
+                {"policy": dict(self._gray_rollout_batch_plan_cache_policy)},
+            )
+            return dict(self._gray_rollout_batch_plan_cache_policy)
+
     def clear_gray_rollout_batch_plan_cache(self, payload: dict | None = None) -> dict:
         source = dict(payload or {})
         reset_counters = bool(source.get("reset_counters", False))
@@ -2084,19 +2116,34 @@ class P0Runtime:
             self._evict_gray_batch_plan_cache_locked()
             would_clear_entries = len(self._gray_rollout_batch_plan_cache)
             would_clear_events = len(self._gray_rollout_batch_plan_cache_events)
-            if not dry_run and max_clear_entries is not None and would_clear_entries > max_clear_entries:
+            policy_max_clear_entries = self._gray_rollout_batch_plan_cache_policy.get("default_max_clear_entries")
+            effective_max_clear_entries = (
+                max_clear_entries if max_clear_entries is not None else policy_max_clear_entries
+            )
+            max_clear_entries_source = (
+                "request"
+                if max_clear_entries is not None
+                else ("policy" if policy_max_clear_entries is not None else "none")
+            )
+            if (
+                not dry_run
+                and effective_max_clear_entries is not None
+                and would_clear_entries > int(effective_max_clear_entries)
+            ):
                 self._append_audit_locked(
                     "gray_rollout.plan_batch.cache.clear.blocked",
                     {
                         "dry_run": dry_run,
                         "would_clear_entries": would_clear_entries,
                         "would_clear_events": would_clear_events,
-                        "max_clear_entries": max_clear_entries,
+                        "max_clear_entries": effective_max_clear_entries,
+                        "max_clear_entries_source": max_clear_entries_source,
                         "reason": "would_exceed_max_clear_entries",
                     },
                 )
                 raise ValueError(
-                    f"cache clear blocked: would clear {would_clear_entries} entries exceeds max_clear_entries={max_clear_entries}"
+                    "cache clear blocked: would clear "
+                    f"{would_clear_entries} entries exceeds max_clear_entries={effective_max_clear_entries}"
                 )
             cleared_entries = 0
             cleared_events = 0
@@ -2126,7 +2173,8 @@ class P0Runtime:
                 "dry_run": dry_run,
                 "reset_counters": reset_counters,
                 "reset_counters_applied": reset_counters_applied,
-                "max_clear_entries": max_clear_entries,
+                "max_clear_entries": effective_max_clear_entries,
+                "max_clear_entries_source": max_clear_entries_source,
                 "cleared_at": cleared_at,
                 "gray_batch_plan_cache_entries": len(self._gray_rollout_batch_plan_cache),
                 "gray_batch_plan_cache_hits": int(self._metrics.get("gray_batch_plan_cache_hits", 0)),
@@ -2164,7 +2212,8 @@ class P0Runtime:
                     "would_clear_events": would_clear_events,
                     "reset_counters": reset_counters,
                     "reset_counters_applied": reset_counters_applied,
-                    "max_clear_entries": max_clear_entries,
+                    "max_clear_entries": effective_max_clear_entries,
+                    "max_clear_entries_source": max_clear_entries_source,
                     "cleared_at": cleared_at,
                 },
             )
