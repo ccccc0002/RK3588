@@ -303,3 +303,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P2-iteration-2-base-library-offline-jobs-validated/20260304-125401
 - Summary: parallel delivery of base-library registry/mappings and offline-job lifecycle with local+remote validation
 - Next: continue P2 lane D governance and contract hardening
+
+## [2026-03-04T12:56:27+08:00] P2-iteration-3-governance-rbac-validated
+- Branch: stage/P2-business-expansion
+- Commit: 2dd6c25
+- Tag: checkpoint/P2-iteration-3-governance-rbac-validated/20260304-125627
+- Summary: hardened P2 endpoint RBAC coverage and added P2 pre-closure review baseline
+- Next: continue P2 closure gaps: offline executor binding and compatibility policy
