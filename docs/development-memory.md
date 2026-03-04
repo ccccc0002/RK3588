@@ -296,3 +296,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P2-iteration-1-algorithm-repo-scaffold-validated/20260304-124335
 - Summary: implemented algorithm repository runtime/api/persistence scaffold with local+remote validation
 - Next: start lane B base library registry scaffold
+
+## [2026-03-04T12:54:01+08:00] P2-iteration-2-base-library-offline-jobs-validated
+- Branch: stage/P2-business-expansion
+- Commit: aaacffe
+- Tag: checkpoint/P2-iteration-2-base-library-offline-jobs-validated/20260304-125401
+- Summary: parallel delivery of base-library registry/mappings and offline-job lifecycle with local+remote validation
+- Next: continue P2 lane D governance and contract hardening
