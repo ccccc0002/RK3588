@@ -646,7 +646,10 @@ GB28181 example:
   - query params (optional):
     - `limit` (default `20`, valid range `1..200`)
     - `before_id` (positive integer audit id, returns records with `id < before_id`)
-  - 200 envelope with `{ "items": [ { "id": 1, "at": "...", "action": "...", "details": {} } ] }`
+  - 200 envelope:
+    - `items[]` audit records
+    - `limit`, `returned_items`
+    - `has_more`, `next_before_id` (`null` when no next page)
   - validation:
     - `limit` must be integer within `[1, 200]`
     - `before_id` must be a positive integer when provided
@@ -886,6 +889,8 @@ GB28181 example:
   - 200 envelope:
     - `items[]` from audit records filtered by action:
       - `gray_rollout.plan_batch.cache.policy.update`
+    - `limit`, `returned_items`
+    - `has_more`, `next_before_id` (`null` when no next page)
   - validation:
     - `limit` must be integer within `[1, 200]`
     - `before_id` must be a positive integer when provided
@@ -918,6 +923,8 @@ GB28181 example:
       - `gray_rollout.plan_batch.cache.clear.preview`
       - `gray_rollout.plan_batch.cache.clear.blocked`
       - `gray_rollout.plan_batch.cache.clear`
+    - `limit`, `returned_items`
+    - `has_more`, `next_before_id` (`null` when no next page)
   - validation:
     - `limit` must be integer within `[1, 200]`
     - `before_id` must be a positive integer when provided

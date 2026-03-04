@@ -1628,6 +1628,12 @@ class P0HttpApiTests(unittest.TestCase):
         op_status, op_payload = self._get("/api/v1/audit/recent?limit=5", token=self.operator_token)
         self.assertEqual(200, op_status)
         self.assertTrue(op_payload["success"])
+        self.assertEqual(5, op_payload["data"]["limit"])
+        self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
+        if op_payload["data"]["has_more"]:
+            self.assertIsNotNone(op_payload["data"]["next_before_id"])
+        else:
+            self.assertIsNone(op_payload["data"]["next_before_id"])
         actions = [item["action"] for item in op_payload["data"]["items"]]
         self.assertIn("device.register", actions)
         self.assertIn("device.capabilities.update", actions)
@@ -1640,7 +1646,16 @@ class P0HttpApiTests(unittest.TestCase):
         )
         self.assertEqual(200, page_status)
         self.assertTrue(page_payload["success"])
+        self.assertEqual(5, page_payload["data"]["limit"])
+        self.assertEqual(len(page_payload["data"]["items"]), page_payload["data"]["returned_items"])
         self.assertTrue(all(int(item["id"]) < anchor_id for item in page_payload["data"]["items"]))
+
+        win_status, win_payload = self._get("/api/v1/audit/recent?limit=1", token=self.operator_token)
+        self.assertEqual(200, win_status)
+        self.assertTrue(win_payload["success"])
+        self.assertTrue(win_payload["data"]["has_more"])
+        self.assertIsNotNone(win_payload["data"]["next_before_id"])
+        self.assertEqual(1, win_payload["data"]["returned_items"])
 
         bad_before_id_status, bad_before_id_payload = self._get(
             "/api/v1/audit/recent?limit=5&before_id=bad",
@@ -1749,6 +1764,12 @@ class P0HttpApiTests(unittest.TestCase):
         )
         self.assertEqual(200, op_status)
         self.assertTrue(op_payload["success"])
+        self.assertEqual(5, op_payload["data"]["limit"])
+        self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
+        if op_payload["data"]["has_more"]:
+            self.assertIsNotNone(op_payload["data"]["next_before_id"])
+        else:
+            self.assertIsNone(op_payload["data"]["next_before_id"])
         actions = [item["action"] for item in op_payload["data"]["items"]]
         self.assertIn("gray_rollout.plan_batch.cache.clear.preview", actions)
         self.assertIn("gray_rollout.plan_batch.cache.clear.blocked", actions)
@@ -1762,7 +1783,19 @@ class P0HttpApiTests(unittest.TestCase):
         )
         self.assertEqual(200, page_status)
         self.assertTrue(page_payload["success"])
+        self.assertEqual(5, page_payload["data"]["limit"])
+        self.assertEqual(len(page_payload["data"]["items"]), page_payload["data"]["returned_items"])
         self.assertTrue(all(int(item["id"]) < anchor_id for item in page_payload["data"]["items"]))
+
+        win_status, win_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache/ops?limit=1",
+            token=self.operator_token,
+        )
+        self.assertEqual(200, win_status)
+        self.assertTrue(win_payload["success"])
+        self.assertTrue(win_payload["data"]["has_more"])
+        self.assertIsNotNone(win_payload["data"]["next_before_id"])
+        self.assertEqual(1, win_payload["data"]["returned_items"])
 
         bad_status, bad_payload = self._get(
             "/api/v1/gray-rollout/plan/batch/cache/ops?limit=bad",
@@ -1907,6 +1940,12 @@ class P0HttpApiTests(unittest.TestCase):
         )
         self.assertEqual(200, op_status)
         self.assertTrue(op_payload["success"])
+        self.assertEqual(5, op_payload["data"]["limit"])
+        self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
+        if op_payload["data"]["has_more"]:
+            self.assertIsNotNone(op_payload["data"]["next_before_id"])
+        else:
+            self.assertIsNone(op_payload["data"]["next_before_id"])
         self.assertGreaterEqual(len(op_payload["data"]["items"]), 2)
         for item in op_payload["data"]["items"]:
             self.assertEqual("gray_rollout.plan_batch.cache.policy.update", item["action"])
@@ -1920,7 +1959,19 @@ class P0HttpApiTests(unittest.TestCase):
         )
         self.assertEqual(200, page_status)
         self.assertTrue(page_payload["success"])
+        self.assertEqual(5, page_payload["data"]["limit"])
+        self.assertEqual(len(page_payload["data"]["items"]), page_payload["data"]["returned_items"])
         self.assertTrue(all(int(item["id"]) < anchor_id for item in page_payload["data"]["items"]))
+
+        win_status, win_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache/policy/history?limit=1",
+            token=self.operator_token,
+        )
+        self.assertEqual(200, win_status)
+        self.assertTrue(win_payload["success"])
+        self.assertTrue(win_payload["data"]["has_more"])
+        self.assertIsNotNone(win_payload["data"]["next_before_id"])
+        self.assertEqual(1, win_payload["data"]["returned_items"])
 
         bad_status, bad_payload = self._get(
             "/api/v1/gray-rollout/plan/batch/cache/policy/history?limit=bad",

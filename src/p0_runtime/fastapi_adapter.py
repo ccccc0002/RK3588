@@ -170,7 +170,7 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         if denied is not None:
             return denied
         try:
-            return ok_payload({"items": rt.list_audit_records(limit=limit, before_id=before_id)})
+            return ok_payload(rt.list_audit_records_page(limit=limit, before_id=before_id))
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 
@@ -231,9 +231,7 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         if denied is not None:
             return denied
         try:
-            return ok_payload(
-                {"items": rt.list_gray_rollout_batch_plan_cache_policy_history(limit=limit, before_id=before_id)}
-            )
+            return ok_payload(rt.list_gray_rollout_batch_plan_cache_policy_history_page(limit=limit, before_id=before_id))
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 
@@ -269,9 +267,7 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         if denied is not None:
             return denied
         try:
-            return ok_payload(
-                {"items": rt.list_gray_rollout_batch_plan_cache_operations(limit=limit, before_id=before_id)}
-            )
+            return ok_payload(rt.list_gray_rollout_batch_plan_cache_operations_page(limit=limit, before_id=before_id))
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 

@@ -1545,6 +1545,38 @@ class P0Runtime:
             items = [dict(item) for item in reversed(tail)]
         return items
 
+    def _build_audit_cursor_page(
+        self,
+        list_fn: Callable[..., list[dict]],
+        limit: object = 20,
+        before_id: object = None,
+    ) -> dict:
+        capped = self._normalize_cache_operations_list_limit(limit)
+        normalized_before_id = self._normalize_audit_before_id(before_id)
+        items = list_fn(limit=capped, before_id=normalized_before_id)
+        has_more = False
+        next_before_id: int | None = None
+        if items:
+            try:
+                candidate_next = int(items[-1].get("id"))
+            except (TypeError, ValueError):
+                candidate_next = None
+            if candidate_next is not None and candidate_next > 0:
+                probe = list_fn(limit=1, before_id=candidate_next)
+                has_more = len(probe) > 0
+                if has_more:
+                    next_before_id = candidate_next
+        return {
+            "items": items,
+            "limit": capped,
+            "returned_items": len(items),
+            "has_more": has_more,
+            "next_before_id": next_before_id,
+        }
+
+    def list_audit_records_page(self, limit: object = 20, before_id: object = None) -> dict:
+        return self._build_audit_cursor_page(self.list_audit_records, limit=limit, before_id=before_id)
+
     @staticmethod
     def _normalize_cache_operations_list_limit(limit: object) -> int:
         if isinstance(limit, bool):
@@ -1592,6 +1624,13 @@ class P0Runtime:
             items = [dict(item) for item in reversed(tail)]
         return items
 
+    def list_gray_rollout_batch_plan_cache_operations_page(self, limit: object = 20, before_id: object = None) -> dict:
+        return self._build_audit_cursor_page(
+            self.list_gray_rollout_batch_plan_cache_operations,
+            limit=limit,
+            before_id=before_id,
+        )
+
     def list_gray_rollout_batch_plan_cache_policy_history(
         self, limit: object = 20, before_id: object = None
     ) -> list[dict]:
@@ -1614,6 +1653,15 @@ class P0Runtime:
             tail = matched[-capped:]
             items = [dict(item) for item in reversed(tail)]
         return items
+
+    def list_gray_rollout_batch_plan_cache_policy_history_page(
+        self, limit: object = 20, before_id: object = None
+    ) -> dict:
+        return self._build_audit_cursor_page(
+            self.list_gray_rollout_batch_plan_cache_policy_history,
+            limit=limit,
+            before_id=before_id,
+        )
 
     @staticmethod
     def _normalize_audit_policy(payload: dict) -> dict:

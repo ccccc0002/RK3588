@@ -139,11 +139,10 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             limit_raw = (query.get("limit", ["20"]) or ["20"])[0]
             before_id_raw = (query.get("before_id", [None]) or [None])[0]
             try:
-                limit = int(limit_raw)
                 _json_response(
                     self,
                     200,
-                    ok_payload({"items": self.runtime.list_audit_records(limit=limit, before_id=before_id_raw)}),
+                    ok_payload(self.runtime.list_audit_records_page(limit=limit_raw, before_id=before_id_raw)),
                 )
             except ValueError as exc:
                 _json_response(self, 400, error_payload("bad_request", str(exc)))
@@ -174,12 +173,10 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                     self,
                     200,
                     ok_payload(
-                        {
-                            "items": self.runtime.list_gray_rollout_batch_plan_cache_policy_history(
-                                limit=limit_raw,
-                                before_id=before_id_raw,
-                            )
-                        }
+                        self.runtime.list_gray_rollout_batch_plan_cache_policy_history_page(
+                            limit=limit_raw,
+                            before_id=before_id_raw,
+                        )
                     ),
                 )
             except ValueError as exc:
@@ -208,12 +205,10 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                     self,
                     200,
                     ok_payload(
-                        {
-                            "items": self.runtime.list_gray_rollout_batch_plan_cache_operations(
-                                limit=limit_raw,
-                                before_id=before_id_raw,
-                            )
-                        }
+                        self.runtime.list_gray_rollout_batch_plan_cache_operations_page(
+                            limit=limit_raw,
+                            before_id=before_id_raw,
+                        )
                     ),
                 )
             except ValueError as exc:

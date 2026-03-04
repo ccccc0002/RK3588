@@ -2107,6 +2107,13 @@ class P0RuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "limit must be an integer"):
             self.runtime.list_audit_records(limit="bad")
 
+        page = self.runtime.list_audit_records_page(limit=1)
+        self.assertEqual(1, page["limit"])
+        self.assertEqual(1, page["returned_items"])
+        self.assertTrue(page["has_more"])
+        self.assertIsNotNone(page["next_before_id"])
+        self.assertEqual(1, len(page["items"]))
+
     def test_list_gray_rollout_batch_plan_cache_operations(self) -> None:
         self.runtime.update_gray_rollout_policy(
             {
@@ -2173,6 +2180,13 @@ class P0RuntimeTests(unittest.TestCase):
             self.runtime.list_gray_rollout_batch_plan_cache_operations(limit=10, before_id=0)
         with self.assertRaisesRegex(ValueError, "before_id must be a positive integer"):
             self.runtime.list_gray_rollout_batch_plan_cache_operations(limit=10, before_id="bad")
+
+        page = self.runtime.list_gray_rollout_batch_plan_cache_operations_page(limit=1)
+        self.assertEqual(1, page["limit"])
+        self.assertEqual(1, page["returned_items"])
+        self.assertTrue(page["has_more"])
+        self.assertIsNotNone(page["next_before_id"])
+        self.assertEqual(1, len(page["items"]))
 
     def test_gray_rollout_batch_cache_policy_default_max_clear_entries(self) -> None:
         updated = self.runtime.update_gray_rollout_batch_plan_cache_policy({"default_max_clear_entries": 1})
@@ -2268,6 +2282,13 @@ class P0RuntimeTests(unittest.TestCase):
             self.runtime.list_gray_rollout_batch_plan_cache_policy_history(limit=10, before_id=0)
         with self.assertRaisesRegex(ValueError, "before_id must be a positive integer"):
             self.runtime.list_gray_rollout_batch_plan_cache_policy_history(limit=10, before_id="bad")
+
+        page = self.runtime.list_gray_rollout_batch_plan_cache_policy_history_page(limit=1)
+        self.assertEqual(1, page["limit"])
+        self.assertEqual(1, page["returned_items"])
+        self.assertTrue(page["has_more"])
+        self.assertIsNotNone(page["next_before_id"])
+        self.assertEqual(1, len(page["items"]))
 
     def test_update_and_get_network_policy(self) -> None:
         updated = self.runtime.update_network_policy(

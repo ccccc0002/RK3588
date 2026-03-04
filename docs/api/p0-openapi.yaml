@@ -2681,12 +2681,25 @@ components:
 
     AuditListData:
       type: object
-      required: [items]
+      required: [items, limit, returned_items, has_more, next_before_id]
       properties:
         items:
           type: array
           items:
             $ref: '#/components/schemas/AuditRecord'
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+        returned_items:
+          type: integer
+          minimum: 0
+        has_more:
+          type: boolean
+        next_before_id:
+          type: integer
+          minimum: 1
+          nullable: true
 
     AuditPolicyRequest:
       type: object
