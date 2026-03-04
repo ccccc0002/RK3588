@@ -44,3 +44,4 @@ Append-only collaboration log across lanes and stages.
 | 2026-03-04T09:18:06+08:00 | P0 | lane-d-platform | architect | done | extracted shared api policy module for role/action mapping used by both http and fastapi runtimes | validate on remote py3.8 and checkpoint iteration 11 | none |
 | 2026-03-04T09:19:25+08:00 | P0 | lane-validation | build-error-resolver | done | remote py3.8 validation passed after api policy centralization refactor (50 tests) | checkpoint P0-iteration-11-policy-centralization | none |
 | 2026-03-04T09:25:06+08:00 | P0 | lane-d-platform | architect | done | extracted shared api envelope module and fixed fastapi policy hook names to avoid latent runtime NameError | remote validation and checkpoint iteration 12 | none |
+| 2026-03-04T09:44:34+08:00 | P0 | lane-validation | build-error-resolver | done | local unittest validation passed after api envelope/policy centralization refactor | checkpoint P0-iteration-12-envelope-policy | none |
