@@ -27,7 +27,15 @@ Branch: `stage/P2-business-expansion`
 1. Offline executor integration remains metadata-oriented; no live heartbeat/health handshake contract yet.
 2. Compatibility policy is regex/version-string based; semantic version compatibility rules are still implicit.
 
+## Closure Decision (2026-03-04)
+
+1. Defer executor heartbeat/health handshake to P3:
+   - Reason: P2 scope only requires metadata contract, binding, RBAC and persistence for offline executor registry.
+   - P3 follow-up: add heartbeat endpoint, stale-executor eviction policy, and scheduler-side health gating.
+2. Defer semantic compatibility engine to P3:
+   - Reason: P2 compatibility goal is deterministic baseline policy (`required_status`, capability match, regex matrix).
+   - P3 follow-up: add semantic version rules and capability-feature matrix validation.
+
 ## Recommended Next P2 Closure Tasks
 
-1. Decide whether executor heartbeat/health handshake is deferred to P3, and capture explicit defer rationale if so.
-2. Run final stage closure review and issue `P2-stage-closure` checkpoint.
+1. Run final stage closure review and issue `P2-stage-closure` checkpoint.
