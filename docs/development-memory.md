@@ -597,3 +597,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-15-gray-plan-cache-clear-dry-run-validated/20260304-174016
 - Summary: added dry-run preview semantics for gray batch cache clear endpoint and validated local+remote py3.8 gates
 - Next: continue post-P3 hardening with cache lifecycle visibility and safety controls
+
+## [2026-03-04T17:48:20+08:00] P4-iteration-16-gray-plan-cache-list-endpoint-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 9b3daad
+- Tag: checkpoint/P4-iteration-16-gray-plan-cache-list-endpoint-validated/20260304-174820
+- Summary: added gray batch cache list endpoint with limit and event-window visibility and validated local+remote py3.8 gates
+- Next: continue post-P3 hardening with cache governance and operational safeguards
