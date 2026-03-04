@@ -135,3 +135,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P0-remote-validation-runner/20260304-101217
 - Summary: added remote py3.8 validation runner and documented execution path; blocked on SSH credentials
 - Next: run scripts/run-remote-p0-validation.ps1 with valid remote user/repo path, then finalize P0 stage closure
+
+## [2026-03-04T10:32:50+08:00] P0-stage-closure
+- Branch: stage/P0-closed-loop
+- Commit: 403dbc2
+- Tag: checkpoint/P0-stage-closure/20260304-103250
+- Summary: P0 closed-loop finalized with local+remote(py3.8) validation and API contract alignment
+- Next: start P1 capability-enhancement planning (GB28181/OCR/face/audit/network)
