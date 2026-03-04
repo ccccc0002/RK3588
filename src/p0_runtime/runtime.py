@@ -35,6 +35,13 @@ class P0Runtime:
         self._push_state: PushState = self._storage.load_push_state() if self._storage else initial_push_state()
         self._devices: Dict[tuple[str, str, str, str], dict] = self._storage.load_devices() if self._storage else {}
         self._algorithms: Dict[tuple[str, str], dict] = self._storage.load_algorithms() if self._storage else {}
+        self._base_libraries: Dict[tuple[str, str], dict] = (
+            self._storage.load_base_libraries() if self._storage else {}
+        )
+        self._base_library_mappings: Dict[tuple[str, str, str, str, str], dict] = (
+            self._storage.load_base_library_mappings() if self._storage else {}
+        )
+        self._offline_jobs: Dict[str, dict] = self._storage.load_offline_jobs() if self._storage else {}
         self._push_worker: PushWorker | None = None
         self._last_capability_schedule: SchedulePlan | None = None
         self._audit_records: list[dict] = self._storage.load_audit_records() if self._storage else []
@@ -256,6 +263,238 @@ class P0Runtime:
         with self._lock:
             items = [dict(item) for item in self._algorithms.values()]
         items.sort(key=lambda item: (item["algorithm_id"], item["version"]))
+        return items
+
+    @staticmethod
+    def _normalize_base_library_status(value: str) -> str:
+        status = str(value).strip().lower()
+        if status not in {"draft", "active", "disabled"}:
+            raise ValueError(f"unsupported base library status: {status}")
+        return status
+
+    def upsert_base_library(self, payload: dict) -> dict:
+        required = ("library_id", "version", "capability", "status")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        metadata_raw = payload.get("metadata", {})
+        if metadata_raw is None:
+            metadata_raw = {}
+        if not isinstance(metadata_raw, dict):
+            raise ValueError("metadata must be an object")
+
+        record = {
+            "library_id": str(payload["library_id"]).strip(),
+            "version": str(payload["version"]).strip(),
+            "capability": str(payload["capability"]).strip().lower(),
+            "status": self._normalize_base_library_status(str(payload["status"])),
+            "metadata": dict(metadata_raw),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if not record["library_id"]:
+            raise ValueError("library_id must not be empty")
+        if not record["version"]:
+            raise ValueError("version must not be empty")
+        if not record["capability"]:
+            raise ValueError("capability must not be empty")
+
+        key = (record["library_id"], record["version"])
+        with self._lock:
+            self._base_libraries[key] = record
+            if self._storage:
+                self._storage.upsert_base_library(record)
+            self._append_audit_locked(
+                "base_library.upsert",
+                {
+                    "library_id": record["library_id"],
+                    "version": record["version"],
+                    "capability": record["capability"],
+                    "status": record["status"],
+                },
+            )
+        return dict(record)
+
+    def list_base_libraries(self) -> list[dict]:
+        with self._lock:
+            items = [dict(item) for item in self._base_libraries.values()]
+        items.sort(key=lambda item: (item["library_id"], item["version"]))
+        return items
+
+    def upsert_base_library_mapping(self, payload: dict) -> dict:
+        required = ("tenant_id", "site_id", "box_id", "device_id", "capability", "library_id", "library_version")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        capability = str(payload["capability"]).strip().lower()
+        if not capability:
+            raise ValueError("capability must not be empty")
+
+        key = (
+            str(payload["tenant_id"]),
+            str(payload["site_id"]),
+            str(payload["box_id"]),
+            str(payload["device_id"]),
+            capability,
+        )
+        device_key = key[:4]
+        library_key = (str(payload["library_id"]).strip(), str(payload["library_version"]).strip())
+        if not library_key[0] or not library_key[1]:
+            raise ValueError("library_id and library_version must not be empty")
+
+        with self._lock:
+            if device_key not in self._devices:
+                raise ValueError("device not found")
+            library = self._base_libraries.get(library_key)
+            if library is None:
+                raise ValueError("base library not found")
+            if str(library.get("status", "")).lower() != "active":
+                raise ValueError("base library must be active for mapping")
+
+            record = {
+                "tenant_id": key[0],
+                "site_id": key[1],
+                "box_id": key[2],
+                "device_id": key[3],
+                "capability": key[4],
+                "library_id": library_key[0],
+                "library_version": library_key[1],
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+            self._base_library_mappings[key] = record
+            if self._storage:
+                self._storage.upsert_base_library_mapping(record)
+            self._append_audit_locked(
+                "base_library.mapping.upsert",
+                {
+                    "tenant_id": key[0],
+                    "site_id": key[1],
+                    "box_id": key[2],
+                    "device_id": key[3],
+                    "capability": key[4],
+                    "library_id": library_key[0],
+                    "library_version": library_key[1],
+                },
+            )
+            return dict(record)
+
+    def list_base_library_mappings(self) -> list[dict]:
+        with self._lock:
+            items = [dict(item) for item in self._base_library_mappings.values()]
+        items.sort(key=lambda item: (item["tenant_id"], item["site_id"], item["box_id"], item["device_id"], item["capability"]))
+        return items
+
+    @staticmethod
+    def _normalize_offline_job_status(value: str) -> str:
+        status = str(value).strip().lower()
+        if status not in {"queued", "running", "succeeded", "failed", "canceled"}:
+            raise ValueError(f"unsupported offline job status: {status}")
+        return status
+
+    def create_offline_job(self, payload: dict, now: datetime | None = None) -> dict:
+        required = ("job_id", "source_scope", "algorithm_id", "algorithm_version")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        job_id = str(payload["job_id"]).strip()
+        if not job_id:
+            raise ValueError("job_id must not be empty")
+        source_scope = payload.get("source_scope")
+        if not isinstance(source_scope, dict):
+            raise ValueError("source_scope must be an object")
+
+        algorithm_key = (str(payload["algorithm_id"]).strip(), str(payload["algorithm_version"]).strip())
+        if not algorithm_key[0] or not algorithm_key[1]:
+            raise ValueError("algorithm_id and algorithm_version must not be empty")
+
+        at = self._now_or(now).isoformat()
+        with self._lock:
+            existing = self._offline_jobs.get(job_id)
+            if existing is not None:
+                return dict(existing)
+
+            algorithm = self._algorithms.get(algorithm_key)
+            if algorithm is None:
+                raise ValueError("algorithm not found")
+            if str(algorithm.get("status", "")).lower() != "active":
+                raise ValueError("algorithm must be active for offline job")
+
+            record = {
+                "job_id": job_id,
+                "source_scope": dict(source_scope),
+                "algorithm_id": algorithm_key[0],
+                "algorithm_version": algorithm_key[1],
+                "status": "queued",
+                "result_ref": str(payload.get("result_ref", "")).strip(),
+                "error_reason": "",
+                "created_at": at,
+                "updated_at": at,
+            }
+            self._offline_jobs[job_id] = record
+            if self._storage:
+                self._storage.upsert_offline_job(record)
+            self._append_audit_locked(
+                "offline.job.create",
+                {
+                    "job_id": job_id,
+                    "algorithm_id": algorithm_key[0],
+                    "algorithm_version": algorithm_key[1],
+                },
+            )
+            return dict(record)
+
+    def update_offline_job_status(self, payload: dict, now: datetime | None = None) -> dict:
+        required = ("job_id", "status")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        job_id = str(payload["job_id"]).strip()
+        target_status = self._normalize_offline_job_status(str(payload["status"]))
+        at = self._now_or(now).isoformat()
+        transitions = {
+            "queued": frozenset({"queued", "running", "failed", "canceled"}),
+            "running": frozenset({"running", "succeeded", "failed", "canceled"}),
+            "succeeded": frozenset({"succeeded"}),
+            "failed": frozenset({"failed"}),
+            "canceled": frozenset({"canceled"}),
+        }
+
+        with self._lock:
+            existing = self._offline_jobs.get(job_id)
+            if existing is None:
+                raise ValueError("offline job not found")
+            current_status = str(existing.get("status", "queued")).lower()
+            if target_status not in transitions.get(current_status, frozenset()):
+                raise ValueError(f"invalid offline job transition: {current_status}->{target_status}")
+
+            updated = dict(existing)
+            updated["status"] = target_status
+            updated["updated_at"] = at
+            if "result_ref" in payload:
+                updated["result_ref"] = str(payload.get("result_ref", "")).strip()
+            if "error_reason" in payload:
+                updated["error_reason"] = str(payload.get("error_reason", "")).strip()
+
+            self._offline_jobs[job_id] = updated
+            if self._storage:
+                self._storage.upsert_offline_job(updated)
+            self._append_audit_locked(
+                "offline.job.status.update",
+                {
+                    "job_id": job_id,
+                    "from_status": current_status,
+                    "to_status": target_status,
+                },
+            )
+            return dict(updated)
+
+    def list_offline_jobs(self) -> list[dict]:
+        with self._lock:
+            items = [dict(item) for item in self._offline_jobs.values()]
+        items.sort(key=lambda item: (item.get("updated_at", ""), item.get("job_id", "")), reverse=True)
         return items
 
     def list_audit_records(self, limit: int = 20) -> list[dict]:
@@ -594,6 +833,9 @@ class P0Runtime:
             data["dead_letter_current"] = len(self._push_state.dead_letters)
             data["device_count"] = len(self._devices)
             data["algorithm_count"] = len(self._algorithms)
+            data["base_library_count"] = len(self._base_libraries)
+            data["base_library_mapping_count"] = len(self._base_library_mappings)
+            data["offline_job_count"] = len(self._offline_jobs)
             data["telemetry_count"] = len(self._stream_telemetry)
             data["audit_max_records"] = int(self._audit_policy.get("max_records", 2000))
             data["storage_enabled"] = bool(storage is not None)
@@ -617,6 +859,9 @@ class P0Runtime:
                 "sessions": sessions,
                 "device_count": len(self._devices),
                 "algorithm_count": len(self._algorithms),
+                "base_library_count": len(self._base_libraries),
+                "base_library_mapping_count": len(self._base_library_mappings),
+                "offline_job_count": len(self._offline_jobs),
                 "event_dedupe_size": len(self._event_state.seen_keys),
                 "push_queue_size": len(self._push_state.tasks),
                 "dead_letter_size": len(self._push_state.dead_letters),

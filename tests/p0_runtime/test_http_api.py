@@ -155,6 +155,102 @@ class P0HttpApiTests(unittest.TestCase):
         ids = {(item["algorithm_id"], item["version"]) for item in list_payload["data"]["items"]}
         self.assertIn(("face-detector-http", "1.0.0"), ids)
 
+    def test_base_library_and_mapping_endpoints(self) -> None:
+        self._post(
+            "/api/v1/devices/register",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-lib-http",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.130/live",
+                "enabled": True,
+            },
+            token=self.operator_token,
+        )
+
+        lib_status, lib_payload = self._post(
+            "/api/v1/base-libraries/upsert",
+            {
+                "library_id": "lib-face-http",
+                "version": "2026.03",
+                "capability": "face",
+                "status": "active",
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, lib_status)
+        self.assertTrue(lib_payload["success"])
+
+        map_status, map_payload = self._post(
+            "/api/v1/base-libraries/mappings/upsert",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-lib-http",
+                "capability": "face",
+                "library_id": "lib-face-http",
+                "library_version": "2026.03",
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, map_status)
+        self.assertTrue(map_payload["success"])
+
+        libs_status, libs_payload = self._get("/api/v1/base-libraries", token=self.viewer_token)
+        self.assertEqual(200, libs_status)
+        self.assertTrue(libs_payload["success"])
+        self.assertEqual(1, len(libs_payload["data"]["items"]))
+
+        maps_status, maps_payload = self._get("/api/v1/base-libraries/mappings", token=self.viewer_token)
+        self.assertEqual(200, maps_status)
+        self.assertTrue(maps_payload["success"])
+        self.assertEqual(1, len(maps_payload["data"]["items"]))
+
+    def test_offline_jobs_endpoints(self) -> None:
+        self._post(
+            "/api/v1/algorithms/upsert",
+            {
+                "algorithm_id": "offline-http",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            },
+            token=self.operator_token,
+        )
+
+        create_status, create_payload = self._post(
+            "/api/v1/offline-jobs/create",
+            {
+                "job_id": "job-http-1",
+                "source_scope": {"tenant_id": "t1", "site_id": "s1"},
+                "algorithm_id": "offline-http",
+                "algorithm_version": "1.0.0",
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, create_status)
+        self.assertTrue(create_payload["success"])
+        self.assertEqual("queued", create_payload["data"]["status"])
+
+        status_status, status_payload = self._post(
+            "/api/v1/offline-jobs/status",
+            {
+                "job_id": "job-http-1",
+                "status": "running",
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, status_status)
+        self.assertTrue(status_payload["success"])
+
+        list_status, list_payload = self._get("/api/v1/offline-jobs", token=self.viewer_token)
+        self.assertEqual(200, list_status)
+        self.assertTrue(list_payload["success"])
+        self.assertTrue(any(item["job_id"] == "job-http-1" for item in list_payload["data"]["items"]))
+
     def test_register_gb28181_device_endpoint(self) -> None:
         reg_status, reg_payload = self._post(
             "/api/v1/devices/register",

@@ -170,6 +170,84 @@ GB28181 example:
     ```
   - 200 envelope with upserted algorithm record
 
+### Base Capability Libraries
+
+- `GET /api/v1/base-libraries`
+  - RBAC: requires `device:read`
+  - 200 envelope with `{ "items": [ { "library_id": "...", "version": "...", "capability": "...", "status": "draft|active|disabled", "metadata": {}, "updated_at": "..." } ] }`
+
+- `POST /api/v1/base-libraries/upsert`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "library_id": "lib-face-core",
+      "version": "2026.03",
+      "capability": "face",
+      "status": "active",
+      "metadata": { "vendor": "rk" }
+    }
+    ```
+  - 200 envelope with upserted base library record
+
+- `GET /api/v1/base-libraries/mappings`
+  - RBAC: requires `device:read`
+  - 200 envelope with `{ "items": [ { "tenant_id": "...", "site_id": "...", "box_id": "...", "device_id": "...", "capability": "...", "library_id": "...", "library_version": "...", "updated_at": "..." } ] }`
+
+- `POST /api/v1/base-libraries/mappings/upsert`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "tenant_id": "t1",
+      "site_id": "s1",
+      "box_id": "b1",
+      "device_id": "cam-1",
+      "capability": "face",
+      "library_id": "lib-face-core",
+      "library_version": "2026.03"
+    }
+    ```
+  - 200 envelope with upserted mapping record
+  - validation: target device must exist, referenced base library must exist and be `active`
+
+### Offline Analysis Jobs
+
+- `GET /api/v1/offline-jobs`
+  - RBAC: requires `device:read`
+  - 200 envelope with `{ "items": [ { "job_id": "...", "source_scope": {}, "algorithm_id": "...", "algorithm_version": "...", "status": "queued|running|succeeded|failed|canceled", "result_ref": "", "error_reason": "", "created_at": "...", "updated_at": "..." } ] }`
+
+- `POST /api/v1/offline-jobs/create`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "job_id": "job-001",
+      "source_scope": { "tenant_id": "t1", "site_id": "s1" },
+      "algorithm_id": "face-detector",
+      "algorithm_version": "1.0.0",
+      "now": "2026-03-03T08:00:00+00:00"
+    }
+    ```
+  - 200 envelope with created job
+  - validation: referenced algorithm must exist and be `active`
+
+- `POST /api/v1/offline-jobs/status`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "job_id": "job-001",
+      "status": "running",
+      "now": "2026-03-03T08:00:05+00:00"
+    }
+    ```
+  - 200 envelope with updated job
+  - transition rules:
+    - `queued -> queued|running|failed|canceled`
+    - `running -> running|succeeded|failed|canceled`
+    - terminal statuses (`succeeded|failed|canceled`) are immutable
+
 ### Viewer sessions
 
 - `POST /api/v1/viewer-sessions/{streamId}/join`
@@ -224,6 +302,7 @@ GB28181 example:
 
 - `GET /api/v1/metrics`
   - 200 envelope with dispatch/worker metrics and storage stats (`storage_enabled`, `storage`)
+  - includes counts for `algorithm_count`, `base_library_count`, `base_library_mapping_count`, `offline_job_count`
 
 - `POST /api/v1/runtime/schedule`
   - body: `{ "budget": 10.0 }`

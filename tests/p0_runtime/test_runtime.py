@@ -99,6 +99,96 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIn(("face-detector", "1.0.0"), pairs)
         self.assertIn(("ocr-engine", "2.1.0"), pairs)
 
+    def test_upsert_base_library_and_mapping(self) -> None:
+        self.runtime.register_device(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-lib",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.111/live",
+                "enabled": True,
+            }
+        )
+        library = self.runtime.upsert_base_library(
+            {
+                "library_id": "lib-face-core",
+                "version": "2026.03",
+                "capability": "face",
+                "status": "active",
+                "metadata": {"vendor": "rk"},
+            }
+        )
+        self.assertEqual("lib-face-core", library["library_id"])
+
+        mapping = self.runtime.upsert_base_library_mapping(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-lib",
+                "capability": "face",
+                "library_id": "lib-face-core",
+                "library_version": "2026.03",
+            }
+        )
+        self.assertEqual("cam-lib", mapping["device_id"])
+        self.assertEqual("lib-face-core", mapping["library_id"])
+
+        libs = self.runtime.list_base_libraries()
+        self.assertEqual(1, len(libs))
+        mappings = self.runtime.list_base_library_mappings()
+        self.assertEqual(1, len(mappings))
+
+    def test_offline_job_lifecycle(self) -> None:
+        self.runtime.upsert_algorithm(
+            {
+                "algorithm_id": "offline-detector",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            }
+        )
+        job = self.runtime.create_offline_job(
+            {
+                "job_id": "job-001",
+                "source_scope": {"tenant_id": "t1", "site_id": "s1"},
+                "algorithm_id": "offline-detector",
+                "algorithm_version": "1.0.0",
+            },
+            now=self.now,
+        )
+        self.assertEqual("queued", job["status"])
+
+        running = self.runtime.update_offline_job_status(
+            {
+                "job_id": "job-001",
+                "status": "running",
+            },
+            now=self.now.replace(second=5),
+        )
+        self.assertEqual("running", running["status"])
+
+        done = self.runtime.update_offline_job_status(
+            {
+                "job_id": "job-001",
+                "status": "succeeded",
+                "result_ref": "s3://bucket/job-001.json",
+            },
+            now=self.now.replace(second=10),
+        )
+        self.assertEqual("succeeded", done["status"])
+
+        with self.assertRaises(ValueError):
+            self.runtime.update_offline_job_status(
+                {
+                    "job_id": "job-001",
+                    "status": "running",
+                },
+                now=self.now.replace(second=15),
+            )
+
     def test_capability_schedule_prioritizes_face_stream(self) -> None:
         self.runtime.register_device(
             {

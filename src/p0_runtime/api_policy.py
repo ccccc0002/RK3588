@@ -17,6 +17,12 @@ def required_get_action(path: str) -> str | None:
         return "device:read"
     if path == "/api/v1/algorithms":
         return "device:read"
+    if path == "/api/v1/base-libraries":
+        return "device:read"
+    if path == "/api/v1/base-libraries/mappings":
+        return "device:read"
+    if path == "/api/v1/offline-jobs":
+        return "device:read"
     if path == "/api/v1/push/worker/status":
         return "device:read"
     if path == "/api/v1/audit/recent":
@@ -36,6 +42,14 @@ def required_post_action(path: str) -> str | None:
     if path == "/api/v1/devices/capabilities":
         return "device:write"
     if path == "/api/v1/algorithms/upsert":
+        return "device:write"
+    if path == "/api/v1/base-libraries/upsert":
+        return "device:write"
+    if path == "/api/v1/base-libraries/mappings/upsert":
+        return "device:write"
+    if path == "/api/v1/offline-jobs/create":
+        return "device:write"
+    if path == "/api/v1/offline-jobs/status":
         return "device:write"
     if path == "/api/v1/runtime/schedule":
         return "device:read"

@@ -91,6 +91,30 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return denied
         return ok_payload({"items": rt.list_algorithms()})
 
+    @app.get("/api/v1/base-libraries")
+    def list_base_libraries(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(authorization, required_get_action("/api/v1/base-libraries") or "device:read")
+        if denied is not None:
+            return denied
+        return ok_payload({"items": rt.list_base_libraries()})
+
+    @app.get("/api/v1/base-libraries/mappings")
+    def list_base_library_mappings(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(
+            authorization,
+            required_get_action("/api/v1/base-libraries/mappings") or "device:read",
+        )
+        if denied is not None:
+            return denied
+        return ok_payload({"items": rt.list_base_library_mappings()})
+
+    @app.get("/api/v1/offline-jobs")
+    def list_offline_jobs(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(authorization, required_get_action("/api/v1/offline-jobs") or "device:read")
+        if denied is not None:
+            return denied
+        return ok_payload({"items": rt.list_offline_jobs()})
+
     @app.get("/api/v1/push/worker/status")
     def push_worker_status(authorization: str = Header(default="", alias="Authorization")):
         denied = _authorize_request(authorization, required_get_action("/api/v1/push/worker/status") or "device:read")
@@ -192,6 +216,64 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return denied
         try:
             return ok_payload(rt.upsert_algorithm(dict(payload)))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/base-libraries/upsert")
+    def upsert_base_library_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(
+            authorization,
+            required_post_action("/api/v1/base-libraries/upsert") or "device:write",
+        )
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.upsert_base_library(dict(payload)))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/base-libraries/mappings/upsert")
+    def upsert_base_library_mapping_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(
+            authorization,
+            required_post_action("/api/v1/base-libraries/mappings/upsert") or "device:write",
+        )
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.upsert_base_library_mapping(dict(payload)))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/offline-jobs/create")
+    def create_offline_job_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, required_post_action("/api/v1/offline-jobs/create") or "device:write")
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.create_offline_job(dict(payload), now=_parse_time(payload.get("now"))))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/offline-jobs/status")
+    def update_offline_job_status_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, required_post_action("/api/v1/offline-jobs/status") or "device:write")
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.update_offline_job_status(dict(payload), now=_parse_time(payload.get("now"))))
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 

@@ -161,6 +161,164 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/base-libraries:
+    get:
+      tags: [runtime]
+      summary: List base capability libraries
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Base library metadata list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseLibraryListEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/base-libraries/upsert:
+    post:
+      tags: [runtime]
+      summary: Upsert base capability library metadata
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertBaseLibraryRequest'
+      responses:
+        '200':
+          description: Upserted base library metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseLibraryEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/base-libraries/mappings:
+    get:
+      tags: [runtime]
+      summary: List device-to-base-library mappings
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Base library mapping list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseLibraryMappingListEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/base-libraries/mappings/upsert:
+    post:
+      tags: [runtime]
+      summary: Upsert device-to-base-library mapping
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertBaseLibraryMappingRequest'
+      responses:
+        '200':
+          description: Upserted base library mapping
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseLibraryMappingEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/offline-jobs:
+    get:
+      tags: [runtime]
+      summary: List offline analysis jobs
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Offline job list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfflineJobListEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/offline-jobs/create:
+    post:
+      tags: [runtime]
+      summary: Create offline analysis job
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOfflineJobRequest'
+      responses:
+        '200':
+          description: Created offline analysis job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfflineJobEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/offline-jobs/status:
+    post:
+      tags: [runtime]
+      summary: Update offline analysis job status
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOfflineJobStatusRequest'
+      responses:
+        '200':
+          description: Updated offline analysis job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfflineJobEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/viewer-sessions/{streamId}/join:
     post:
       tags: [viewer]
@@ -799,6 +957,187 @@ components:
           items:
             $ref: '#/components/schemas/AlgorithmRecord'
 
+    UpsertBaseLibraryRequest:
+      type: object
+      required: [library_id, version, capability, status]
+      additionalProperties: true
+      properties:
+        library_id:
+          type: string
+        version:
+          type: string
+        capability:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, disabled]
+        metadata:
+          type: object
+          additionalProperties: true
+
+    BaseLibraryRecord:
+      type: object
+      required: [library_id, version, capability, status, metadata, updated_at]
+      properties:
+        library_id:
+          type: string
+        version:
+          type: string
+        capability:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, disabled]
+        metadata:
+          type: object
+          additionalProperties: true
+        updated_at:
+          type: string
+          format: date-time
+
+    BaseLibraryListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BaseLibraryRecord'
+
+    UpsertBaseLibraryMappingRequest:
+      type: object
+      required: [tenant_id, site_id, box_id, device_id, capability, library_id, library_version]
+      additionalProperties: true
+      properties:
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        device_id:
+          type: string
+        capability:
+          type: string
+        library_id:
+          type: string
+        library_version:
+          type: string
+
+    BaseLibraryMappingRecord:
+      type: object
+      required: [tenant_id, site_id, box_id, device_id, capability, library_id, library_version, updated_at]
+      properties:
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        device_id:
+          type: string
+        capability:
+          type: string
+        library_id:
+          type: string
+        library_version:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+
+    BaseLibraryMappingListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BaseLibraryMappingRecord'
+
+    CreateOfflineJobRequest:
+      type: object
+      required: [job_id, source_scope, algorithm_id, algorithm_version]
+      additionalProperties: true
+      properties:
+        job_id:
+          type: string
+        source_scope:
+          type: object
+          additionalProperties: true
+        algorithm_id:
+          type: string
+        algorithm_version:
+          type: string
+        result_ref:
+          type: string
+        now:
+          type: string
+          format: date-time
+
+    UpdateOfflineJobStatusRequest:
+      type: object
+      required: [job_id, status]
+      additionalProperties: true
+      properties:
+        job_id:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, succeeded, failed, canceled]
+        result_ref:
+          type: string
+        error_reason:
+          type: string
+        now:
+          type: string
+          format: date-time
+
+    OfflineJobRecord:
+      type: object
+      required:
+        - job_id
+        - source_scope
+        - algorithm_id
+        - algorithm_version
+        - status
+        - result_ref
+        - error_reason
+        - created_at
+        - updated_at
+      properties:
+        job_id:
+          type: string
+        source_scope:
+          type: object
+          additionalProperties: true
+        algorithm_id:
+          type: string
+        algorithm_version:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, succeeded, failed, canceled]
+        result_ref:
+          type: string
+        error_reason:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    OfflineJobListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OfflineJobRecord'
+
     DeviceListData:
       type: object
       required: [items]
@@ -963,7 +1302,16 @@ components:
 
     RuntimeSnapshotData:
       type: object
-      required: [sessions, device_count, algorithm_count, event_dedupe_size, push_queue_size, dead_letter_size]
+      required:
+        - sessions
+        - device_count
+        - algorithm_count
+        - base_library_count
+        - base_library_mapping_count
+        - offline_job_count
+        - event_dedupe_size
+        - push_queue_size
+        - dead_letter_size
       properties:
         sessions:
           type: object
@@ -981,6 +1329,15 @@ components:
           type: integer
           minimum: 0
         algorithm_count:
+          type: integer
+          minimum: 0
+        base_library_count:
+          type: integer
+          minimum: 0
+        base_library_mapping_count:
+          type: integer
+          minimum: 0
+        offline_job_count:
           type: integer
           minimum: 0
         event_dedupe_size:
@@ -1153,6 +1510,9 @@ components:
         - dead_letter_current
         - device_count
         - algorithm_count
+        - base_library_count
+        - base_library_mapping_count
+        - offline_job_count
         - telemetry_count
         - audit_max_records
         - storage_enabled
@@ -1193,6 +1553,15 @@ components:
           type: integer
           minimum: 0
         algorithm_count:
+          type: integer
+          minimum: 0
+        base_library_count:
+          type: integer
+          minimum: 0
+        base_library_mapping_count:
+          type: integer
+          minimum: 0
+        offline_job_count:
           type: integer
           minimum: 0
         telemetry_count:
@@ -1247,6 +1616,54 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/AlgorithmListData'
+
+    BaseLibraryEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BaseLibraryRecord'
+
+    BaseLibraryListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BaseLibraryListData'
+
+    BaseLibraryMappingEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BaseLibraryMappingRecord'
+
+    BaseLibraryMappingListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BaseLibraryMappingListData'
+
+    OfflineJobEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/OfflineJobRecord'
+
+    OfflineJobListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/OfflineJobListData'
 
     ViewerSessionEnvelope:
       allOf:

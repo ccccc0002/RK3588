@@ -78,6 +78,84 @@ class P0RuntimePersistenceTests(unittest.TestCase):
                 if rt2 is not None:
                     rt2.close()
 
+    def test_base_library_and_mapping_recover_after_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "runtime.db")
+            rt1 = self._runtime(db_path)
+            rt2 = None
+            try:
+                rt1.register_device(
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "device_id": "cam-lib-persist",
+                        "protocol": "rtsp",
+                        "stream_url": "rtsp://10.0.0.120/live",
+                        "enabled": True,
+                    }
+                )
+                rt1.upsert_base_library(
+                    {
+                        "library_id": "lib-ocr-core",
+                        "version": "2026.03",
+                        "capability": "ocr",
+                        "status": "active",
+                    }
+                )
+                rt1.upsert_base_library_mapping(
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "device_id": "cam-lib-persist",
+                        "capability": "ocr",
+                        "library_id": "lib-ocr-core",
+                        "library_version": "2026.03",
+                    }
+                )
+
+                rt2 = self._runtime(db_path)
+                self.assertEqual(1, len(rt2.list_base_libraries()))
+                self.assertEqual(1, len(rt2.list_base_library_mappings()))
+            finally:
+                rt1.close()
+                if rt2 is not None:
+                    rt2.close()
+
+    def test_offline_jobs_recover_after_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "runtime.db")
+            rt1 = self._runtime(db_path)
+            rt2 = None
+            try:
+                rt1.upsert_algorithm(
+                    {
+                        "algorithm_id": "offline-detector-persist",
+                        "version": "1.0.0",
+                        "status": "active",
+                        "capabilities": ["face"],
+                    }
+                )
+                rt1.create_offline_job(
+                    {
+                        "job_id": "job-persist-1",
+                        "source_scope": {"tenant_id": "t1", "site_id": "s1"},
+                        "algorithm_id": "offline-detector-persist",
+                        "algorithm_version": "1.0.0",
+                    },
+                    now=self.now,
+                )
+
+                rt2 = self._runtime(db_path)
+                jobs = rt2.list_offline_jobs()
+                self.assertEqual(1, len(jobs))
+                self.assertEqual("job-persist-1", jobs[0]["job_id"])
+            finally:
+                rt1.close()
+                if rt2 is not None:
+                    rt2.close()
+
     def test_push_queue_recovers_after_restart(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "runtime.db")

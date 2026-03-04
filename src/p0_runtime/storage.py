@@ -60,6 +60,40 @@ class RuntimeStorage:
             )
             cur.execute(
                 """
+                CREATE TABLE IF NOT EXISTS base_libraries (
+                  library_id TEXT NOT NULL,
+                  version TEXT NOT NULL,
+                  record_json TEXT NOT NULL,
+                  updated_at TEXT NOT NULL,
+                  PRIMARY KEY (library_id, version)
+                )
+                """
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS base_library_mappings (
+                  tenant_id TEXT NOT NULL,
+                  site_id TEXT NOT NULL,
+                  box_id TEXT NOT NULL,
+                  device_id TEXT NOT NULL,
+                  capability TEXT NOT NULL,
+                  record_json TEXT NOT NULL,
+                  updated_at TEXT NOT NULL,
+                  PRIMARY KEY (tenant_id, site_id, box_id, device_id, capability)
+                )
+                """
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS offline_jobs (
+                  job_id TEXT PRIMARY KEY,
+                  record_json TEXT NOT NULL,
+                  updated_at TEXT NOT NULL
+                )
+                """
+            )
+            cur.execute(
+                """
                 CREATE TABLE IF NOT EXISTS push_queue (
                   sequence_no INTEGER NOT NULL,
                   task_id TEXT PRIMARY KEY,
@@ -193,6 +227,112 @@ class RuntimeStorage:
                 VALUES (?, ?, ?, ?)
                 """,
                 (key[0], key[1], payload, now),
+            )
+            self._conn.commit()
+
+    def load_base_libraries(self) -> Dict[Tuple[str, str], dict]:
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT library_id, version, record_json
+                FROM base_libraries
+                ORDER BY library_id, version
+                """
+            ).fetchall()
+
+        items: Dict[Tuple[str, str], dict] = {}
+        for row in rows:
+            record = dict(json.loads(row["record_json"]))
+            key = (str(row["library_id"]), str(row["version"]))
+            items[key] = record
+        return items
+
+    def upsert_base_library(self, record: dict) -> None:
+        key = (str(record["library_id"]), str(record["version"]))
+        payload = json.dumps(record, sort_keys=True, separators=(",", ":"))
+        now = datetime.utcnow().isoformat()
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO base_libraries
+                (library_id, version, record_json, updated_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (key[0], key[1], payload, now),
+            )
+            self._conn.commit()
+
+    def load_base_library_mappings(self) -> Dict[Tuple[str, str, str, str, str], dict]:
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT tenant_id, site_id, box_id, device_id, capability, record_json
+                FROM base_library_mappings
+                ORDER BY tenant_id, site_id, box_id, device_id, capability
+                """
+            ).fetchall()
+
+        items: Dict[Tuple[str, str, str, str, str], dict] = {}
+        for row in rows:
+            record = dict(json.loads(row["record_json"]))
+            key = (
+                str(row["tenant_id"]),
+                str(row["site_id"]),
+                str(row["box_id"]),
+                str(row["device_id"]),
+                str(row["capability"]),
+            )
+            items[key] = record
+        return items
+
+    def upsert_base_library_mapping(self, record: dict) -> None:
+        key = (
+            str(record["tenant_id"]),
+            str(record["site_id"]),
+            str(record["box_id"]),
+            str(record["device_id"]),
+            str(record["capability"]),
+        )
+        payload = json.dumps(record, sort_keys=True, separators=(",", ":"))
+        now = datetime.utcnow().isoformat()
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO base_library_mappings
+                (tenant_id, site_id, box_id, device_id, capability, record_json, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (key[0], key[1], key[2], key[3], key[4], payload, now),
+            )
+            self._conn.commit()
+
+    def load_offline_jobs(self) -> Dict[str, dict]:
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT job_id, record_json
+                FROM offline_jobs
+                ORDER BY job_id
+                """
+            ).fetchall()
+
+        items: Dict[str, dict] = {}
+        for row in rows:
+            items[str(row["job_id"])] = dict(json.loads(row["record_json"]))
+        return items
+
+    def upsert_offline_job(self, record: dict) -> None:
+        job_id = str(record["job_id"])
+        payload = json.dumps(record, sort_keys=True, separators=(",", ":"))
+        now = datetime.utcnow().isoformat()
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO offline_jobs
+                (job_id, record_json, updated_at)
+                VALUES (?, ?, ?)
+                """,
+                (job_id, payload, now),
             )
             self._conn.commit()
 
@@ -427,6 +567,9 @@ class RuntimeStorage:
         with self._lock:
             device_count = int(self._conn.execute("SELECT COUNT(1) FROM devices").fetchone()[0])
             algorithm_count = int(self._conn.execute("SELECT COUNT(1) FROM algorithms").fetchone()[0])
+            base_library_count = int(self._conn.execute("SELECT COUNT(1) FROM base_libraries").fetchone()[0])
+            base_library_mapping_count = int(self._conn.execute("SELECT COUNT(1) FROM base_library_mappings").fetchone()[0])
+            offline_job_count = int(self._conn.execute("SELECT COUNT(1) FROM offline_jobs").fetchone()[0])
             push_queue_count = int(self._conn.execute("SELECT COUNT(1) FROM push_queue").fetchone()[0])
             dead_letter_count = int(self._conn.execute("SELECT COUNT(1) FROM push_dead_letters").fetchone()[0])
             event_seen_count = int(self._conn.execute("SELECT COUNT(1) FROM event_seen_keys").fetchone()[0])
@@ -437,6 +580,9 @@ class RuntimeStorage:
             "db_path": self._db_path,
             "device_count": device_count,
             "algorithm_count": algorithm_count,
+            "base_library_count": base_library_count,
+            "base_library_mapping_count": base_library_mapping_count,
+            "offline_job_count": offline_job_count,
             "push_queue_count": push_queue_count,
             "dead_letter_count": dead_letter_count,
             "event_seen_count": event_seen_count,

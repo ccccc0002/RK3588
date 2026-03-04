@@ -98,6 +98,18 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             _json_response(self, 200, ok_payload({"items": self.runtime.list_algorithms()}))
             return
 
+        if parsed.path == "/api/v1/base-libraries":
+            _json_response(self, 200, ok_payload({"items": self.runtime.list_base_libraries()}))
+            return
+
+        if parsed.path == "/api/v1/base-libraries/mappings":
+            _json_response(self, 200, ok_payload({"items": self.runtime.list_base_library_mappings()}))
+            return
+
+        if parsed.path == "/api/v1/offline-jobs":
+            _json_response(self, 200, ok_payload({"items": self.runtime.list_offline_jobs()}))
+            return
+
         if parsed.path == "/api/v1/push/worker/status":
             _json_response(self, 200, ok_payload(self.runtime.push_worker_status()))
             return
@@ -174,6 +186,26 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
 
             if parsed.path == "/api/v1/algorithms/upsert":
                 res = self.runtime.upsert_algorithm(dict(body))
+                _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/base-libraries/upsert":
+                res = self.runtime.upsert_base_library(dict(body))
+                _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/base-libraries/mappings/upsert":
+                res = self.runtime.upsert_base_library_mapping(dict(body))
+                _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/offline-jobs/create":
+                res = self.runtime.create_offline_job(dict(body), now=_parse_time(body.get("now")))
+                _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/offline-jobs/status":
+                res = self.runtime.update_offline_job_status(dict(body), now=_parse_time(body.get("now")))
                 _json_response(self, 200, ok_payload(res))
                 return
 
