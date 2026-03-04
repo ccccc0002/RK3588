@@ -108,6 +108,23 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return denied
         return ok_payload({"items": rt.list_base_library_mappings()})
 
+    @app.get("/api/v1/base-libraries/compatibility/policy")
+    def get_base_library_compatibility_policy(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(
+            authorization,
+            required_get_action("/api/v1/base-libraries/compatibility/policy") or "device:read",
+        )
+        if denied is not None:
+            return denied
+        return ok_payload(rt.get_base_library_compatibility_policy())
+
+    @app.get("/api/v1/offline-executors")
+    def list_offline_executors(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(authorization, required_get_action("/api/v1/offline-executors") or "device:read")
+        if denied is not None:
+            return denied
+        return ok_payload({"items": rt.list_offline_executors()})
+
     @app.get("/api/v1/offline-jobs")
     def list_offline_jobs(authorization: str = Header(default="", alias="Authorization")):
         denied = _authorize_request(authorization, required_get_action("/api/v1/offline-jobs") or "device:read")
@@ -248,6 +265,35 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return denied
         try:
             return ok_payload(rt.upsert_base_library_mapping(dict(payload)))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/base-libraries/compatibility/policy")
+    def update_base_library_compatibility_policy_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(
+            authorization,
+            required_post_action("/api/v1/base-libraries/compatibility/policy") or "device:write",
+        )
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.update_base_library_compatibility_policy(dict(payload)))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/offline-executors/upsert")
+    def upsert_offline_executor_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, required_post_action("/api/v1/offline-executors/upsert") or "device:write")
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.upsert_offline_executor(dict(payload)))
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 

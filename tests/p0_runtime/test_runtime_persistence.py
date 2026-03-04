@@ -123,6 +123,54 @@ class P0RuntimePersistenceTests(unittest.TestCase):
                 if rt2 is not None:
                     rt2.close()
 
+    def test_base_library_compatibility_policy_recovers_after_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "runtime.db")
+            rt1 = self._runtime(db_path)
+            rt2 = None
+            try:
+                rt1.update_base_library_compatibility_policy(
+                    {
+                        "enforce_capability_match": True,
+                        "required_status": "active",
+                        "version_regex_by_capability": {"face": r"^2026\\."},
+                    }
+                )
+
+                rt2 = self._runtime(db_path)
+                policy = rt2.get_base_library_compatibility_policy()
+                self.assertTrue(policy["enforce_capability_match"])
+                self.assertEqual("active", policy["required_status"])
+                self.assertIn("face", policy["version_regex_by_capability"])
+            finally:
+                rt1.close()
+                if rt2 is not None:
+                    rt2.close()
+
+    def test_offline_executor_registry_recovers_after_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "runtime.db")
+            rt1 = self._runtime(db_path)
+            rt2 = None
+            try:
+                rt1.upsert_offline_executor(
+                    {
+                        "executor_id": "exec-persist-1",
+                        "endpoint": "http://executor.local:9002",
+                        "status": "active",
+                        "capabilities": ["ocr"],
+                    }
+                )
+
+                rt2 = self._runtime(db_path)
+                executors = rt2.list_offline_executors()
+                self.assertEqual(1, len(executors))
+                self.assertEqual("exec-persist-1", executors[0]["executor_id"])
+            finally:
+                rt1.close()
+                if rt2 is not None:
+                    rt2.close()
+
     def test_offline_jobs_recover_after_restart(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "runtime.db")

@@ -85,6 +85,24 @@ class RuntimeStorage:
             )
             cur.execute(
                 """
+                CREATE TABLE IF NOT EXISTS base_library_compatibility_policy (
+                  singleton_id INTEGER PRIMARY KEY CHECK (singleton_id = 1),
+                  policy_json TEXT NOT NULL,
+                  updated_at TEXT NOT NULL
+                )
+                """
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS offline_executors (
+                  executor_id TEXT PRIMARY KEY,
+                  record_json TEXT NOT NULL,
+                  updated_at TEXT NOT NULL
+                )
+                """
+            )
+            cur.execute(
+                """
                 CREATE TABLE IF NOT EXISTS offline_jobs (
                   job_id TEXT PRIMARY KEY,
                   record_json TEXT NOT NULL,
@@ -303,6 +321,67 @@ class RuntimeStorage:
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (key[0], key[1], key[2], key[3], key[4], payload, now),
+            )
+            self._conn.commit()
+
+    def load_base_library_compatibility_policy(self) -> dict:
+        with self._lock:
+            row = self._conn.execute(
+                """
+                SELECT policy_json
+                FROM base_library_compatibility_policy
+                WHERE singleton_id = 1
+                """
+            ).fetchone()
+        if row is None:
+            return {
+                "enforce_capability_match": True,
+                "required_status": "active",
+                "version_regex_by_capability": {},
+            }
+        return dict(json.loads(str(row["policy_json"])))
+
+    def replace_base_library_compatibility_policy(self, policy: dict) -> None:
+        payload = json.dumps(policy, sort_keys=True, separators=(",", ":"))
+        now = datetime.utcnow().isoformat()
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO base_library_compatibility_policy
+                (singleton_id, policy_json, updated_at)
+                VALUES (1, ?, ?)
+                """,
+                (payload, now),
+            )
+            self._conn.commit()
+
+    def load_offline_executors(self) -> Dict[str, dict]:
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT executor_id, record_json
+                FROM offline_executors
+                ORDER BY executor_id
+                """
+            ).fetchall()
+
+        items: Dict[str, dict] = {}
+        for row in rows:
+            items[str(row["executor_id"])] = dict(json.loads(row["record_json"]))
+        return items
+
+    def upsert_offline_executor(self, record: dict) -> None:
+        executor_id = str(record["executor_id"])
+        payload = json.dumps(record, sort_keys=True, separators=(",", ":"))
+        now = datetime.utcnow().isoformat()
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO offline_executors
+                (executor_id, record_json, updated_at)
+                VALUES (?, ?, ?)
+                """,
+                (executor_id, payload, now),
             )
             self._conn.commit()
 
@@ -569,6 +648,10 @@ class RuntimeStorage:
             algorithm_count = int(self._conn.execute("SELECT COUNT(1) FROM algorithms").fetchone()[0])
             base_library_count = int(self._conn.execute("SELECT COUNT(1) FROM base_libraries").fetchone()[0])
             base_library_mapping_count = int(self._conn.execute("SELECT COUNT(1) FROM base_library_mappings").fetchone()[0])
+            base_library_compatibility_policy_count = int(
+                self._conn.execute("SELECT COUNT(1) FROM base_library_compatibility_policy").fetchone()[0]
+            )
+            offline_executor_count = int(self._conn.execute("SELECT COUNT(1) FROM offline_executors").fetchone()[0])
             offline_job_count = int(self._conn.execute("SELECT COUNT(1) FROM offline_jobs").fetchone()[0])
             push_queue_count = int(self._conn.execute("SELECT COUNT(1) FROM push_queue").fetchone()[0])
             dead_letter_count = int(self._conn.execute("SELECT COUNT(1) FROM push_dead_letters").fetchone()[0])
@@ -582,6 +665,8 @@ class RuntimeStorage:
             "algorithm_count": algorithm_count,
             "base_library_count": base_library_count,
             "base_library_mapping_count": base_library_mapping_count,
+            "base_library_compatibility_policy_count": base_library_compatibility_policy_count,
+            "offline_executor_count": offline_executor_count,
             "offline_job_count": offline_job_count,
             "push_queue_count": push_queue_count,
             "dead_letter_count": dead_letter_count,

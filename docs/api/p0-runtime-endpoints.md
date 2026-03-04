@@ -211,6 +211,44 @@ GB28181 example:
   - 200 envelope with upserted mapping record
   - validation: target device must exist, referenced base library must exist and be `active`
 
+- `GET /api/v1/base-libraries/compatibility/policy`
+  - RBAC: requires `device:read`
+  - 200 envelope with compatibility policy:
+    - `enforce_capability_match`
+    - `required_status`
+    - `version_regex_by_capability`
+
+- `POST /api/v1/base-libraries/compatibility/policy`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "enforce_capability_match": true,
+      "required_status": "active",
+      "version_regex_by_capability": { "face": "^2026\\." }
+    }
+    ```
+  - 200 envelope with updated compatibility policy
+
+### Offline Executors
+
+- `GET /api/v1/offline-executors`
+  - RBAC: requires `device:read`
+  - 200 envelope with `{ "items": [ { "executor_id": "...", "endpoint": "http://...", "status": "active|drain|disabled", "capabilities": [], "updated_at": "..." } ] }`
+
+- `POST /api/v1/offline-executors/upsert`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "executor_id": "exec-1",
+      "endpoint": "http://executor.local:9001",
+      "status": "active",
+      "capabilities": ["face"]
+    }
+    ```
+  - 200 envelope with upserted executor record
+
 ### Offline Analysis Jobs
 
 - `GET /api/v1/offline-jobs`
@@ -230,6 +268,7 @@ GB28181 example:
     }
     ```
   - 200 envelope with created job
+  - created job includes `executor_id` (auto-selected from active executor pool when available, or explicitly set by request)
   - validation: referenced algorithm must exist and be `active`
 
 - `POST /api/v1/offline-jobs/status`
@@ -302,7 +341,7 @@ GB28181 example:
 
 - `GET /api/v1/metrics`
   - 200 envelope with dispatch/worker metrics and storage stats (`storage_enabled`, `storage`)
-  - includes counts for `algorithm_count`, `base_library_count`, `base_library_mapping_count`, `offline_job_count`
+  - includes counts for `algorithm_count`, `base_library_count`, `base_library_mapping_count`, `offline_executor_count`, `offline_job_count`
 
 - `POST /api/v1/runtime/schedule`
   - body: `{ "budget": 10.0 }`

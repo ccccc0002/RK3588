@@ -209,7 +209,56 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(maps_payload["success"])
         self.assertEqual(1, len(maps_payload["data"]["items"]))
 
+    def test_base_library_compatibility_policy_endpoints(self) -> None:
+        update_status, update_payload = self._post(
+            "/api/v1/base-libraries/compatibility/policy",
+            {
+                "enforce_capability_match": True,
+                "required_status": "active",
+                "version_regex_by_capability": {"face": "^2026\\."},
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, update_status)
+        self.assertTrue(update_payload["success"])
+        self.assertEqual("active", update_payload["data"]["required_status"])
+
+        get_status, get_payload = self._get("/api/v1/base-libraries/compatibility/policy", token=self.viewer_token)
+        self.assertEqual(200, get_status)
+        self.assertTrue(get_payload["success"])
+        self.assertIn("face", get_payload["data"]["version_regex_by_capability"])
+
+    def test_offline_executor_endpoints(self) -> None:
+        upsert_status, upsert_payload = self._post(
+            "/api/v1/offline-executors/upsert",
+            {
+                "executor_id": "exec-http-1",
+                "endpoint": "http://executor.local:9101",
+                "status": "active",
+                "capabilities": ["face"],
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, upsert_status)
+        self.assertTrue(upsert_payload["success"])
+        self.assertEqual("exec-http-1", upsert_payload["data"]["executor_id"])
+
+        list_status, list_payload = self._get("/api/v1/offline-executors", token=self.viewer_token)
+        self.assertEqual(200, list_status)
+        self.assertTrue(list_payload["success"])
+        self.assertTrue(any(item["executor_id"] == "exec-http-1" for item in list_payload["data"]["items"]))
+
     def test_offline_jobs_endpoints(self) -> None:
+        self._post(
+            "/api/v1/offline-executors/upsert",
+            {
+                "executor_id": "exec-http-job",
+                "endpoint": "http://executor.local:9102",
+                "status": "active",
+                "capabilities": ["face"],
+            },
+            token=self.operator_token,
+        )
         self._post(
             "/api/v1/algorithms/upsert",
             {

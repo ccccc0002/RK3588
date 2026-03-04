@@ -21,6 +21,10 @@ def required_get_action(path: str) -> str | None:
         return "device:read"
     if path == "/api/v1/base-libraries/mappings":
         return "device:read"
+    if path == "/api/v1/base-libraries/compatibility/policy":
+        return "device:read"
+    if path == "/api/v1/offline-executors":
+        return "device:read"
     if path == "/api/v1/offline-jobs":
         return "device:read"
     if path == "/api/v1/push/worker/status":
@@ -46,6 +50,10 @@ def required_post_action(path: str) -> str | None:
     if path == "/api/v1/base-libraries/upsert":
         return "device:write"
     if path == "/api/v1/base-libraries/mappings/upsert":
+        return "device:write"
+    if path == "/api/v1/base-libraries/compatibility/policy":
+        return "device:write"
+    if path == "/api/v1/offline-executors/upsert":
         return "device:write"
     if path == "/api/v1/offline-jobs/create":
         return "device:write"

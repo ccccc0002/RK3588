@@ -141,6 +141,76 @@ class P0RuntimeTests(unittest.TestCase):
         mappings = self.runtime.list_base_library_mappings()
         self.assertEqual(1, len(mappings))
 
+    def test_base_library_compatibility_policy_rejects_version_mismatch(self) -> None:
+        self.runtime.register_device(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-lib-policy",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.112/live",
+                "enabled": True,
+            }
+        )
+        self.runtime.upsert_base_library(
+            {
+                "library_id": "lib-ocr-policy",
+                "version": "2026.03",
+                "capability": "ocr",
+                "status": "active",
+            }
+        )
+        updated_policy = self.runtime.update_base_library_compatibility_policy(
+            {
+                "enforce_capability_match": True,
+                "required_status": "active",
+                "version_regex_by_capability": {"ocr": r"^2027\\."},
+            }
+        )
+        self.assertEqual("active", updated_policy["required_status"])
+
+        with self.assertRaises(ValueError):
+            self.runtime.upsert_base_library_mapping(
+                {
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "device_id": "cam-lib-policy",
+                    "capability": "ocr",
+                    "library_id": "lib-ocr-policy",
+                    "library_version": "2026.03",
+                }
+            )
+
+    def test_offline_executor_binding_auto_selects_active_executor(self) -> None:
+        self.runtime.upsert_algorithm(
+            {
+                "algorithm_id": "offline-detector-exec",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            }
+        )
+        self.runtime.upsert_offline_executor(
+            {
+                "executor_id": "exec-1",
+                "endpoint": "http://executor.local:9001",
+                "status": "active",
+                "capabilities": ["face"],
+            }
+        )
+        job = self.runtime.create_offline_job(
+            {
+                "job_id": "job-exec-001",
+                "source_scope": {"tenant_id": "t1", "site_id": "s1"},
+                "algorithm_id": "offline-detector-exec",
+                "algorithm_version": "1.0.0",
+            },
+            now=self.now,
+        )
+        self.assertEqual("exec-1", job["executor_id"])
+
     def test_offline_job_lifecycle(self) -> None:
         self.runtime.upsert_algorithm(
             {

@@ -106,6 +106,14 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             _json_response(self, 200, ok_payload({"items": self.runtime.list_base_library_mappings()}))
             return
 
+        if parsed.path == "/api/v1/base-libraries/compatibility/policy":
+            _json_response(self, 200, ok_payload(self.runtime.get_base_library_compatibility_policy()))
+            return
+
+        if parsed.path == "/api/v1/offline-executors":
+            _json_response(self, 200, ok_payload({"items": self.runtime.list_offline_executors()}))
+            return
+
         if parsed.path == "/api/v1/offline-jobs":
             _json_response(self, 200, ok_payload({"items": self.runtime.list_offline_jobs()}))
             return
@@ -196,6 +204,16 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
 
             if parsed.path == "/api/v1/base-libraries/mappings/upsert":
                 res = self.runtime.upsert_base_library_mapping(dict(body))
+                _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/base-libraries/compatibility/policy":
+                res = self.runtime.update_base_library_compatibility_policy(dict(body))
+                _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/offline-executors/upsert":
+                res = self.runtime.upsert_offline_executor(dict(body))
                 _json_response(self, 200, ok_payload(res))
                 return
 

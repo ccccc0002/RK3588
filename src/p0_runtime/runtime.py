@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 import threading
 from typing import Callable, Dict, Tuple
 
@@ -41,6 +42,16 @@ class P0Runtime:
         self._base_library_mappings: Dict[tuple[str, str, str, str, str], dict] = (
             self._storage.load_base_library_mappings() if self._storage else {}
         )
+        self._base_library_compatibility_policy: dict = (
+            self._storage.load_base_library_compatibility_policy()
+            if self._storage
+            else {
+                "enforce_capability_match": True,
+                "required_status": "active",
+                "version_regex_by_capability": {},
+            }
+        )
+        self._offline_executors: Dict[str, dict] = self._storage.load_offline_executors() if self._storage else {}
         self._offline_jobs: Dict[str, dict] = self._storage.load_offline_jobs() if self._storage else {}
         self._push_worker: PushWorker | None = None
         self._last_capability_schedule: SchedulePlan | None = None
@@ -321,6 +332,49 @@ class P0Runtime:
         items.sort(key=lambda item: (item["library_id"], item["version"]))
         return items
 
+    @staticmethod
+    def _normalize_base_library_compatibility_policy(payload: dict) -> dict:
+        required_status = str(payload.get("required_status", "active")).strip().lower()
+        if required_status not in {"draft", "active", "disabled"}:
+            raise ValueError(f"unsupported required_status: {required_status}")
+
+        matrix_raw = payload.get("version_regex_by_capability", {})
+        if matrix_raw is None:
+            matrix_raw = {}
+        if not isinstance(matrix_raw, dict):
+            raise ValueError("version_regex_by_capability must be an object")
+
+        matrix: dict[str, str] = {}
+        for key, value in matrix_raw.items():
+            capability = str(key).strip().lower()
+            pattern = str(value).strip()
+            if not capability or not pattern:
+                continue
+            try:
+                re.compile(pattern)
+            except re.error:
+                raise ValueError(f"invalid regex for capability {capability}: {pattern}")
+            matrix[capability] = pattern
+
+        return {
+            "enforce_capability_match": bool(payload.get("enforce_capability_match", True)),
+            "required_status": required_status,
+            "version_regex_by_capability": matrix,
+        }
+
+    def get_base_library_compatibility_policy(self) -> dict:
+        with self._lock:
+            return dict(self._base_library_compatibility_policy)
+
+    def update_base_library_compatibility_policy(self, payload: dict) -> dict:
+        normalized = self._normalize_base_library_compatibility_policy(dict(payload))
+        with self._lock:
+            self._base_library_compatibility_policy = normalized
+            if self._storage:
+                self._storage.replace_base_library_compatibility_policy(normalized)
+            self._append_audit_locked("base_library.compatibility_policy.update", {"policy": dict(normalized)})
+            return dict(normalized)
+
     def upsert_base_library_mapping(self, payload: dict) -> dict:
         required = ("tenant_id", "site_id", "box_id", "device_id", "capability", "library_id", "library_version")
         for field in required:
@@ -349,8 +403,18 @@ class P0Runtime:
             library = self._base_libraries.get(library_key)
             if library is None:
                 raise ValueError("base library not found")
-            if str(library.get("status", "")).lower() != "active":
-                raise ValueError("base library must be active for mapping")
+            policy = dict(self._base_library_compatibility_policy)
+            required_status = str(policy.get("required_status", "active")).lower()
+            if str(library.get("status", "")).lower() != required_status:
+                raise ValueError(f"base library status must be {required_status} for mapping")
+            if bool(policy.get("enforce_capability_match", True)):
+                library_capability = str(library.get("capability", "")).strip().lower()
+                if library_capability != capability:
+                    raise ValueError("base library capability mismatch")
+            regex_map = dict(policy.get("version_regex_by_capability", {}))
+            pattern = str(regex_map.get(capability, "")).strip()
+            if pattern and re.match(pattern, library_key[1]) is None:
+                raise ValueError("base library version does not satisfy compatibility policy")
 
             record = {
                 "tenant_id": key[0],
@@ -386,11 +450,80 @@ class P0Runtime:
         return items
 
     @staticmethod
+    def _normalize_offline_executor_status(value: str) -> str:
+        status = str(value).strip().lower()
+        if status not in {"active", "drain", "disabled"}:
+            raise ValueError(f"unsupported offline executor status: {status}")
+        return status
+
+    def upsert_offline_executor(self, payload: dict) -> dict:
+        required = ("executor_id", "endpoint", "status")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        capabilities_raw = payload.get("capabilities", [])
+        if not isinstance(capabilities_raw, list):
+            raise ValueError("capabilities must be a list")
+
+        record = {
+            "executor_id": str(payload["executor_id"]).strip(),
+            "endpoint": str(payload["endpoint"]).strip(),
+            "status": self._normalize_offline_executor_status(str(payload["status"])),
+            "capabilities": [str(item).strip().lower() for item in capabilities_raw if str(item).strip()],
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if not record["executor_id"]:
+            raise ValueError("executor_id must not be empty")
+        if not (record["endpoint"].startswith("http://") or record["endpoint"].startswith("https://")):
+            raise ValueError("endpoint must start with http:// or https://")
+
+        with self._lock:
+            self._offline_executors[record["executor_id"]] = record
+            if self._storage:
+                self._storage.upsert_offline_executor(record)
+            self._append_audit_locked(
+                "offline.executor.upsert",
+                {
+                    "executor_id": record["executor_id"],
+                    "status": record["status"],
+                    "capabilities": list(record["capabilities"]),
+                },
+            )
+            return dict(record)
+
+    def list_offline_executors(self) -> list[dict]:
+        with self._lock:
+            items = [dict(item) for item in self._offline_executors.values()]
+        items.sort(key=lambda item: item["executor_id"])
+        return items
+
+    @staticmethod
     def _normalize_offline_job_status(value: str) -> str:
         status = str(value).strip().lower()
         if status not in {"queued", "running", "succeeded", "failed", "canceled"}:
             raise ValueError(f"unsupported offline job status: {status}")
         return status
+
+    def _select_executor_locked(self, algorithm_capabilities: list[str], requested_executor_id: str) -> str:
+        if requested_executor_id:
+            executor = self._offline_executors.get(requested_executor_id)
+            if executor is None:
+                raise ValueError("offline executor not found")
+            if str(executor.get("status", "")).lower() != "active":
+                raise ValueError("offline executor must be active")
+            capabilities = set(str(item).strip().lower() for item in executor.get("capabilities", []))
+            if capabilities and algorithm_capabilities and capabilities.isdisjoint(set(algorithm_capabilities)):
+                raise ValueError("offline executor capability mismatch")
+            return requested_executor_id
+
+        active = [dict(item) for item in self._offline_executors.values() if str(item.get("status", "")).lower() == "active"]
+        active.sort(key=lambda item: str(item.get("executor_id", "")))
+        for executor in active:
+            capabilities = set(str(item).strip().lower() for item in executor.get("capabilities", []))
+            if not capabilities or not algorithm_capabilities or not capabilities.isdisjoint(set(algorithm_capabilities)):
+                return str(executor.get("executor_id", ""))
+        return ""
 
     def create_offline_job(self, payload: dict, now: datetime | None = None) -> dict:
         required = ("job_id", "source_scope", "algorithm_id", "algorithm_version")
@@ -420,12 +553,16 @@ class P0Runtime:
                 raise ValueError("algorithm not found")
             if str(algorithm.get("status", "")).lower() != "active":
                 raise ValueError("algorithm must be active for offline job")
+            algorithm_capabilities = [str(item).strip().lower() for item in algorithm.get("capabilities", []) if str(item).strip()]
+            requested_executor_id = str(payload.get("executor_id", "")).strip()
+            selected_executor_id = self._select_executor_locked(algorithm_capabilities, requested_executor_id)
 
             record = {
                 "job_id": job_id,
                 "source_scope": dict(source_scope),
                 "algorithm_id": algorithm_key[0],
                 "algorithm_version": algorithm_key[1],
+                "executor_id": selected_executor_id,
                 "status": "queued",
                 "result_ref": str(payload.get("result_ref", "")).strip(),
                 "error_reason": "",
@@ -441,6 +578,7 @@ class P0Runtime:
                     "job_id": job_id,
                     "algorithm_id": algorithm_key[0],
                     "algorithm_version": algorithm_key[1],
+                    "executor_id": selected_executor_id,
                 },
             )
             return dict(record)
@@ -835,6 +973,7 @@ class P0Runtime:
             data["algorithm_count"] = len(self._algorithms)
             data["base_library_count"] = len(self._base_libraries)
             data["base_library_mapping_count"] = len(self._base_library_mappings)
+            data["offline_executor_count"] = len(self._offline_executors)
             data["offline_job_count"] = len(self._offline_jobs)
             data["telemetry_count"] = len(self._stream_telemetry)
             data["audit_max_records"] = int(self._audit_policy.get("max_records", 2000))
@@ -861,6 +1000,7 @@ class P0Runtime:
                 "algorithm_count": len(self._algorithms),
                 "base_library_count": len(self._base_libraries),
                 "base_library_mapping_count": len(self._base_library_mappings),
+                "offline_executor_count": len(self._offline_executors),
                 "offline_job_count": len(self._offline_jobs),
                 "event_dedupe_size": len(self._event_state.seen_keys),
                 "push_queue_size": len(self._push_state.tasks),

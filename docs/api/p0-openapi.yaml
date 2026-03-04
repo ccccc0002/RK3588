@@ -249,6 +249,92 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/base-libraries/compatibility/policy:
+    get:
+      tags: [runtime]
+      summary: Read base-library compatibility policy
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Base-library compatibility policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseLibraryCompatibilityPolicyEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      tags: [runtime]
+      summary: Update base-library compatibility policy
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaseLibraryCompatibilityPolicyData'
+      responses:
+        '200':
+          description: Updated base-library compatibility policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseLibraryCompatibilityPolicyEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/offline-executors:
+    get:
+      tags: [runtime]
+      summary: List offline executors
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Offline executor list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfflineExecutorListEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/offline-executors/upsert:
+    post:
+      tags: [runtime]
+      summary: Upsert offline executor
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertOfflineExecutorRequest'
+      responses:
+        '200':
+          description: Upserted offline executor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfflineExecutorEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/offline-jobs:
     get:
       tags: [runtime]
@@ -1055,6 +1141,65 @@ components:
           items:
             $ref: '#/components/schemas/BaseLibraryMappingRecord'
 
+    BaseLibraryCompatibilityPolicyData:
+      type: object
+      required: [enforce_capability_match, required_status, version_regex_by_capability]
+      properties:
+        enforce_capability_match:
+          type: boolean
+        required_status:
+          type: string
+          enum: [draft, active, disabled]
+        version_regex_by_capability:
+          type: object
+          additionalProperties:
+            type: string
+
+    UpsertOfflineExecutorRequest:
+      type: object
+      required: [executor_id, endpoint, status]
+      additionalProperties: true
+      properties:
+        executor_id:
+          type: string
+        endpoint:
+          type: string
+        status:
+          type: string
+          enum: [active, drain, disabled]
+        capabilities:
+          type: array
+          items:
+            type: string
+
+    OfflineExecutorRecord:
+      type: object
+      required: [executor_id, endpoint, status, capabilities, updated_at]
+      properties:
+        executor_id:
+          type: string
+        endpoint:
+          type: string
+        status:
+          type: string
+          enum: [active, drain, disabled]
+        capabilities:
+          type: array
+          items:
+            type: string
+        updated_at:
+          type: string
+          format: date-time
+
+    OfflineExecutorListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OfflineExecutorRecord'
+
     CreateOfflineJobRequest:
       type: object
       required: [job_id, source_scope, algorithm_id, algorithm_version]
@@ -1068,6 +1213,8 @@ components:
         algorithm_id:
           type: string
         algorithm_version:
+          type: string
+        executor_id:
           type: string
         result_ref:
           type: string
@@ -1100,6 +1247,7 @@ components:
         - source_scope
         - algorithm_id
         - algorithm_version
+        - executor_id
         - status
         - result_ref
         - error_reason
@@ -1114,6 +1262,8 @@ components:
         algorithm_id:
           type: string
         algorithm_version:
+          type: string
+        executor_id:
           type: string
         status:
           type: string
@@ -1308,6 +1458,7 @@ components:
         - algorithm_count
         - base_library_count
         - base_library_mapping_count
+        - offline_executor_count
         - offline_job_count
         - event_dedupe_size
         - push_queue_size
@@ -1335,6 +1486,9 @@ components:
           type: integer
           minimum: 0
         base_library_mapping_count:
+          type: integer
+          minimum: 0
+        offline_executor_count:
           type: integer
           minimum: 0
         offline_job_count:
@@ -1512,6 +1666,7 @@ components:
         - algorithm_count
         - base_library_count
         - base_library_mapping_count
+        - offline_executor_count
         - offline_job_count
         - telemetry_count
         - audit_max_records
@@ -1559,6 +1714,9 @@ components:
           type: integer
           minimum: 0
         base_library_mapping_count:
+          type: integer
+          minimum: 0
+        offline_executor_count:
           type: integer
           minimum: 0
         offline_job_count:
@@ -1648,6 +1806,30 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/BaseLibraryMappingListData'
+
+    BaseLibraryCompatibilityPolicyEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BaseLibraryCompatibilityPolicyData'
+
+    OfflineExecutorEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/OfflineExecutorRecord'
+
+    OfflineExecutorListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/OfflineExecutorListData'
 
     OfflineJobEnvelope:
       allOf:
