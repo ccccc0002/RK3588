@@ -969,6 +969,49 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual("bad_request", batch_plan_idem_conflict_payload["error"]["code"])
         self.assertIn("idempotency_key conflict with different payload", batch_plan_idem_conflict_payload["error"]["message"])
 
+        batch_plan_ttl_requires_key_status, batch_plan_ttl_requires_key_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "cache_ttl_seconds": 10,
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "http-plan-ttl-requires-key",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
+        self.assertEqual(400, batch_plan_ttl_requires_key_status)
+        self.assertFalse(batch_plan_ttl_requires_key_payload["success"])
+        self.assertIn("cache_ttl_seconds requires idempotency_key", batch_plan_ttl_requires_key_payload["error"]["message"])
+
+        batch_plan_ttl_invalid_status, batch_plan_ttl_invalid_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "idempotency_key": "http-plan-idem-ttl-invalid",
+                "cache_ttl_seconds": 0,
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "http-plan-idem-ttl-invalid",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
+        self.assertEqual(400, batch_plan_ttl_invalid_status)
+        self.assertFalse(batch_plan_ttl_invalid_payload["success"])
+        self.assertIn("cache_ttl_seconds must be a positive integer", batch_plan_ttl_invalid_payload["error"]["message"])
+
         batch_plan_fail_status, batch_plan_fail_payload = self._post(
             "/api/v1/gray-rollout/plan/batch",
             {

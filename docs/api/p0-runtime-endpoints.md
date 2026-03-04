@@ -783,6 +783,7 @@ GB28181 example:
     - repeated calls with same key and same payload return cached report with `cache_hit=true`
     - repeated calls with same key but different payload return `400` with message `idempotency_key conflict with different payload`
     - `cache_ttl_seconds` is optional and only valid when `idempotency_key` is provided
+    - `cache_ttl_seconds` must be within `[1, 3600]` when provided
 
 ## FastAPI Compatibility Layer
 
