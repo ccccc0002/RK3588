@@ -632,3 +632,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-20-gray-plan-cache-policy-persistence-validated/20260304-181318
 - Summary: persisted gray batch cache clear policy in sqlite with runtime restore and validated local+remote py3.8 gates
 - Next: continue post-P3 hardening with cache policy observability and failure-domain guardrails
+
+## [2026-03-04T18:18:34+08:00] P4-iteration-21-gray-plan-cache-policy-observability-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 0dbba5b
+- Tag: checkpoint/P4-iteration-21-gray-plan-cache-policy-observability-validated/20260304-181834
+- Summary: added gray batch cache policy observability fields to runtime snapshot and metrics with local+remote py3.8 validation
+- Next: continue post-P3 hardening with cache policy change history and multi-runtime governance
