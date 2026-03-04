@@ -176,6 +176,13 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(0, result["sent"])
         self.assertEqual(1, result["failed"])
         self.assertEqual([], sent_targets)
+        first_snap = self.runtime.snapshot()
+        self.assertEqual(0, first_snap["push_queue_size"])
+        self.assertEqual(1, first_snap["dead_letter_size"])
+
+        second = self.runtime.dispatch_pushes(now=self.now.replace(second=20), sender=sender)
+        self.assertEqual(0, second["processed"])
+        self.assertEqual(0, second["failed"])
 
 
 if __name__ == "__main__":

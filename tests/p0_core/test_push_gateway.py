@@ -66,6 +66,32 @@ class PushGatewayTests(unittest.TestCase):
 
         self.assertEqual(1, len(due_tasks(state, now=self.now)))
 
+    def test_force_dead_letter_short_circuits_retry(self) -> None:
+        state = initial_push_state()
+        state = enqueue_push(
+            state,
+            idempotency_key="evt-4",
+            target_url="https://blocked.example.com/hook",
+            bearer_token="token",
+            payload={"id": "evt-4"},
+            now=self.now,
+        )
+        task_id = state.tasks[0].task_id
+
+        updated = mark_delivery_result(
+            state,
+            task_id=task_id,
+            success=False,
+            now=self.now,
+            force_dead_letter=True,
+            failure_reason="delivery_failed_policy_denied",
+        )
+
+        self.assertEqual(0, len(updated.tasks))
+        self.assertEqual(1, len(updated.dead_letters))
+        self.assertEqual("delivery_failed_policy_denied", updated.dead_letters[0].last_error)
+        self.assertEqual(1, updated.dead_letters[0].attempt_count)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -71,6 +71,8 @@ def mark_delivery_result(
     success: bool,
     now: datetime,
     max_retries: int = 3,
+    force_dead_letter: bool = False,
+    failure_reason: str | None = None,
 ) -> PushState:
     target = next((item for item in state.tasks if item.task_id == task_id), None)
     if target is None:
@@ -81,7 +83,7 @@ def mark_delivery_result(
         return PushState(tasks=remaining, dead_letters=state.dead_letters)
 
     attempts = target.attempt_count + 1
-    if attempts >= max_retries:
+    if force_dead_letter or attempts >= max_retries:
         dead = PushTask(
             task_id=target.task_id,
             idempotency_key=target.idempotency_key,
@@ -90,7 +92,7 @@ def mark_delivery_result(
             payload=target.payload,
             attempt_count=attempts,
             next_attempt_at=now,
-            last_error="delivery_failed_max_retries",
+            last_error=failure_reason or "delivery_failed_max_retries",
         )
         return PushState(tasks=remaining, dead_letters=state.dead_letters + (dead,))
 
@@ -102,6 +104,6 @@ def mark_delivery_result(
         payload=target.payload,
         attempt_count=attempts,
         next_attempt_at=now + timedelta(seconds=2**attempts),
-        last_error="delivery_failed_retrying",
+        last_error=failure_reason or "delivery_failed_retrying",
     )
     return PushState(tasks=remaining + (updated,), dead_letters=state.dead_letters)

@@ -205,6 +205,10 @@ paths:
     post:
       tags: [push]
       summary: Dispatch due webhook push tasks immediately
+      description: >-
+        Attempts delivery for due queue items. If network policy allowlist is
+        enabled and a task target does not match allowed prefixes, that task is
+        moved to dead-letter immediately without retry backoff.
       security:
         - BearerAuth: []
       requestBody:

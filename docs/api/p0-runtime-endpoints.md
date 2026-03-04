@@ -184,6 +184,7 @@ GB28181 example:
 - `POST /api/v1/push/dispatch`
   - body: `{ "now": "2026-03-03T08:00:00+00:00", "limit": 20, "mode": "real|always_success|always_fail" }`
   - 200: envelope with `{ "sent": 1, "failed": 0, "processed": 1 }`
+  - when network policy allowlist is enforced, disallowed webhook targets are short-circuited to dead-letter on first dispatch attempt (no retry backoff)
 
 ### Async push worker
 
@@ -236,6 +237,7 @@ GB28181 example:
     }
     ```
   - 200 envelope with updated policy
+  - effect: if `enforce_allowlist=true`, queued push tasks whose `target_url` does not match any prefix in `webhook_allowlist` are marked failed and moved directly to dead-letter
 
 ## FastAPI Compatibility Layer
 

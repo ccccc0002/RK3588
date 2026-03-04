@@ -364,12 +364,28 @@ class P0Runtime:
             if processed >= max_items:
                 break
             processed += 1
-            if not self._is_target_allowed(task.target_url):
-                ok = False
-            else:
-                ok = bool(sender(task))
+            policy_denied = not self._is_target_allowed(task.target_url)
+            ok = False if policy_denied else bool(sender(task))
             with self._lock:
-                self._push_state = mark_delivery_result(self._push_state, task_id=task.task_id, success=ok, now=at)
+                if policy_denied:
+                    self._push_state = mark_delivery_result(
+                        self._push_state,
+                        task_id=task.task_id,
+                        success=False,
+                        now=at,
+                        force_dead_letter=True,
+                        failure_reason="delivery_failed_policy_denied",
+                    )
+                    self._append_audit_locked(
+                        "push.dispatch.policy_denied",
+                        {
+                            "task_id": task.task_id,
+                            "target_url": task.target_url,
+                            "reason": "allowlist_denied",
+                        },
+                    )
+                else:
+                    self._push_state = mark_delivery_result(self._push_state, task_id=task.task_id, success=ok, now=at)
                 self._update_queue_peak_locked()
                 state_changed = True
             if ok:
