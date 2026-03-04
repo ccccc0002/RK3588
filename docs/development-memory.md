@@ -226,3 +226,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-iteration-8-persistence-hardening-validated/20260304-112527
 - Summary: validated persistence-hardening iteration on local py3.11 and remote py3.8
 - Next: start P1 pre-closure review and enforcement hardening for outbound policy
+
+## [2026-03-04T11:28:29+08:00] P1-iteration-9-policy-enforcement
+- Branch: stage/P1-capability-enhancement
+- Commit: 7915c22
+- Tag: checkpoint/P1-iteration-9-policy-enforcement/20260304-112829
+- Summary: enforced outbound webhook allowlist during dispatch and stabilized affected API tests
+- Next: validate iteration on remote py3.8 and start P1 pre-closure review
