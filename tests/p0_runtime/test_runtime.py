@@ -2102,6 +2102,10 @@ class P0RuntimeTests(unittest.TestCase):
             self.runtime.list_audit_records(limit=10, before_id=0)
         with self.assertRaisesRegex(ValueError, "before_id must be a positive integer"):
             self.runtime.list_audit_records(limit=10, before_id="bad")
+        with self.assertRaisesRegex(ValueError, "limit must be within \\[1, 200\\]"):
+            self.runtime.list_audit_records(limit=0)
+        with self.assertRaisesRegex(ValueError, "limit must be an integer"):
+            self.runtime.list_audit_records(limit="bad")
 
     def test_list_gray_rollout_batch_plan_cache_operations(self) -> None:
         self.runtime.update_gray_rollout_policy(

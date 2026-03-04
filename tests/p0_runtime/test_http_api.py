@@ -1650,6 +1650,14 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertFalse(bad_before_id_payload["success"])
         self.assertEqual("bad_request", bad_before_id_payload["error"]["code"])
 
+        bad_limit_status, bad_limit_payload = self._get(
+            "/api/v1/audit/recent?limit=0",
+            token=self.operator_token,
+        )
+        self.assertEqual(400, bad_limit_status)
+        self.assertFalse(bad_limit_payload["success"])
+        self.assertEqual("bad_request", bad_limit_payload["error"]["code"])
+
     def test_audit_policy_endpoints(self) -> None:
         update_status, update_payload = self._post(
             "/api/v1/audit/policy",

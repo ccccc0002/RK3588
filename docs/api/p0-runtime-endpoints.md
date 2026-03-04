@@ -644,10 +644,11 @@ GB28181 example:
 - `GET /api/v1/audit/recent?limit=20`
   - RBAC: requires `device:write` (`operator`/`admin` allowed, `viewer` forbidden)
   - query params (optional):
-    - `limit` (default `20`)
+    - `limit` (default `20`, valid range `1..200`)
     - `before_id` (positive integer audit id, returns records with `id < before_id`)
   - 200 envelope with `{ "items": [ { "id": 1, "at": "...", "action": "...", "details": {} } ] }`
   - validation:
+    - `limit` must be integer within `[1, 200]`
     - `before_id` must be a positive integer when provided
 
 - `GET /api/v1/audit/policy`

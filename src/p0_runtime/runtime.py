@@ -1527,7 +1527,7 @@ class P0Runtime:
         return items
 
     def list_audit_records(self, limit: int = 20, before_id: object = None) -> list[dict]:
-        capped = max(1, min(200, int(limit)))
+        capped = self._normalize_cache_operations_list_limit(limit)
         max_id_exclusive = self._normalize_audit_before_id(before_id)
         with self._lock:
             if max_id_exclusive is None:
