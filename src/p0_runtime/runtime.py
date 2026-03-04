@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta, timezone
 import hashlib
+import json
 import re
 import threading
 from time import perf_counter
@@ -20,6 +21,10 @@ from src.p0_runtime.webhook_sender import send_webhook
 
 
 class P0Runtime:
+    _GRAY_BATCH_PLAN_CACHE_DEFAULT_TTL_SECONDS = 300
+    _GRAY_BATCH_PLAN_CACHE_MAX_TTL_SECONDS = 3600
+    _GRAY_BATCH_PLAN_CACHE_MAX_ENTRIES = 512
+
     def __init__(
         self,
         webhook_url: str,
@@ -85,6 +90,7 @@ class P0Runtime:
         )
         self._gray_rollout_policy = self._normalize_gray_rollout_policy(dict(self._gray_rollout_policy))
         self._stream_telemetry: Dict[tuple[str, str, str, str], dict] = {}
+        self._gray_rollout_batch_plan_cache: Dict[str, dict] = {}
 
         self._metrics = {
             "dispatch_runs": 0,
@@ -117,6 +123,67 @@ class P0Runtime:
         if now.tzinfo is None:
             return now.replace(tzinfo=timezone.utc)
         return now
+
+    @staticmethod
+    def _canonical_json_hash(payload: dict) -> str:
+        serialized = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+    def _normalize_gray_batch_plan_idempotency_key(self, payload: dict) -> str | None:
+        raw = payload.get("idempotency_key", None)
+        if raw is None:
+            return None
+        value = str(raw).strip()
+        if not value:
+            raise ValueError("idempotency_key must be a non-empty string")
+        return value
+
+    def _normalize_gray_batch_plan_cache_ttl_seconds(self, payload: dict, idempotency_key: str | None) -> int:
+        raw = payload.get("cache_ttl_seconds", None)
+        if raw is None:
+            if idempotency_key is None:
+                return 0
+            return self._GRAY_BATCH_PLAN_CACHE_DEFAULT_TTL_SECONDS
+        if idempotency_key is None:
+            raise ValueError("cache_ttl_seconds requires idempotency_key")
+        if isinstance(raw, bool):
+            raise ValueError("cache_ttl_seconds must be a positive integer")
+        try:
+            value = int(raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("cache_ttl_seconds must be a positive integer") from exc
+        if value <= 0:
+            raise ValueError("cache_ttl_seconds must be a positive integer")
+        if value > self._GRAY_BATCH_PLAN_CACHE_MAX_TTL_SECONDS:
+            raise ValueError(f"cache_ttl_seconds must be <= {self._GRAY_BATCH_PLAN_CACHE_MAX_TTL_SECONDS}")
+        return value
+
+    @staticmethod
+    def _build_gray_batch_plan_cache_payload(payload: dict) -> dict:
+        return {
+            str(key): value
+            for key, value in dict(payload).items()
+            if str(key) not in {"idempotency_key", "cache_ttl_seconds"}
+        }
+
+    def _evict_gray_batch_plan_cache_locked(self, now: datetime | None = None) -> None:
+        at = self._now_or(now)
+        expired_keys: list[str] = []
+        for key, entry in self._gray_rollout_batch_plan_cache.items():
+            expires_at = entry.get("expires_at")
+            if not isinstance(expires_at, datetime) or expires_at <= at:
+                expired_keys.append(str(key))
+        for key in expired_keys:
+            self._gray_rollout_batch_plan_cache.pop(key, None)
+        overflow = len(self._gray_rollout_batch_plan_cache) - self._GRAY_BATCH_PLAN_CACHE_MAX_ENTRIES
+        if overflow <= 0:
+            return
+        ordered = sorted(
+            self._gray_rollout_batch_plan_cache.items(),
+            key=lambda item: item[1].get("created_at", at),
+        )
+        for key, _ in ordered[:overflow]:
+            self._gray_rollout_batch_plan_cache.pop(str(key), None)
 
     def _update_queue_peak_locked(self) -> None:
         queue_now = len(self._push_state.tasks)
@@ -1701,6 +1768,27 @@ class P0Runtime:
         return [dict(item) for item in report.get("items", [])]
 
     def batch_plan_gray_rollout_dependencies_report(self, payload: dict) -> dict:
+        request_payload = dict(payload)
+        idempotency_key = self._normalize_gray_batch_plan_idempotency_key(request_payload)
+        cache_ttl_seconds = self._normalize_gray_batch_plan_cache_ttl_seconds(request_payload, idempotency_key)
+        cache_key: str | None = None
+        request_fingerprint: str | None = None
+        if idempotency_key is not None:
+            cache_payload = self._build_gray_batch_plan_cache_payload(request_payload)
+            request_fingerprint = self._canonical_json_hash(cache_payload)
+            cache_key = self._canonical_json_hash(
+                {"idempotency_key": idempotency_key, "fingerprint": request_fingerprint}
+            )
+            with self._lock:
+                self._evict_gray_batch_plan_cache_locked()
+                cached = self._gray_rollout_batch_plan_cache.get(idempotency_key)
+                if cached is not None:
+                    cached_fingerprint = str(cached.get("fingerprint", ""))
+                    if cached_fingerprint != request_fingerprint:
+                        raise ValueError("idempotency_key conflict with different payload")
+                    cached_report = dict(cached.get("report", {}))
+                    cached_report["cache_hit"] = True
+                    return cached_report
         items_raw = payload.get("items", [])
         if not isinstance(items_raw, list):
             raise ValueError("items must be a list")
@@ -1714,7 +1802,6 @@ class P0Runtime:
             raise ValueError("start_index must be a non-negative integer") from exc
         if start_index < 0:
             raise ValueError("start_index must be a non-negative integer")
-
         max_errors_raw = payload.get("max_errors", None)
         max_errors: int | None = None
         if max_errors_raw is not None:
@@ -1726,7 +1813,6 @@ class P0Runtime:
                 raise ValueError("max_errors must be a positive integer") from exc
             if max_errors <= 0:
                 raise ValueError("max_errors must be a positive integer")
-
         started_at = perf_counter()
         results: list[dict] = []
         errors: list[dict] = []
@@ -1767,7 +1853,7 @@ class P0Runtime:
             "remaining_items": max(0, len(items_raw) - processed_count),
             "failed_indices": [int(item) for item in failed_indices],
         }
-        return {
+        report = {
             "items": [dict(item) for item in results],
             "errors": [dict(item) for item in errors],
             "continue_on_error": continue_on_error,
@@ -1784,6 +1870,27 @@ class P0Runtime:
             "stopped_early": stopped_early,
             "duration_ms": max(0, duration_ms),
         }
+        if idempotency_key is None:
+            return report
+        assert cache_key is not None
+        expires_at = self._now_or(None) + timedelta(seconds=cache_ttl_seconds)
+        cached_report = {
+            **report,
+            "idempotency_key": idempotency_key,
+            "cache_hit": False,
+            "cache_key": cache_key,
+            "cache_expires_at": expires_at.isoformat(),
+        }
+        with self._lock:
+            self._evict_gray_batch_plan_cache_locked()
+            self._gray_rollout_batch_plan_cache[idempotency_key] = {
+                "fingerprint": str(request_fingerprint),
+                "report": dict(cached_report),
+                "expires_at": expires_at,
+                "created_at": self._now_or(None),
+            }
+            self._evict_gray_batch_plan_cache_locked()
+        return cached_report
 
     def evaluate_gray_rollout(self, payload: dict) -> dict:
         planned = self.plan_gray_rollout_dependencies(payload)

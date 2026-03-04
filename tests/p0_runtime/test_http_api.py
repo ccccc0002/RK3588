@@ -897,6 +897,78 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual([10], batch_plan_offset_payload["data"]["retry_hint"]["failed_indices"])
         self.assertEqual(10, batch_plan_offset_payload["data"]["errors"][0]["index"])
 
+        batch_plan_idem_status, batch_plan_idem_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "idempotency_key": "http-plan-idem-001",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "http-plan-idem-001",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
+        self.assertEqual(200, batch_plan_idem_status)
+        self.assertTrue(batch_plan_idem_payload["success"])
+        self.assertEqual("http-plan-idem-001", batch_plan_idem_payload["data"]["idempotency_key"])
+        self.assertFalse(batch_plan_idem_payload["data"]["cache_hit"])
+        self.assertIsNotNone(batch_plan_idem_payload["data"]["cache_key"])
+        self.assertIsNotNone(batch_plan_idem_payload["data"]["cache_expires_at"])
+
+        batch_plan_idem_hit_status, batch_plan_idem_hit_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "idempotency_key": "http-plan-idem-001",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "http-plan-idem-001",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
+        self.assertEqual(200, batch_plan_idem_hit_status)
+        self.assertTrue(batch_plan_idem_hit_payload["success"])
+        self.assertEqual("http-plan-idem-001", batch_plan_idem_hit_payload["data"]["idempotency_key"])
+        self.assertTrue(batch_plan_idem_hit_payload["data"]["cache_hit"])
+        self.assertEqual(
+            batch_plan_idem_payload["data"]["cache_key"],
+            batch_plan_idem_hit_payload["data"]["cache_key"],
+        )
+
+        batch_plan_idem_conflict_status, batch_plan_idem_conflict_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "idempotency_key": "http-plan-idem-001",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t9",
+                        "site_id": "s9",
+                        "box_id": "b9",
+                        "seed": "http-plan-idem-conflict-002",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
+        self.assertEqual(400, batch_plan_idem_conflict_status)
+        self.assertFalse(batch_plan_idem_conflict_payload["success"])
+        self.assertEqual("bad_request", batch_plan_idem_conflict_payload["error"]["code"])
+        self.assertIn("idempotency_key conflict with different payload", batch_plan_idem_conflict_payload["error"]["message"])
+
         batch_plan_fail_status, batch_plan_fail_payload = self._post(
             "/api/v1/gray-rollout/plan/batch",
             {

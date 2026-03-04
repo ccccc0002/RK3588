@@ -1220,6 +1220,91 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(1, len(report["errors"]))
         self.assertEqual(10, report["errors"][0]["index"])
 
+    def test_gray_rollout_dependency_plan_batch_idempotency_cache_hit(self) -> None:
+        self.runtime.update_gray_rollout_policy(
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "overrides": [],
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {
+                    "gray_ready": ["edge_sync_ready"],
+                    "edge_sync_ready": ["base_library_ready"],
+                },
+            }
+        )
+        payload = {
+            "idempotency_key": "plan-batch-001",
+            "continue_on_error": True,
+            "items": [
+                {
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "seed": "plan-idem-001",
+                    "dependency_status": {
+                        "gray_ready": True,
+                        "edge_sync_ready": True,
+                    },
+                },
+            ],
+        }
+        first = self.runtime.batch_plan_gray_rollout_dependencies_report(dict(payload))
+        second = self.runtime.batch_plan_gray_rollout_dependencies_report(dict(payload))
+        self.assertEqual("plan-batch-001", first["idempotency_key"])
+        self.assertFalse(first["cache_hit"])
+        self.assertIsNotNone(first["cache_key"])
+        self.assertIsNotNone(first["cache_expires_at"])
+        self.assertEqual("plan-batch-001", second["idempotency_key"])
+        self.assertTrue(second["cache_hit"])
+        self.assertEqual(first["cache_key"], second["cache_key"])
+        self.assertEqual(first["items"], second["items"])
+        self.assertEqual(first["errors"], second["errors"])
+
+    def test_gray_rollout_dependency_plan_batch_idempotency_conflict(self) -> None:
+        self.runtime.update_gray_rollout_policy(
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "overrides": [],
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {
+                    "gray_ready": ["edge_sync_ready"],
+                    "edge_sync_ready": ["base_library_ready"],
+                },
+            }
+        )
+        first_payload = {
+            "idempotency_key": "plan-batch-conflict-001",
+            "continue_on_error": True,
+            "items": [
+                {
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "seed": "plan-idem-conflict-001",
+                    "dependency_status": {"gray_ready": True},
+                },
+            ],
+        }
+        self.runtime.batch_plan_gray_rollout_dependencies_report(dict(first_payload))
+
+        conflict_payload = {
+            "idempotency_key": "plan-batch-conflict-001",
+            "continue_on_error": True,
+            "items": [
+                {
+                    "tenant_id": "t2",
+                    "site_id": "s2",
+                    "box_id": "b2",
+                    "seed": "plan-idem-conflict-002",
+                    "dependency_status": {"gray_ready": True},
+                },
+            ],
+        }
+        with self.assertRaisesRegex(ValueError, "idempotency_key conflict with different payload"):
+            self.runtime.batch_plan_gray_rollout_dependencies_report(dict(conflict_payload))
+
     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
         self.runtime.register_device(
             {

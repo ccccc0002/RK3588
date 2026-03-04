@@ -2645,6 +2645,17 @@ components:
       type: object
       required: [items]
       properties:
+        idempotency_key:
+          type: string
+          minLength: 1
+          nullable: true
+          description: Optional idempotency key for short-term response cache.
+        cache_ttl_seconds:
+          type: integer
+          minimum: 1
+          maximum: 3600
+          nullable: true
+          description: Optional cache TTL in seconds. Requires idempotency_key.
         continue_on_error:
           type: boolean
           default: false
@@ -2694,6 +2705,19 @@ components:
       type: object
       required: [items, errors, continue_on_error, start_index, next_start_index, applied_range, retry_hint, max_errors, total, processed_count, success_count, error_count, failed_indices, stopped_early, duration_ms]
       properties:
+        idempotency_key:
+          type: string
+          nullable: true
+        cache_hit:
+          type: boolean
+          nullable: true
+        cache_key:
+          type: string
+          nullable: true
+        cache_expires_at:
+          type: string
+          format: date-time
+          nullable: true
         items:
           type: array
           items:

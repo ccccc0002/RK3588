@@ -733,6 +733,8 @@ GB28181 example:
   - body:
     ```json
     {
+      "idempotency_key": "plan-batch-001",
+      "cache_ttl_seconds": 300,
       "continue_on_error": true,
       "start_index": 0,
       "max_errors": 2,
@@ -766,6 +768,7 @@ GB28181 example:
     - `errors[]` list of item-level errors with `index` and `error`
     - `continue_on_error`, `start_index`, `next_start_index`, `applied_range[]`, `retry_hint{}`, `max_errors`
     - `total`, `processed_count`, `success_count`, `error_count`, `failed_indices[]`, `stopped_early`, `duration_ms`
+    - when `idempotency_key` is provided: `idempotency_key`, `cache_hit`, `cache_key`, `cache_expires_at`
   - batch rule:
     - default (`continue_on_error=false`): any invalid item fails entire request with `400` (`items[i]: ...`)
     - tolerant mode (`continue_on_error=true`): request returns `200` with partial successes in `items[]` and failures in `errors[]`
@@ -775,6 +778,11 @@ GB28181 example:
     - `applied_range=[start_index, start_index+processed_count)` marks the absolute index window processed in current call
     - `retry_hint` includes `should_retry`, `resume_from`, `remaining_items`, and `failed_indices[]` for client resume logic
   - early-stop rule: when `max_errors` is provided in tolerant mode, processing stops once accumulated item errors reach `max_errors`
+  - idempotency rule:
+    - when `idempotency_key` is present, server caches successful batch report payload for a short TTL window
+    - repeated calls with same key and same payload return cached report with `cache_hit=true`
+    - repeated calls with same key but different payload return `400` with message `idempotency_key conflict with different payload`
+    - `cache_ttl_seconds` is optional and only valid when `idempotency_key` is provided
 
 ## FastAPI Compatibility Layer
 
