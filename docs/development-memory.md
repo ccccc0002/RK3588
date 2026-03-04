@@ -457,3 +457,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P3-iteration-8-sync-log-refresh/20260304-150226
 - Summary: refreshed p3 pre-closure review and agent sync log after iteration-8 validated sync
 - Next: Continue remaining P3 gray-rollout orchestration hardening or execute final closure review
+
+## [2026-03-04T15:08:48+08:00] P3-iteration-9-gray-dependency-local-gate
+- Branch: stage/P3-phase2-readiness
+- Commit: 2d6b3e7
+- Tag: checkpoint/P3-iteration-9-gray-dependency-local-gate/20260304-150848
+- Summary: added gray rollout dependency-gating contracts with dependency_status and blocked_by decision output
+- Next: Run remote py3.8.10 validation on current commit via isolated bundle clone, then create validated checkpoint and push branch/tags
