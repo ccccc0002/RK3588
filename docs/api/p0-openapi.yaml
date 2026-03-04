@@ -2982,6 +2982,10 @@ components:
           type: boolean
           default: false
           description: Preview cache-clear impact without mutating cache or counters.
+        max_clear_entries:
+          type: integer
+          minimum: 1
+          description: Optional safety threshold that blocks non-dry-run clear when would-clear entries exceed this value.
         reset_counters:
           type: boolean
           default: false
@@ -2997,6 +3001,7 @@ components:
         - would_clear_events
         - reset_counters
         - reset_counters_applied
+        - max_clear_entries
         - cleared_at
         - gray_batch_plan_cache_entries
         - gray_batch_plan_cache_hits
@@ -3028,6 +3033,10 @@ components:
           type: boolean
         reset_counters_applied:
           type: boolean
+        max_clear_entries:
+          type: integer
+          nullable: true
+          minimum: 1
         cleared_at:
           type: string
           format: date-time

@@ -1,0 +1,273 @@
+diff --git a/docs/api/p0-openapi.yaml b/docs/api/p0-openapi.yaml
+index 0fcaba3..d1d6867 100644
+--- a/docs/api/p0-openapi.yaml
++++ b/docs/api/p0-openapi.yaml
+@@ -2982,6 +2982,10 @@ components:
+           type: boolean
+           default: false
+           description: Preview cache-clear impact without mutating cache or counters.
++        max_clear_entries:
++          type: integer
++          minimum: 1
++          description: Optional safety threshold that blocks non-dry-run clear when would-clear entries exceed this value.
+         reset_counters:
+           type: boolean
+           default: false
+@@ -2997,6 +3001,7 @@ components:
+         - would_clear_events
+         - reset_counters
+         - reset_counters_applied
++        - max_clear_entries
+         - cleared_at
+         - gray_batch_plan_cache_entries
+         - gray_batch_plan_cache_hits
+@@ -3028,6 +3033,10 @@ components:
+           type: boolean
+         reset_counters_applied:
+           type: boolean
++        max_clear_entries:
++          type: integer
++          nullable: true
++          minimum: 1
+         cleared_at:
+           type: string
+           format: date-time
+diff --git a/docs/api/p0-runtime-endpoints.md b/docs/api/p0-runtime-endpoints.md
+index 5fad29d..fa6f823 100644
+--- a/docs/api/p0-runtime-endpoints.md
++++ b/docs/api/p0-runtime-endpoints.md
+@@ -815,6 +815,7 @@ GB28181 example:
+     ```json
+     {
+       "dry_run": false,
++      "max_clear_entries": 100,
+       "reset_counters": true
+     }
+     ```
+@@ -822,7 +823,7 @@ GB28181 example:
+     - `dry_run`
+     - `cleared_entries`, `cleared_events` (actual cleared values)
+     - `would_clear_entries`, `would_clear_events` (pre-clear snapshot)
+-    - `reset_counters`, `reset_counters_applied`, `cleared_at`
++    - `reset_counters`, `reset_counters_applied`, `max_clear_entries`, `cleared_at`
+     - post-clear cache counters:
+       - `gray_batch_plan_cache_entries`
+       - `gray_batch_plan_cache_hits`
+@@ -841,6 +842,8 @@ GB28181 example:
+   - dry-run rule:
+     - when `dry_run=true`, no cache entries/events or counters are changed
+     - response still returns `would_clear_entries` / `would_clear_events` for operational preview
++  - guard rule:
++    - when `max_clear_entries` is provided and `dry_run=false`, clear is rejected if `would_clear_entries` exceeds that threshold
+ 
+ - `GET /api/v1/gray-rollout/plan/batch/cache`
+   - RBAC: requires `device:read`
+diff --git a/src/p0_runtime/runtime.py b/src/p0_runtime/runtime.py
+index fc96e55..1537472 100644
+--- a/src/p0_runtime/runtime.py
++++ b/src/p0_runtime/runtime.py
+@@ -192,6 +192,20 @@ class P0Runtime:
+             return False
+         raise ValueError("include_events must be a boolean")
+ 
++    def _normalize_gray_batch_plan_cache_max_clear_entries(self, payload: dict) -> int | None:
++        raw = payload.get("max_clear_entries", None)
++        if raw is None:
++            return None
++        if isinstance(raw, bool):
++            raise ValueError("max_clear_entries must be a positive integer")
++        try:
++            value = int(raw)
++        except (TypeError, ValueError) as exc:
++            raise ValueError("max_clear_entries must be a positive integer") from exc
++        if value <= 0:
++            raise ValueError("max_clear_entries must be a positive integer")
++        return value
++
+     @staticmethod
+     def _build_gray_batch_plan_cache_payload(payload: dict) -> dict:
+         return {
+@@ -2044,10 +2058,15 @@ class P0Runtime:
+         source = dict(payload or {})
+         reset_counters = bool(source.get("reset_counters", False))
+         dry_run = bool(source.get("dry_run", False))
++        max_clear_entries = self._normalize_gray_batch_plan_cache_max_clear_entries(source)
+         with self._lock:
+             self._evict_gray_batch_plan_cache_locked()
+             would_clear_entries = len(self._gray_rollout_batch_plan_cache)
+             would_clear_events = len(self._gray_rollout_batch_plan_cache_events)
++            if not dry_run and max_clear_entries is not None and would_clear_entries > max_clear_entries:
++                raise ValueError(
++                    f"cache clear blocked: would clear {would_clear_entries} entries exceeds max_clear_entries={max_clear_entries}"
++                )
+             cleared_entries = 0
+             cleared_events = 0
+             reset_counters_applied = False
+@@ -2076,6 +2095,7 @@ class P0Runtime:
+                 "dry_run": dry_run,
+                 "reset_counters": reset_counters,
+                 "reset_counters_applied": reset_counters_applied,
++                "max_clear_entries": max_clear_entries,
+                 "cleared_at": cleared_at,
+                 "gray_batch_plan_cache_entries": len(self._gray_rollout_batch_plan_cache),
+                 "gray_batch_plan_cache_hits": int(self._metrics.get("gray_batch_plan_cache_hits", 0)),
+@@ -2113,6 +2133,7 @@ class P0Runtime:
+                     "would_clear_events": would_clear_events,
+                     "reset_counters": reset_counters,
+                     "reset_counters_applied": reset_counters_applied,
++                    "max_clear_entries": max_clear_entries,
+                     "cleared_at": cleared_at,
+                 },
+             )
+diff --git a/tests/p0_runtime/test_http_api.py b/tests/p0_runtime/test_http_api.py
+index 1be7e52..088b152 100644
+--- a/tests/p0_runtime/test_http_api.py
++++ b/tests/p0_runtime/test_http_api.py
+@@ -1121,6 +1121,23 @@ class P0HttpApiTests(unittest.TestCase):
+             },
+             token=self.viewer_token,
+         )
++        self._post(
++            "/api/v1/gray-rollout/plan/batch",
++            {
++                "idempotency_key": "http-clear-idem-002",
++                "continue_on_error": True,
++                "items": [
++                    {
++                        "tenant_id": "t2",
++                        "site_id": "s2",
++                        "box_id": "b2",
++                        "seed": "http-clear-idem-002",
++                        "dependency_status": {"gray_ready": True},
++                    }
++                ],
++            },
++            token=self.viewer_token,
++        )
+         clear_forbidden_status, clear_forbidden_payload = self._post(
+             "/api/v1/gray-rollout/plan/batch/cache/clear",
+             {"reset_counters": True},
+@@ -1130,9 +1147,19 @@ class P0HttpApiTests(unittest.TestCase):
+         self.assertFalse(clear_forbidden_payload["success"])
+         self.assertEqual("forbidden", clear_forbidden_payload["error"]["code"])
+ 
++        guard_status, guard_payload = self._post(
++            "/api/v1/gray-rollout/plan/batch/cache/clear",
++            {"max_clear_entries": 1},
++            token=self.operator_token,
++        )
++        self.assertEqual(400, guard_status)
++        self.assertFalse(guard_payload["success"])
++        self.assertEqual("bad_request", guard_payload["error"]["code"])
++        self.assertIn("max_clear_entries", guard_payload["error"]["message"])
++
+         dry_run_status, dry_run_payload = self._post(
+             "/api/v1/gray-rollout/plan/batch/cache/clear",
+-            {"dry_run": True, "reset_counters": True},
++            {"dry_run": True, "reset_counters": True, "max_clear_entries": 1},
+             token=self.operator_token,
+         )
+         self.assertEqual(200, dry_run_status)
+@@ -1140,13 +1167,14 @@ class P0HttpApiTests(unittest.TestCase):
+         self.assertTrue(dry_run_payload["data"]["dry_run"])
+         self.assertEqual(0, int(dry_run_payload["data"]["cleared_entries"]))
+         self.assertEqual(0, int(dry_run_payload["data"]["cleared_events"]))
+-        self.assertGreaterEqual(int(dry_run_payload["data"]["would_clear_entries"]), 1)
++        self.assertGreaterEqual(int(dry_run_payload["data"]["would_clear_entries"]), 2)
+         self.assertFalse(dry_run_payload["data"]["reset_counters_applied"])
++        self.assertEqual(1, int(dry_run_payload["data"]["max_clear_entries"]))
+         self.assertGreaterEqual(int(dry_run_payload["data"]["gray_batch_plan_cache_entries"]), 1)
+ 
+         clear_status, clear_payload = self._post(
+             "/api/v1/gray-rollout/plan/batch/cache/clear",
+-            {"reset_counters": True},
++            {"reset_counters": True, "max_clear_entries": 2},
+             token=self.operator_token,
+         )
+         self.assertEqual(200, clear_status)
+@@ -1154,7 +1182,8 @@ class P0HttpApiTests(unittest.TestCase):
+         self.assertFalse(clear_payload["data"]["dry_run"])
+         self.assertTrue(clear_payload["data"]["reset_counters"])
+         self.assertTrue(clear_payload["data"]["reset_counters_applied"])
+-        self.assertGreaterEqual(int(clear_payload["data"]["cleared_entries"]), 1)
++        self.assertGreaterEqual(int(clear_payload["data"]["cleared_entries"]), 2)
++        self.assertEqual(2, int(clear_payload["data"]["max_clear_entries"]))
+         self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_entries"])
+         self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_hits"])
+         self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_misses"])
+diff --git a/tests/p0_runtime/test_runtime.py b/tests/p0_runtime/test_runtime.py
+index 5770ff6..dedabe7 100644
+--- a/tests/p0_runtime/test_runtime.py
++++ b/tests/p0_runtime/test_runtime.py
+@@ -1731,6 +1731,71 @@ class P0RuntimeTests(unittest.TestCase):
+         with self.assertRaisesRegex(ValueError, "limit must be an integer"):
+             self.runtime.list_gray_rollout_batch_plan_cache({"limit": "bad"})
+ 
++    def test_clear_gray_rollout_batch_plan_cache_max_clear_entries_guard(self) -> None:
++        self.runtime.update_gray_rollout_policy(
++            {
++                "enabled": True,
++                "default_percent": 100,
++                "overrides": [],
++                "dependencies": ["gray_ready"],
++                "dependency_graph": {},
++            }
++        )
++        self.runtime.batch_plan_gray_rollout_dependencies_report(
++            {
++                "idempotency_key": "plan-batch-guard-001",
++                "continue_on_error": True,
++                "items": [
++                    {
++                        "tenant_id": "t1",
++                        "site_id": "s1",
++                        "box_id": "b1",
++                        "seed": "plan-guard-seed-001",
++                        "dependency_status": {"gray_ready": True},
++                    },
++                ],
++            }
++        )
++        self.runtime.batch_plan_gray_rollout_dependencies_report(
++            {
++                "idempotency_key": "plan-batch-guard-002",
++                "continue_on_error": True,
++                "items": [
++                    {
++                        "tenant_id": "t2",
++                        "site_id": "s2",
++                        "box_id": "b2",
++                        "seed": "plan-guard-seed-002",
++                        "dependency_status": {"gray_ready": True},
++                    },
++                ],
++            }
++        )
++
++        with self.assertRaisesRegex(ValueError, "exceeds max_clear_entries"):
++            self.runtime.clear_gray_rollout_batch_plan_cache({"max_clear_entries": 1})
++
++        guard_dry_run = self.runtime.clear_gray_rollout_batch_plan_cache(
++            {"dry_run": True, "max_clear_entries": 1}
++        )
++        self.assertTrue(guard_dry_run["dry_run"])
++        self.assertEqual(0, guard_dry_run["cleared_entries"])
++        self.assertEqual(2, guard_dry_run["would_clear_entries"])
++        self.assertEqual(1, guard_dry_run["max_clear_entries"])
++
++        guard_clear = self.runtime.clear_gray_rollout_batch_plan_cache(
++            {"max_clear_entries": 2, "reset_counters": True}
++        )
++        self.assertFalse(guard_clear["dry_run"])
++        self.assertEqual(2, guard_clear["cleared_entries"])
++        self.assertEqual(2, guard_clear["max_clear_entries"])
++        self.assertEqual(0, guard_clear["gray_batch_plan_cache_entries"])
++
++        with self.assertRaisesRegex(ValueError, "max_clear_entries must be a positive integer"):
++            self.runtime.clear_gray_rollout_batch_plan_cache({"max_clear_entries": 0})
++        with self.assertRaisesRegex(ValueError, "max_clear_entries must be a positive integer"):
++            self.runtime.clear_gray_rollout_batch_plan_cache({"max_clear_entries": "bad"})
++
+     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
+         self.runtime.register_device(
+             {

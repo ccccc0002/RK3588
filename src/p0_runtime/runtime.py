@@ -192,6 +192,20 @@ class P0Runtime:
             return False
         raise ValueError("include_events must be a boolean")
 
+    def _normalize_gray_batch_plan_cache_max_clear_entries(self, payload: dict) -> int | None:
+        raw = payload.get("max_clear_entries", None)
+        if raw is None:
+            return None
+        if isinstance(raw, bool):
+            raise ValueError("max_clear_entries must be a positive integer")
+        try:
+            value = int(raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("max_clear_entries must be a positive integer") from exc
+        if value <= 0:
+            raise ValueError("max_clear_entries must be a positive integer")
+        return value
+
     @staticmethod
     def _build_gray_batch_plan_cache_payload(payload: dict) -> dict:
         return {
@@ -2044,10 +2058,15 @@ class P0Runtime:
         source = dict(payload or {})
         reset_counters = bool(source.get("reset_counters", False))
         dry_run = bool(source.get("dry_run", False))
+        max_clear_entries = self._normalize_gray_batch_plan_cache_max_clear_entries(source)
         with self._lock:
             self._evict_gray_batch_plan_cache_locked()
             would_clear_entries = len(self._gray_rollout_batch_plan_cache)
             would_clear_events = len(self._gray_rollout_batch_plan_cache_events)
+            if not dry_run and max_clear_entries is not None and would_clear_entries > max_clear_entries:
+                raise ValueError(
+                    f"cache clear blocked: would clear {would_clear_entries} entries exceeds max_clear_entries={max_clear_entries}"
+                )
             cleared_entries = 0
             cleared_events = 0
             reset_counters_applied = False
@@ -2076,6 +2095,7 @@ class P0Runtime:
                 "dry_run": dry_run,
                 "reset_counters": reset_counters,
                 "reset_counters_applied": reset_counters_applied,
+                "max_clear_entries": max_clear_entries,
                 "cleared_at": cleared_at,
                 "gray_batch_plan_cache_entries": len(self._gray_rollout_batch_plan_cache),
                 "gray_batch_plan_cache_hits": int(self._metrics.get("gray_batch_plan_cache_hits", 0)),
@@ -2113,6 +2133,7 @@ class P0Runtime:
                     "would_clear_events": would_clear_events,
                     "reset_counters": reset_counters,
                     "reset_counters_applied": reset_counters_applied,
+                    "max_clear_entries": max_clear_entries,
                     "cleared_at": cleared_at,
                 },
             )

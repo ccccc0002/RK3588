@@ -1121,6 +1121,23 @@ class P0HttpApiTests(unittest.TestCase):
             },
             token=self.viewer_token,
         )
+        self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "idempotency_key": "http-clear-idem-002",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t2",
+                        "site_id": "s2",
+                        "box_id": "b2",
+                        "seed": "http-clear-idem-002",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
         clear_forbidden_status, clear_forbidden_payload = self._post(
             "/api/v1/gray-rollout/plan/batch/cache/clear",
             {"reset_counters": True},
@@ -1130,9 +1147,19 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertFalse(clear_forbidden_payload["success"])
         self.assertEqual("forbidden", clear_forbidden_payload["error"]["code"])
 
+        guard_status, guard_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch/cache/clear",
+            {"max_clear_entries": 1},
+            token=self.operator_token,
+        )
+        self.assertEqual(400, guard_status)
+        self.assertFalse(guard_payload["success"])
+        self.assertEqual("bad_request", guard_payload["error"]["code"])
+        self.assertIn("max_clear_entries", guard_payload["error"]["message"])
+
         dry_run_status, dry_run_payload = self._post(
             "/api/v1/gray-rollout/plan/batch/cache/clear",
-            {"dry_run": True, "reset_counters": True},
+            {"dry_run": True, "reset_counters": True, "max_clear_entries": 1},
             token=self.operator_token,
         )
         self.assertEqual(200, dry_run_status)
@@ -1140,13 +1167,14 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(dry_run_payload["data"]["dry_run"])
         self.assertEqual(0, int(dry_run_payload["data"]["cleared_entries"]))
         self.assertEqual(0, int(dry_run_payload["data"]["cleared_events"]))
-        self.assertGreaterEqual(int(dry_run_payload["data"]["would_clear_entries"]), 1)
+        self.assertGreaterEqual(int(dry_run_payload["data"]["would_clear_entries"]), 2)
         self.assertFalse(dry_run_payload["data"]["reset_counters_applied"])
+        self.assertEqual(1, int(dry_run_payload["data"]["max_clear_entries"]))
         self.assertGreaterEqual(int(dry_run_payload["data"]["gray_batch_plan_cache_entries"]), 1)
 
         clear_status, clear_payload = self._post(
             "/api/v1/gray-rollout/plan/batch/cache/clear",
-            {"reset_counters": True},
+            {"reset_counters": True, "max_clear_entries": 2},
             token=self.operator_token,
         )
         self.assertEqual(200, clear_status)
@@ -1154,7 +1182,8 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertFalse(clear_payload["data"]["dry_run"])
         self.assertTrue(clear_payload["data"]["reset_counters"])
         self.assertTrue(clear_payload["data"]["reset_counters_applied"])
-        self.assertGreaterEqual(int(clear_payload["data"]["cleared_entries"]), 1)
+        self.assertGreaterEqual(int(clear_payload["data"]["cleared_entries"]), 2)
+        self.assertEqual(2, int(clear_payload["data"]["max_clear_entries"]))
         self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_entries"])
         self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_hits"])
         self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_misses"])

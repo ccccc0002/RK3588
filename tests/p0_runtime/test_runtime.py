@@ -1731,6 +1731,71 @@ class P0RuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "limit must be an integer"):
             self.runtime.list_gray_rollout_batch_plan_cache({"limit": "bad"})
 
+    def test_clear_gray_rollout_batch_plan_cache_max_clear_entries_guard(self) -> None:
+        self.runtime.update_gray_rollout_policy(
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "overrides": [],
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {},
+            }
+        )
+        self.runtime.batch_plan_gray_rollout_dependencies_report(
+            {
+                "idempotency_key": "plan-batch-guard-001",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "plan-guard-seed-001",
+                        "dependency_status": {"gray_ready": True},
+                    },
+                ],
+            }
+        )
+        self.runtime.batch_plan_gray_rollout_dependencies_report(
+            {
+                "idempotency_key": "plan-batch-guard-002",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t2",
+                        "site_id": "s2",
+                        "box_id": "b2",
+                        "seed": "plan-guard-seed-002",
+                        "dependency_status": {"gray_ready": True},
+                    },
+                ],
+            }
+        )
+
+        with self.assertRaisesRegex(ValueError, "exceeds max_clear_entries"):
+            self.runtime.clear_gray_rollout_batch_plan_cache({"max_clear_entries": 1})
+
+        guard_dry_run = self.runtime.clear_gray_rollout_batch_plan_cache(
+            {"dry_run": True, "max_clear_entries": 1}
+        )
+        self.assertTrue(guard_dry_run["dry_run"])
+        self.assertEqual(0, guard_dry_run["cleared_entries"])
+        self.assertEqual(2, guard_dry_run["would_clear_entries"])
+        self.assertEqual(1, guard_dry_run["max_clear_entries"])
+
+        guard_clear = self.runtime.clear_gray_rollout_batch_plan_cache(
+            {"max_clear_entries": 2, "reset_counters": True}
+        )
+        self.assertFalse(guard_clear["dry_run"])
+        self.assertEqual(2, guard_clear["cleared_entries"])
+        self.assertEqual(2, guard_clear["max_clear_entries"])
+        self.assertEqual(0, guard_clear["gray_batch_plan_cache_entries"])
+
+        with self.assertRaisesRegex(ValueError, "max_clear_entries must be a positive integer"):
+            self.runtime.clear_gray_rollout_batch_plan_cache({"max_clear_entries": 0})
+        with self.assertRaisesRegex(ValueError, "max_clear_entries must be a positive integer"):
+            self.runtime.clear_gray_rollout_batch_plan_cache({"max_clear_entries": "bad"})
+
     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
         self.runtime.register_device(
             {

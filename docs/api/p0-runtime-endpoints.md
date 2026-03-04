@@ -815,6 +815,7 @@ GB28181 example:
     ```json
     {
       "dry_run": false,
+      "max_clear_entries": 100,
       "reset_counters": true
     }
     ```
@@ -822,7 +823,7 @@ GB28181 example:
     - `dry_run`
     - `cleared_entries`, `cleared_events` (actual cleared values)
     - `would_clear_entries`, `would_clear_events` (pre-clear snapshot)
-    - `reset_counters`, `reset_counters_applied`, `cleared_at`
+    - `reset_counters`, `reset_counters_applied`, `max_clear_entries`, `cleared_at`
     - post-clear cache counters:
       - `gray_batch_plan_cache_entries`
       - `gray_batch_plan_cache_hits`
@@ -841,6 +842,8 @@ GB28181 example:
   - dry-run rule:
     - when `dry_run=true`, no cache entries/events or counters are changed
     - response still returns `would_clear_entries` / `would_clear_events` for operational preview
+  - guard rule:
+    - when `max_clear_entries` is provided and `dry_run=false`, clear is rejected if `would_clear_entries` exceeds that threshold
 
 - `GET /api/v1/gray-rollout/plan/batch/cache`
   - RBAC: requires `device:read`
