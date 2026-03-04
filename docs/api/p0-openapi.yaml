@@ -1155,6 +1155,32 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/gray-rollout/plan/batch:
+    post:
+      tags: [runtime]
+      summary: Build dependency execution plans for multiple gray rollout scopes
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GrayRolloutPlanBatchRequest'
+      responses:
+        '200':
+          description: Gray rollout dependency plans
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrayRolloutPlanBatchEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/runtime/snapshot:
     get:
       tags: [runtime]
@@ -2615,6 +2641,24 @@ components:
         enabled:
           type: boolean
 
+    GrayRolloutPlanBatchRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrayRolloutEvaluateRequest'
+
+    GrayRolloutPlanBatchData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrayRolloutPlanData'
+
     MetricsData:
       type: object
       required:
@@ -2995,6 +3039,14 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/GrayRolloutPlanData'
+
+    GrayRolloutPlanBatchEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/GrayRolloutPlanBatchData'
 
     MetricsEnvelope:
       allOf:

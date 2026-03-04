@@ -725,6 +725,43 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertFalse(plan_payload["data"]["nodes"][0]["ready"])
         self.assertEqual(["base_library_ready"], plan_payload["data"]["nodes"][0]["blocked_by"])
 
+        batch_plan_status, batch_plan_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "fixed-seed-001",
+                        "dependency_status": {
+                            "gray_ready": True,
+                            "edge_sync_ready": True,
+                        },
+                    },
+                    {
+                        "tenant_id": "t2",
+                        "site_id": "s2",
+                        "box_id": "b2",
+                        "seed": "fixed-seed-002",
+                        "dependency_status": {
+                            "gray_ready": True,
+                            "edge_sync_ready": True,
+                            "base_library_ready": True,
+                        },
+                    },
+                ]
+            },
+            token=self.viewer_token,
+        )
+        self.assertEqual(200, batch_plan_status)
+        self.assertTrue(batch_plan_payload["success"])
+        self.assertEqual(2, len(batch_plan_payload["data"]["items"]))
+        self.assertEqual(["base_library_ready"], batch_plan_payload["data"]["items"][0]["missing_status"])
+        self.assertFalse(batch_plan_payload["data"]["items"][0]["enabled"])
+        self.assertEqual([], batch_plan_payload["data"]["items"][1]["missing_status"])
+        self.assertTrue(batch_plan_payload["data"]["items"][1]["enabled"])
+
     def test_offline_jobs_endpoints(self) -> None:
         self._post(
             "/api/v1/offline-executors/upsert",

@@ -1006,6 +1006,53 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertFalse(plan["nodes"][0]["ready"])
         self.assertEqual(["base_library_ready"], plan["nodes"][0]["blocked_by"])
 
+    def test_gray_rollout_dependency_plan_batch(self) -> None:
+        self.runtime.update_gray_rollout_policy(
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "overrides": [],
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {
+                    "gray_ready": ["edge_sync_ready"],
+                    "edge_sync_ready": ["base_library_ready"],
+                },
+            }
+        )
+
+        result = self.runtime.batch_plan_gray_rollout_dependencies(
+            {
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "dep-plan-batch-001",
+                        "dependency_status": {
+                            "gray_ready": True,
+                            "edge_sync_ready": True,
+                        },
+                    },
+                    {
+                        "tenant_id": "t2",
+                        "site_id": "s2",
+                        "box_id": "b2",
+                        "seed": "dep-plan-batch-002",
+                        "dependency_status": {
+                            "gray_ready": True,
+                            "edge_sync_ready": True,
+                            "base_library_ready": True,
+                        },
+                    },
+                ]
+            }
+        )
+        self.assertEqual(2, len(result))
+        self.assertEqual(["base_library_ready"], result[0]["missing_status"])
+        self.assertFalse(result[0]["enabled"])
+        self.assertEqual([], result[1]["missing_status"])
+        self.assertTrue(result[1]["enabled"])
+
     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
         self.runtime.register_device(
             {

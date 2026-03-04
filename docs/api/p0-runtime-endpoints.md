@@ -728,6 +728,40 @@ GB28181 example:
   - status rule: keys absent from request `dependency_status` are reported in `missing_status[]`
   - enablement rule: same as evaluate endpoint, `enabled=true` only when rollout percent hit and all planned dependencies are ready
 
+- `POST /api/v1/gray-rollout/plan/batch`
+  - RBAC: requires `device:read`
+  - body:
+    ```json
+    {
+      "items": [
+        {
+          "tenant_id": "t1",
+          "site_id": "s1",
+          "box_id": "b1",
+          "seed": "fixed-seed-001",
+          "dependency_status": {
+            "gray_ready": true,
+            "edge_sync_ready": true
+          }
+        },
+        {
+          "tenant_id": "t2",
+          "site_id": "s2",
+          "box_id": "b2",
+          "seed": "fixed-seed-002",
+          "dependency_status": {
+            "gray_ready": true,
+            "edge_sync_ready": true,
+            "base_library_ready": true
+          }
+        }
+      ]
+    }
+    ```
+  - 200 envelope:
+    - `items[]` list of per-scope plan results, each with full `plan` fields (`execution_order[]`, `nodes[]`, `blocked_by[]`, `missing_status[]`, `enabled`)
+  - batch rule: if any item is invalid, request returns `400` with indexed error message (`items[i]: ...`)
+
 ## FastAPI Compatibility Layer
 
 File: `src/p0_runtime/fastapi_adapter.py`

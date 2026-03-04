@@ -1689,6 +1689,22 @@ class P0Runtime:
             "enabled": enabled,
         }
 
+    def batch_plan_gray_rollout_dependencies(self, payload: dict) -> list[dict]:
+        items_raw = payload.get("items", [])
+        if not isinstance(items_raw, list):
+            raise ValueError("items must be a list")
+
+        results: list[dict] = []
+        for idx, item in enumerate(items_raw):
+            if not isinstance(item, dict):
+                raise ValueError(f"items[{idx}] must be an object")
+            try:
+                planned = self.plan_gray_rollout_dependencies(dict(item))
+            except ValueError as exc:
+                raise ValueError(f"items[{idx}]: {exc}") from exc
+            results.append(planned)
+        return results
+
     def evaluate_gray_rollout(self, payload: dict) -> dict:
         planned = self.plan_gray_rollout_dependencies(payload)
         return {
