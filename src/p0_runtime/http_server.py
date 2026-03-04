@@ -165,6 +165,19 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                 _json_response(self, 400, error_payload("bad_request", str(exc)))
             return
 
+        if parsed.path == "/api/v1/gray-rollout/plan/batch/cache/ops":
+            query = parse_qs(parsed.query)
+            limit_raw = (query.get("limit", ["20"]) or ["20"])[0]
+            try:
+                _json_response(
+                    self,
+                    200,
+                    ok_payload({"items": self.runtime.list_gray_rollout_batch_plan_cache_operations(limit=limit_raw)}),
+                )
+            except ValueError as exc:
+                _json_response(self, 400, error_payload("bad_request", str(exc)))
+            return
+
         if parsed.path == "/api/v1/runtime/telemetry":
             _json_response(self, 200, ok_payload({"items": self.runtime.list_stream_telemetry()}))
             return

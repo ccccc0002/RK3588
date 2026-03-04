@@ -1643,6 +1643,95 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(get_payload["success"])
         self.assertEqual(128, get_payload["data"]["max_records"])
 
+    def test_gray_rollout_batch_cache_ops_endpoint(self) -> None:
+        self._post(
+            "/api/v1/gray-rollout/policy",
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {},
+                "overrides": [],
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "idempotency_key": "ops-http-001",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "ops-http-seed-001",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
+        self._post(
+            "/api/v1/gray-rollout/plan/batch",
+            {
+                "idempotency_key": "ops-http-002",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t2",
+                        "site_id": "s2",
+                        "box_id": "b2",
+                        "seed": "ops-http-seed-002",
+                        "dependency_status": {"gray_ready": True},
+                    }
+                ],
+            },
+            token=self.viewer_token,
+        )
+        self._post(
+            "/api/v1/gray-rollout/plan/batch/cache/clear",
+            {"dry_run": True, "max_clear_entries": 1},
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/gray-rollout/plan/batch/cache/clear",
+            {"max_clear_entries": 1},
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/gray-rollout/plan/batch/cache/clear",
+            {"max_clear_entries": 2, "reset_counters": True},
+            token=self.operator_token,
+        )
+
+        viewer_status, viewer_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache/ops?limit=5",
+            token=self.viewer_token,
+        )
+        self.assertEqual(403, viewer_status)
+        self.assertFalse(viewer_payload["success"])
+        self.assertEqual("forbidden", viewer_payload["error"]["code"])
+
+        op_status, op_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache/ops?limit=5",
+            token=self.operator_token,
+        )
+        self.assertEqual(200, op_status)
+        self.assertTrue(op_payload["success"])
+        actions = [item["action"] for item in op_payload["data"]["items"]]
+        self.assertIn("gray_rollout.plan_batch.cache.clear.preview", actions)
+        self.assertIn("gray_rollout.plan_batch.cache.clear.blocked", actions)
+        self.assertIn("gray_rollout.plan_batch.cache.clear", actions)
+
+        bad_status, bad_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache/ops?limit=bad",
+            token=self.operator_token,
+        )
+        self.assertEqual(400, bad_status)
+        self.assertFalse(bad_payload["success"])
+        self.assertEqual("bad_request", bad_payload["error"]["code"])
+
     def test_network_policy_endpoints(self) -> None:
         update_status, update_payload = self._post(
             "/api/v1/network/policy",

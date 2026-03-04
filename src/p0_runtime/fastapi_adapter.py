@@ -220,6 +220,22 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 
+    @app.get("/api/v1/gray-rollout/plan/batch/cache/ops")
+    def list_gray_rollout_batch_cache_ops_ep(
+        limit: int = 20,
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(
+            authorization,
+            required_get_action("/api/v1/gray-rollout/plan/batch/cache/ops") or "device:write",
+        )
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload({"items": rt.list_gray_rollout_batch_plan_cache_operations(limit=limit)})
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
     @app.post("/api/v1/auth/token")
     def issue_token_ep(
         payload: dict = Body(default_factory=dict),

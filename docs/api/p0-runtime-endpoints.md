@@ -863,6 +863,18 @@ GB28181 example:
     - `limit` must be integer within `[1, 200]`
     - `include_events` must be boolean-like (`true/false/1/0/yes/no/on/off`)
 
+- `GET /api/v1/gray-rollout/plan/batch/cache/ops`
+  - RBAC: requires `device:write`
+  - query params (optional):
+    - `limit` (default `20`, valid range `1..200`)
+  - 200 envelope:
+    - `items[]` from audit records, filtered by cache clear operation actions:
+      - `gray_rollout.plan_batch.cache.clear.preview`
+      - `gray_rollout.plan_batch.cache.clear.blocked`
+      - `gray_rollout.plan_batch.cache.clear`
+  - validation:
+    - `limit` must be integer within `[1, 200]`
+
 ## FastAPI Compatibility Layer
 
 File: `src/p0_runtime/fastapi_adapter.py`

@@ -2072,6 +2072,63 @@ class P0RuntimeTests(unittest.TestCase):
         records = self.runtime.list_audit_records(limit=20)
         self.assertLessEqual(len(records), 3)
 
+    def test_list_gray_rollout_batch_plan_cache_operations(self) -> None:
+        self.runtime.update_gray_rollout_policy(
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "overrides": [],
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {},
+            }
+        )
+        self.runtime.batch_plan_gray_rollout_dependencies_report(
+            {
+                "idempotency_key": "ops-cache-001",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t1",
+                        "site_id": "s1",
+                        "box_id": "b1",
+                        "seed": "ops-cache-seed-001",
+                        "dependency_status": {"gray_ready": True},
+                    },
+                ],
+            }
+        )
+        self.runtime.batch_plan_gray_rollout_dependencies_report(
+            {
+                "idempotency_key": "ops-cache-002",
+                "continue_on_error": True,
+                "items": [
+                    {
+                        "tenant_id": "t2",
+                        "site_id": "s2",
+                        "box_id": "b2",
+                        "seed": "ops-cache-seed-002",
+                        "dependency_status": {"gray_ready": True},
+                    },
+                ],
+            }
+        )
+        self.runtime.clear_gray_rollout_batch_plan_cache({"dry_run": True, "max_clear_entries": 1})
+        with self.assertRaisesRegex(ValueError, "exceeds max_clear_entries"):
+            self.runtime.clear_gray_rollout_batch_plan_cache({"max_clear_entries": 1})
+        self.runtime.clear_gray_rollout_batch_plan_cache({"max_clear_entries": 2, "reset_counters": True})
+
+        items = self.runtime.list_gray_rollout_batch_plan_cache_operations(limit=10)
+        actions = [item.get("action") for item in items]
+        self.assertIn("gray_rollout.plan_batch.cache.clear.preview", actions)
+        self.assertIn("gray_rollout.plan_batch.cache.clear.blocked", actions)
+        self.assertIn("gray_rollout.plan_batch.cache.clear", actions)
+        self.assertNotIn("device.register", actions)
+
+        with self.assertRaisesRegex(ValueError, "limit must be within \\[1, 200\\]"):
+            self.runtime.list_gray_rollout_batch_plan_cache_operations(limit=0)
+        with self.assertRaisesRegex(ValueError, "limit must be an integer"):
+            self.runtime.list_gray_rollout_batch_plan_cache_operations(limit="bad")
+
     def test_update_and_get_network_policy(self) -> None:
         updated = self.runtime.update_network_policy(
             {

@@ -1528,6 +1528,27 @@ class P0Runtime:
         return items
 
     @staticmethod
+    def _normalize_cache_operations_list_limit(limit: object) -> int:
+        if isinstance(limit, bool):
+            raise ValueError("limit must be an integer")
+        try:
+            value = int(limit)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("limit must be an integer") from exc
+        if value < 1 or value > 200:
+            raise ValueError("limit must be within [1, 200]")
+        return value
+
+    def list_gray_rollout_batch_plan_cache_operations(self, limit: object = 20) -> list[dict]:
+        capped = self._normalize_cache_operations_list_limit(limit)
+        prefix = "gray_rollout.plan_batch.cache.clear"
+        with self._lock:
+            matched = [item for item in self._audit_records if str(item.get("action", "")).startswith(prefix)]
+            tail = matched[-capped:]
+            items = [dict(item) for item in reversed(tail)]
+        return items
+
+    @staticmethod
     def _normalize_audit_policy(payload: dict) -> dict:
         if "max_records" not in payload:
             raise ValueError("missing required field: max_records")
@@ -2064,6 +2085,16 @@ class P0Runtime:
             would_clear_entries = len(self._gray_rollout_batch_plan_cache)
             would_clear_events = len(self._gray_rollout_batch_plan_cache_events)
             if not dry_run and max_clear_entries is not None and would_clear_entries > max_clear_entries:
+                self._append_audit_locked(
+                    "gray_rollout.plan_batch.cache.clear.blocked",
+                    {
+                        "dry_run": dry_run,
+                        "would_clear_entries": would_clear_entries,
+                        "would_clear_events": would_clear_events,
+                        "max_clear_entries": max_clear_entries,
+                        "reason": "would_exceed_max_clear_entries",
+                    },
+                )
                 raise ValueError(
                     f"cache clear blocked: would clear {would_clear_entries} entries exceeds max_clear_entries={max_clear_entries}"
                 )
