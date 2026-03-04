@@ -660,3 +660,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-24-audit-recent-cursor-pagination-validated/20260304-183901
 - Summary: added before_id keyset pagination support to /api/v1/audit/recent with runtime/http/fastapi/docs/openapi parity and local+remote validation
 - Next: continue post-P3 cache/audit operational ergonomics hardening
+
+## [2026-03-04T18:41:44+08:00] P4-iteration-25-audit-recent-validation-hardening-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: c938983
+- Tag: checkpoint/P4-iteration-25-audit-recent-validation-hardening-validated/20260304-184144
+- Summary: enforced [1,200] limit validation for /api/v1/audit/recent and completed before_id cursor pagination contract hardening with local+remote validation
+- Next: continue post-P3 operational audit ergonomics hardening
