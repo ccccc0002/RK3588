@@ -971,6 +971,41 @@ class P0RuntimeTests(unittest.TestCase):
                 }
             )
 
+    def test_gray_rollout_dependency_plan_returns_topology_and_blockers(self) -> None:
+        self.runtime.update_gray_rollout_policy(
+            {
+                "enabled": True,
+                "default_percent": 100,
+                "overrides": [],
+                "dependencies": ["gray_ready"],
+                "dependency_graph": {
+                    "gray_ready": ["edge_sync_ready"],
+                    "edge_sync_ready": ["base_library_ready"],
+                },
+            }
+        )
+
+        plan = self.runtime.plan_gray_rollout_dependencies(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "seed": "dep-plan-seed-001",
+                "dependency_status": {
+                    "gray_ready": True,
+                    "edge_sync_ready": True,
+                    "base_library_ready": False,
+                },
+            }
+        )
+        self.assertEqual(["gray_ready"], plan["dependencies"])
+        self.assertEqual(["base_library_ready", "edge_sync_ready", "gray_ready"], plan["execution_order"])
+        self.assertEqual(["base_library_ready"], plan["blocked_by"])
+        self.assertFalse(plan["enabled"])
+        self.assertEqual("base_library_ready", plan["nodes"][0]["dependency"])
+        self.assertFalse(plan["nodes"][0]["ready"])
+        self.assertEqual(["base_library_ready"], plan["nodes"][0]["blocked_by"])
+
     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
         self.runtime.register_device(
             {

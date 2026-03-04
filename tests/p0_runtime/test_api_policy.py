@@ -55,6 +55,7 @@ class ApiPolicyTests(unittest.TestCase):
         self.assertEqual("device:write", required_post_action("/api/v1/offline-sync/streams/upsert"))
         self.assertEqual("device:write", required_post_action("/api/v1/gray-rollout/policy"))
         self.assertEqual("device:read", required_post_action("/api/v1/gray-rollout/evaluate"))
+        self.assertEqual("device:read", required_post_action("/api/v1/gray-rollout/plan"))
         self.assertEqual("device:read", required_post_action("/api/v1/runtime/schedule"))
         self.assertEqual("device:write", required_post_action("/api/v1/audit/policy"))
         self.assertEqual("device:write", required_post_action("/api/v1/runtime/telemetry"))

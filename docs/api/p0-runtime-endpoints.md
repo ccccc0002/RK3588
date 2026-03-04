@@ -703,6 +703,30 @@ GB28181 example:
   - evaluation rule: `enabled=true` only when policy is enabled and `bucket <= percent`
   - dependency rule: rollout is disabled when any root dependency or graph prerequisite is absent/false in `dependency_status`, and each missing key appears in `blocked_by`
 
+- `POST /api/v1/gray-rollout/plan`
+  - RBAC: requires `device:read`
+  - body:
+    ```json
+    {
+      "tenant_id": "t1",
+      "site_id": "s1",
+      "box_id": "b1",
+      "seed": "fixed-seed-001",
+      "dependency_status": {
+        "gray_ready": true,
+        "edge_sync_ready": true,
+        "base_library_ready": false
+      }
+    }
+    ```
+  - 200 envelope with dependency execution planning:
+    - `dependencies[]` root dependency keys from policy
+    - `execution_order[]` topological order (prerequisites first)
+    - `nodes[]` per-dependency readiness details (`dependency`, `prerequisites[]`, `ready`, `blocked_by[]`)
+    - `blocked_by[]`, `percent`, `bucket`, `enabled`
+  - planning rule: `execution_order[]` is deterministic and derived from policy `dependencies + dependency_graph`
+  - enablement rule: same as evaluate endpoint, `enabled=true` only when rollout percent hit and all planned dependencies are ready
+
 ## FastAPI Compatibility Layer
 
 File: `src/p0_runtime/fastapi_adapter.py`

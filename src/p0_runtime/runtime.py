@@ -1546,7 +1546,92 @@ class P0Runtime:
                 return int(item.get("percent", 0))
         return int(policy.get("default_percent", 0))
 
-    def evaluate_gray_rollout(self, payload: dict) -> dict:
+    @staticmethod
+    def _collect_gray_dependency_closure(dependencies: list[str], dependency_graph: dict[str, list[str]]) -> set[str]:
+        closure: set[str] = set()
+
+        def visit(node: str) -> None:
+            if node in closure:
+                return
+            closure.add(node)
+            for child in dependency_graph.get(node, []):
+                visit(str(child))
+
+        for item in dependencies:
+            visit(str(item))
+        return closure
+
+    @staticmethod
+    def _topo_order_gray_dependencies(dependencies: list[str], dependency_graph: dict[str, list[str]]) -> list[str]:
+        closure = P0Runtime._collect_gray_dependency_closure(dependencies, dependency_graph)
+        if not closure:
+            return []
+
+        in_degree: dict[str, int] = {node: 0 for node in closure}
+        dependents: dict[str, set[str]] = {node: set() for node in closure}
+        for node in closure:
+            prerequisites = [str(dep) for dep in dependency_graph.get(node, []) if str(dep) in closure]
+            in_degree[node] = len(prerequisites)
+            for prerequisite in prerequisites:
+                dependents[prerequisite].add(node)
+
+        ready = sorted([node for node, degree in in_degree.items() if degree == 0])
+        order: list[str] = []
+        while ready:
+            node = ready.pop(0)
+            order.append(node)
+            for dependent in sorted(dependents.get(node, set())):
+                in_degree[dependent] -= 1
+                if in_degree[dependent] == 0:
+                    ready.append(dependent)
+            ready.sort()
+
+        if len(order) != len(closure):
+            raise ValueError("dependency_graph must be acyclic")
+        return order
+
+    @staticmethod
+    def _resolve_gray_dependency_plan(
+        dependencies: list[str],
+        dependency_graph: dict[str, list[str]],
+        dependency_status_raw: dict,
+    ) -> dict:
+        execution_order = P0Runtime._topo_order_gray_dependencies(dependencies, dependency_graph)
+        closure = set(execution_order)
+        blocked_set: set[str] = set()
+        nodes: list[dict] = []
+        for dependency in execution_order:
+            prerequisites = [
+                str(item)
+                for item in dependency_graph.get(dependency, [])
+                if str(item) in closure
+            ]
+            blocked_by = []
+            if not bool(dependency_status_raw.get(dependency, False)):
+                blocked_by.append(dependency)
+            blocked_by.extend(
+                prerequisite
+                for prerequisite in prerequisites
+                if not bool(dependency_status_raw.get(prerequisite, False))
+            )
+            blocked_list = sorted(set(blocked_by))
+            for item in blocked_list:
+                blocked_set.add(item)
+            nodes.append(
+                {
+                    "dependency": dependency,
+                    "prerequisites": prerequisites,
+                    "ready": len(blocked_list) == 0,
+                    "blocked_by": blocked_list,
+                }
+            )
+        return {
+            "execution_order": execution_order,
+            "nodes": nodes,
+            "blocked_by": sorted(blocked_set),
+        }
+
+    def plan_gray_rollout_dependencies(self, payload: dict) -> dict:
         required = ("tenant_id", "site_id", "box_id")
         for field in required:
             if field not in payload:
@@ -1578,23 +1663,12 @@ class P0Runtime:
             str(node): [str(dep) for dep in deps]
             for node, deps in dict(policy.get("dependency_graph", {})).items()
         }
-
-        blocked_set: set[str] = set()
-        visited: set[str] = set()
-
-        def visit_dependency(node: str) -> None:
-            if not bool(dependency_status_raw.get(node, False)):
-                blocked_set.add(node)
-            if node in visited:
-                return
-            visited.add(node)
-            for child in dependency_graph.get(node, []):
-                visit_dependency(str(child))
-
-        for dep in dependencies:
-            visit_dependency(dep)
-
-        blocked_by = sorted(blocked_set)
+        dependency_plan = self._resolve_gray_dependency_plan(
+            dependencies=dependencies,
+            dependency_graph=dependency_graph,
+            dependency_status_raw=dependency_status_raw,
+        )
+        blocked_by = [str(item) for item in dependency_plan["blocked_by"]]
         enabled = bool(policy.get("enabled", False)) and bucket <= percent and not blocked_by
         return {
             "tenant_id": tenant_id,
@@ -1603,8 +1677,24 @@ class P0Runtime:
             "seed": seed,
             "percent": percent,
             "bucket": bucket,
+            "dependencies": dependencies,
+            "execution_order": [str(item) for item in dependency_plan["execution_order"]],
+            "nodes": [dict(item) for item in dependency_plan["nodes"]],
             "blocked_by": blocked_by,
             "enabled": enabled,
+        }
+
+    def evaluate_gray_rollout(self, payload: dict) -> dict:
+        planned = self.plan_gray_rollout_dependencies(payload)
+        return {
+            "tenant_id": str(planned["tenant_id"]),
+            "site_id": str(planned["site_id"]),
+            "box_id": str(planned["box_id"]),
+            "seed": str(planned["seed"]),
+            "percent": int(planned["percent"]),
+            "bucket": int(planned["bucket"]),
+            "blocked_by": [str(item) for item in planned["blocked_by"]],
+            "enabled": bool(planned["enabled"]),
         }
 
     def _is_target_allowed(self, target_url: str) -> bool:

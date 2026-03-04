@@ -701,6 +701,30 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(eval_ok_payload["data"]["enabled"])
         self.assertEqual([], eval_ok_payload["data"]["blocked_by"])
 
+        plan_status, plan_payload = self._post(
+            "/api/v1/gray-rollout/plan",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "seed": "fixed-seed-001",
+                "dependency_status": {
+                    "gray_ready": True,
+                    "edge_sync_ready": True,
+                    "base_library_ready": False,
+                },
+            },
+            token=self.viewer_token,
+        )
+        self.assertEqual(200, plan_status)
+        self.assertTrue(plan_payload["success"])
+        self.assertEqual(["base_library_ready", "edge_sync_ready", "gray_ready"], plan_payload["data"]["execution_order"])
+        self.assertEqual(["base_library_ready"], plan_payload["data"]["blocked_by"])
+        self.assertFalse(plan_payload["data"]["enabled"])
+        self.assertEqual("base_library_ready", plan_payload["data"]["nodes"][0]["dependency"])
+        self.assertFalse(plan_payload["data"]["nodes"][0]["ready"])
+        self.assertEqual(["base_library_ready"], plan_payload["data"]["nodes"][0]["blocked_by"])
+
     def test_offline_jobs_endpoints(self) -> None:
         self._post(
             "/api/v1/offline-executors/upsert",

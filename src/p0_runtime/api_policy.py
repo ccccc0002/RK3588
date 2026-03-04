@@ -95,6 +95,8 @@ def required_post_action(path: str) -> str | None:
         return "device:write"
     if path == "/api/v1/gray-rollout/evaluate":
         return "device:read"
+    if path == "/api/v1/gray-rollout/plan":
+        return "device:read"
     if path == "/api/v1/runtime/schedule":
         return "device:read"
     if path == "/api/v1/audit/policy":

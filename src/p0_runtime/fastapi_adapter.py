@@ -656,6 +656,19 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 
+    @app.post("/api/v1/gray-rollout/plan")
+    def plan_gray_rollout_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, required_post_action("/api/v1/gray-rollout/plan") or "device:read")
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.plan_gray_rollout_dependencies(dict(payload)))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
     @app.post("/api/v1/push/dispatch")
     def dispatch_push_ep(
         payload: dict = Body(default_factory=dict),
