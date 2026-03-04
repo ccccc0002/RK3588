@@ -569,3 +569,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-11-gray-plan-cache-eviction-metrics-validated/20260304-170118
 - Summary: added gray batch cache eviction observability counters with expiry/overflow regression coverage and local+remote validation
 - Next: sync stage/P3-phase2-readiness and iteration-11 checkpoint tags to GitHub, then continue next P4 hardening slice
+
+## [2026-03-04T17:05:37+08:00] P4-iteration-12-runtime-snapshot-cache-observability-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: fef6b2d
+- Tag: checkpoint/P4-iteration-12-runtime-snapshot-cache-observability-validated/20260304-170537
+- Summary: extended runtime snapshot with gray batch cache observability fields and validated runtime/http contract parity on local+remote
+- Next: sync stage/P3-phase2-readiness and iteration-12 checkpoint tags to GitHub, then continue next P4 hardening slice
