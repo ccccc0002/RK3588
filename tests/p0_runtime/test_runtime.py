@@ -1421,6 +1421,11 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(1, metrics["gray_batch_plan_cache_hits"])
         self.assertEqual(1, metrics["gray_batch_plan_cache_misses"])
         self.assertEqual(1, metrics["gray_batch_plan_cache_conflicts"])
+        self.assertEqual(3, metrics["gray_batch_plan_cache_last_minute_requests"])
+        self.assertEqual(1, metrics["gray_batch_plan_cache_last_minute_hits"])
+        self.assertEqual(1, metrics["gray_batch_plan_cache_last_minute_misses"])
+        self.assertEqual(1, metrics["gray_batch_plan_cache_last_minute_conflicts"])
+        self.assertEqual(50, metrics["gray_batch_plan_cache_last_minute_hit_rate_percent"])
 
     def test_gray_rollout_dependency_plan_batch_cache_evicted_expired_metric(self) -> None:
         self.runtime.update_gray_rollout_policy(
@@ -1556,6 +1561,11 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(1, snap["gray_batch_plan_cache_conflicts"])
         self.assertGreaterEqual(snap["gray_batch_plan_cache_evicted_expired"], 0)
         self.assertGreaterEqual(snap["gray_batch_plan_cache_evicted_overflow"], 0)
+        self.assertEqual(3, snap["gray_batch_plan_cache_last_minute_requests"])
+        self.assertEqual(1, snap["gray_batch_plan_cache_last_minute_hits"])
+        self.assertEqual(1, snap["gray_batch_plan_cache_last_minute_misses"])
+        self.assertEqual(1, snap["gray_batch_plan_cache_last_minute_conflicts"])
+        self.assertEqual(50, snap["gray_batch_plan_cache_last_minute_hit_rate_percent"])
 
     def test_batch_mapping_upsert_and_offline_status_update(self) -> None:
         self.runtime.register_device(

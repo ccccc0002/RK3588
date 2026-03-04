@@ -903,6 +903,18 @@ class P0HttpApiTests(unittest.TestCase):
         cache_hits_before = int(metrics_before_payload["data"].get("gray_batch_plan_cache_hits", 0))
         cache_misses_before = int(metrics_before_payload["data"].get("gray_batch_plan_cache_misses", 0))
         cache_conflicts_before = int(metrics_before_payload["data"].get("gray_batch_plan_cache_conflicts", 0))
+        cache_last_minute_requests_before = int(
+            metrics_before_payload["data"].get("gray_batch_plan_cache_last_minute_requests", 0)
+        )
+        cache_last_minute_hits_before = int(
+            metrics_before_payload["data"].get("gray_batch_plan_cache_last_minute_hits", 0)
+        )
+        cache_last_minute_misses_before = int(
+            metrics_before_payload["data"].get("gray_batch_plan_cache_last_minute_misses", 0)
+        )
+        cache_last_minute_conflicts_before = int(
+            metrics_before_payload["data"].get("gray_batch_plan_cache_last_minute_conflicts", 0)
+        )
 
         batch_plan_idem_status, batch_plan_idem_payload = self._post(
             "/api/v1/gray-rollout/plan/batch",
@@ -992,6 +1004,30 @@ class P0HttpApiTests(unittest.TestCase):
             cache_conflicts_before + 1,
         )
         self.assertGreaterEqual(int(metrics_after_payload["data"]["gray_batch_plan_cache_entries"]), 1)
+        self.assertGreaterEqual(
+            int(metrics_after_payload["data"]["gray_batch_plan_cache_last_minute_requests"]),
+            cache_last_minute_requests_before + 3,
+        )
+        self.assertGreaterEqual(
+            int(metrics_after_payload["data"]["gray_batch_plan_cache_last_minute_hits"]),
+            cache_last_minute_hits_before + 1,
+        )
+        self.assertGreaterEqual(
+            int(metrics_after_payload["data"]["gray_batch_plan_cache_last_minute_misses"]),
+            cache_last_minute_misses_before + 1,
+        )
+        self.assertGreaterEqual(
+            int(metrics_after_payload["data"]["gray_batch_plan_cache_last_minute_conflicts"]),
+            cache_last_minute_conflicts_before + 1,
+        )
+        self.assertGreaterEqual(
+            int(metrics_after_payload["data"]["gray_batch_plan_cache_last_minute_hit_rate_percent"]),
+            0,
+        )
+        self.assertLessEqual(
+            int(metrics_after_payload["data"]["gray_batch_plan_cache_last_minute_hit_rate_percent"]),
+            100,
+        )
         self.assertIn("gray_batch_plan_cache_evicted_expired", metrics_after_payload["data"])
         self.assertIn("gray_batch_plan_cache_evicted_overflow", metrics_after_payload["data"])
 
@@ -1577,10 +1613,21 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIn("gray_batch_plan_cache_conflicts", payload["data"])
         self.assertIn("gray_batch_plan_cache_evicted_expired", payload["data"])
         self.assertIn("gray_batch_plan_cache_evicted_overflow", payload["data"])
+        self.assertIn("gray_batch_plan_cache_last_minute_requests", payload["data"])
+        self.assertIn("gray_batch_plan_cache_last_minute_hits", payload["data"])
+        self.assertIn("gray_batch_plan_cache_last_minute_misses", payload["data"])
+        self.assertIn("gray_batch_plan_cache_last_minute_conflicts", payload["data"])
+        self.assertIn("gray_batch_plan_cache_last_minute_hit_rate_percent", payload["data"])
         self.assertGreaterEqual(int(payload["data"]["gray_batch_plan_cache_entries"]), 1)
         self.assertGreaterEqual(int(payload["data"]["gray_batch_plan_cache_hits"]), 1)
         self.assertGreaterEqual(int(payload["data"]["gray_batch_plan_cache_misses"]), 1)
         self.assertGreaterEqual(int(payload["data"]["gray_batch_plan_cache_conflicts"]), 1)
+        self.assertGreaterEqual(int(payload["data"]["gray_batch_plan_cache_last_minute_requests"]), 3)
+        self.assertGreaterEqual(int(payload["data"]["gray_batch_plan_cache_last_minute_hits"]), 1)
+        self.assertGreaterEqual(int(payload["data"]["gray_batch_plan_cache_last_minute_misses"]), 1)
+        self.assertGreaterEqual(int(payload["data"]["gray_batch_plan_cache_last_minute_conflicts"]), 1)
+        self.assertGreaterEqual(int(payload["data"]["gray_batch_plan_cache_last_minute_hit_rate_percent"]), 0)
+        self.assertLessEqual(int(payload["data"]["gray_batch_plan_cache_last_minute_hit_rate_percent"]), 100)
 
     def test_auth_guard_requires_bearer_token(self) -> None:
         status, payload = self._get("/api/v1/metrics")

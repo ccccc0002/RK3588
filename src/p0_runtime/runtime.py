@@ -1,12 +1,13 @@
 ﻿from __future__ import annotations
 
+from collections import deque
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import re
 import threading
 from time import perf_counter
-from typing import Callable, Dict, Tuple
+from typing import Callable, Deque, Dict, Tuple
 
 from src.p0_core.ai_scheduler import SchedulePlan, StreamLoad, build_schedule
 from src.p0_core.auth_license import is_action_allowed
@@ -24,6 +25,7 @@ class P0Runtime:
     _GRAY_BATCH_PLAN_CACHE_DEFAULT_TTL_SECONDS = 300
     _GRAY_BATCH_PLAN_CACHE_MAX_TTL_SECONDS = 3600
     _GRAY_BATCH_PLAN_CACHE_MAX_ENTRIES = 512
+    _GRAY_BATCH_PLAN_CACHE_EVENT_RETENTION_SECONDS = 3600
 
     def __init__(
         self,
@@ -91,6 +93,7 @@ class P0Runtime:
         self._gray_rollout_policy = self._normalize_gray_rollout_policy(dict(self._gray_rollout_policy))
         self._stream_telemetry: Dict[tuple[str, str, str, str], dict] = {}
         self._gray_rollout_batch_plan_cache: Dict[str, dict] = {}
+        self._gray_rollout_batch_plan_cache_events: Deque[tuple[datetime, str]] = deque()
 
         self._metrics = {
             "dispatch_runs": 0,
@@ -197,6 +200,47 @@ class P0Runtime:
         self._metrics["gray_batch_plan_cache_evicted_overflow"] = (
             int(self._metrics["gray_batch_plan_cache_evicted_overflow"]) + len(overflow_keys)
         )
+
+    def _trim_gray_batch_plan_cache_events_locked(self, now: datetime | None = None) -> None:
+        at = self._now_or(now)
+        cutoff = at - timedelta(seconds=self._GRAY_BATCH_PLAN_CACHE_EVENT_RETENTION_SECONDS)
+        while self._gray_rollout_batch_plan_cache_events:
+            event_at, _ = self._gray_rollout_batch_plan_cache_events[0]
+            if event_at >= cutoff:
+                break
+            self._gray_rollout_batch_plan_cache_events.popleft()
+
+    def _record_gray_batch_plan_cache_event_locked(self, event_type: str, now: datetime | None = None) -> None:
+        at = self._now_or(now)
+        self._gray_rollout_batch_plan_cache_events.append((at, str(event_type)))
+        self._trim_gray_batch_plan_cache_events_locked(now=at)
+
+    def _gray_batch_plan_cache_last_minute_stats_locked(self, now: datetime | None = None) -> dict:
+        at = self._now_or(now)
+        self._trim_gray_batch_plan_cache_events_locked(now=at)
+        cutoff = at - timedelta(seconds=60)
+        hits = 0
+        misses = 0
+        conflicts = 0
+        for event_at, event_type in self._gray_rollout_batch_plan_cache_events:
+            if event_at < cutoff:
+                continue
+            if event_type == "hit":
+                hits += 1
+            elif event_type == "miss":
+                misses += 1
+            elif event_type == "conflict":
+                conflicts += 1
+        requests = hits + misses + conflicts
+        denominator = hits + misses
+        hit_rate_percent = int(round((float(hits) / float(denominator)) * 100.0)) if denominator > 0 else 0
+        return {
+            "gray_batch_plan_cache_last_minute_requests": requests,
+            "gray_batch_plan_cache_last_minute_hits": hits,
+            "gray_batch_plan_cache_last_minute_misses": misses,
+            "gray_batch_plan_cache_last_minute_conflicts": conflicts,
+            "gray_batch_plan_cache_last_minute_hit_rate_percent": max(0, min(100, hit_rate_percent)),
+        }
 
     def _update_queue_peak_locked(self) -> None:
         queue_now = len(self._push_state.tasks)
@@ -1801,12 +1845,15 @@ class P0Runtime:
                         self._metrics["gray_batch_plan_cache_conflicts"] = (
                             int(self._metrics["gray_batch_plan_cache_conflicts"]) + 1
                         )
+                        self._record_gray_batch_plan_cache_event_locked("conflict")
                         raise ValueError("idempotency_key conflict with different payload")
                     cached_report = dict(cached.get("report", {}))
                     cached_report["cache_hit"] = True
                     self._metrics["gray_batch_plan_cache_hits"] = int(self._metrics["gray_batch_plan_cache_hits"]) + 1
+                    self._record_gray_batch_plan_cache_event_locked("hit")
                     return cached_report
                 self._metrics["gray_batch_plan_cache_misses"] = int(self._metrics["gray_batch_plan_cache_misses"]) + 1
+                self._record_gray_batch_plan_cache_event_locked("miss")
         items_raw = payload.get("items", [])
         if not isinstance(items_raw, list):
             raise ValueError("items must be a list")
@@ -2192,6 +2239,7 @@ class P0Runtime:
         storage = self._storage
         with self._lock:
             self._evict_gray_batch_plan_cache_locked()
+            cache_last_minute = self._gray_batch_plan_cache_last_minute_stats_locked()
             data = dict(self._metrics)
             data["queue_current"] = len(self._push_state.tasks)
             data["dead_letter_current"] = len(self._push_state.dead_letters)
@@ -2203,6 +2251,21 @@ class P0Runtime:
             data["offline_job_count"] = len(self._offline_jobs)
             data["telemetry_count"] = len(self._stream_telemetry)
             data["gray_batch_plan_cache_entries"] = len(self._gray_rollout_batch_plan_cache)
+            data["gray_batch_plan_cache_last_minute_requests"] = int(
+                cache_last_minute.get("gray_batch_plan_cache_last_minute_requests", 0)
+            )
+            data["gray_batch_plan_cache_last_minute_hits"] = int(
+                cache_last_minute.get("gray_batch_plan_cache_last_minute_hits", 0)
+            )
+            data["gray_batch_plan_cache_last_minute_misses"] = int(
+                cache_last_minute.get("gray_batch_plan_cache_last_minute_misses", 0)
+            )
+            data["gray_batch_plan_cache_last_minute_conflicts"] = int(
+                cache_last_minute.get("gray_batch_plan_cache_last_minute_conflicts", 0)
+            )
+            data["gray_batch_plan_cache_last_minute_hit_rate_percent"] = int(
+                cache_last_minute.get("gray_batch_plan_cache_last_minute_hit_rate_percent", 0)
+            )
             data["audit_max_records"] = int(self._audit_policy.get("max_records", 2000))
             data["storage_enabled"] = bool(storage is not None)
         if storage is not None:
@@ -2214,6 +2277,7 @@ class P0Runtime:
     def snapshot(self) -> dict:
         with self._lock:
             self._evict_gray_batch_plan_cache_locked()
+            cache_last_minute = self._gray_batch_plan_cache_last_minute_stats_locked()
             sessions = {
                 stream_id: {
                     "state": item.state.value,
@@ -2242,5 +2306,20 @@ class P0Runtime:
                 ),
                 "gray_batch_plan_cache_evicted_overflow": int(
                     self._metrics.get("gray_batch_plan_cache_evicted_overflow", 0)
+                ),
+                "gray_batch_plan_cache_last_minute_requests": int(
+                    cache_last_minute.get("gray_batch_plan_cache_last_minute_requests", 0)
+                ),
+                "gray_batch_plan_cache_last_minute_hits": int(
+                    cache_last_minute.get("gray_batch_plan_cache_last_minute_hits", 0)
+                ),
+                "gray_batch_plan_cache_last_minute_misses": int(
+                    cache_last_minute.get("gray_batch_plan_cache_last_minute_misses", 0)
+                ),
+                "gray_batch_plan_cache_last_minute_conflicts": int(
+                    cache_last_minute.get("gray_batch_plan_cache_last_minute_conflicts", 0)
+                ),
+                "gray_batch_plan_cache_last_minute_hit_rate_percent": int(
+                    cache_last_minute.get("gray_batch_plan_cache_last_minute_hit_rate_percent", 0)
                 ),
             }

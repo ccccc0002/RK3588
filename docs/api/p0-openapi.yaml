@@ -2314,6 +2314,11 @@ components:
         - gray_batch_plan_cache_conflicts
         - gray_batch_plan_cache_evicted_expired
         - gray_batch_plan_cache_evicted_overflow
+        - gray_batch_plan_cache_last_minute_requests
+        - gray_batch_plan_cache_last_minute_hits
+        - gray_batch_plan_cache_last_minute_misses
+        - gray_batch_plan_cache_last_minute_conflicts
+        - gray_batch_plan_cache_last_minute_hit_rate_percent
       properties:
         sessions:
           type: object
@@ -2372,6 +2377,22 @@ components:
         gray_batch_plan_cache_evicted_overflow:
           type: integer
           minimum: 0
+        gray_batch_plan_cache_last_minute_requests:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_last_minute_hits:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_last_minute_misses:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_last_minute_conflicts:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_last_minute_hit_rate_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
 
     RuntimeScheduleRequest:
       type: object
@@ -2820,6 +2841,11 @@ components:
         - gray_batch_plan_cache_conflicts
         - gray_batch_plan_cache_evicted_expired
         - gray_batch_plan_cache_evicted_overflow
+        - gray_batch_plan_cache_last_minute_requests
+        - gray_batch_plan_cache_last_minute_hits
+        - gray_batch_plan_cache_last_minute_misses
+        - gray_batch_plan_cache_last_minute_conflicts
+        - gray_batch_plan_cache_last_minute_hit_rate_percent
         - audit_max_records
         - storage_enabled
         - storage
@@ -2894,6 +2920,22 @@ components:
         gray_batch_plan_cache_evicted_overflow:
           type: integer
           minimum: 0
+        gray_batch_plan_cache_last_minute_requests:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_last_minute_hits:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_last_minute_misses:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_last_minute_conflicts:
+          type: integer
+          minimum: 0
+        gray_batch_plan_cache_last_minute_hit_rate_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
         audit_max_records:
           type: integer
           minimum: 1

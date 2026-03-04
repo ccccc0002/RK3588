@@ -584,6 +584,11 @@ GB28181 example:
     - `gray_batch_plan_cache_conflicts`
     - `gray_batch_plan_cache_evicted_expired`
     - `gray_batch_plan_cache_evicted_overflow`
+    - `gray_batch_plan_cache_last_minute_requests`
+    - `gray_batch_plan_cache_last_minute_hits`
+    - `gray_batch_plan_cache_last_minute_misses`
+    - `gray_batch_plan_cache_last_minute_conflicts`
+    - `gray_batch_plan_cache_last_minute_hit_rate_percent`
 
 - `GET /api/v1/metrics`
   - 200 envelope with dispatch/worker metrics and storage stats (`storage_enabled`, `storage`)
@@ -595,6 +600,11 @@ GB28181 example:
     - `gray_batch_plan_cache_conflicts`
     - `gray_batch_plan_cache_evicted_expired`
     - `gray_batch_plan_cache_evicted_overflow`
+    - `gray_batch_plan_cache_last_minute_requests`
+    - `gray_batch_plan_cache_last_minute_hits`
+    - `gray_batch_plan_cache_last_minute_misses`
+    - `gray_batch_plan_cache_last_minute_conflicts`
+    - `gray_batch_plan_cache_last_minute_hit_rate_percent` (`hits/(hits+misses)`, integer percent in `0..100`)
 
 - `POST /api/v1/runtime/schedule`
   - body: `{ "budget": 10.0 }`
