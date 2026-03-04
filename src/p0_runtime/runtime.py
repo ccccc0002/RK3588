@@ -2509,6 +2509,7 @@ class P0Runtime:
         with self._lock:
             self._evict_gray_batch_plan_cache_locked()
             cache_last_minute = self._gray_batch_plan_cache_last_minute_stats_locked()
+            policy_default_max_clear_entries = self._gray_rollout_batch_plan_cache_policy.get("default_max_clear_entries")
             data = dict(self._metrics)
             data["queue_current"] = len(self._push_state.tasks)
             data["dead_letter_current"] = len(self._push_state.dead_letters)
@@ -2535,6 +2536,8 @@ class P0Runtime:
             data["gray_batch_plan_cache_last_minute_hit_rate_percent"] = int(
                 cache_last_minute.get("gray_batch_plan_cache_last_minute_hit_rate_percent", 0)
             )
+            data["gray_batch_cache_policy_default_max_clear_entries"] = policy_default_max_clear_entries
+            data["gray_batch_cache_policy_enabled"] = policy_default_max_clear_entries is not None
             data["audit_max_records"] = int(self._audit_policy.get("max_records", 2000))
             data["storage_enabled"] = bool(storage is not None)
         if storage is not None:
@@ -2547,6 +2550,7 @@ class P0Runtime:
         with self._lock:
             self._evict_gray_batch_plan_cache_locked()
             cache_last_minute = self._gray_batch_plan_cache_last_minute_stats_locked()
+            policy_default_max_clear_entries = self._gray_rollout_batch_plan_cache_policy.get("default_max_clear_entries")
             sessions = {
                 stream_id: {
                     "state": item.state.value,
@@ -2591,4 +2595,6 @@ class P0Runtime:
                 "gray_batch_plan_cache_last_minute_hit_rate_percent": int(
                     cache_last_minute.get("gray_batch_plan_cache_last_minute_hit_rate_percent", 0)
                 ),
+                "gray_batch_cache_policy_default_max_clear_entries": policy_default_max_clear_entries,
+                "gray_batch_cache_policy_enabled": policy_default_max_clear_entries is not None,
             }

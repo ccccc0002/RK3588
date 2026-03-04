@@ -2451,6 +2451,8 @@ components:
         - gray_batch_plan_cache_last_minute_misses
         - gray_batch_plan_cache_last_minute_conflicts
         - gray_batch_plan_cache_last_minute_hit_rate_percent
+        - gray_batch_cache_policy_default_max_clear_entries
+        - gray_batch_cache_policy_enabled
       properties:
         sessions:
           type: object
@@ -2525,6 +2527,12 @@ components:
           type: integer
           minimum: 0
           maximum: 100
+        gray_batch_cache_policy_default_max_clear_entries:
+          type: integer
+          nullable: true
+          minimum: 1
+        gray_batch_cache_policy_enabled:
+          type: boolean
 
     RuntimeScheduleRequest:
       type: object
@@ -3199,6 +3207,8 @@ components:
         - gray_batch_plan_cache_last_minute_misses
         - gray_batch_plan_cache_last_minute_conflicts
         - gray_batch_plan_cache_last_minute_hit_rate_percent
+        - gray_batch_cache_policy_default_max_clear_entries
+        - gray_batch_cache_policy_enabled
         - audit_max_records
         - storage_enabled
         - storage
@@ -3289,6 +3299,12 @@ components:
           type: integer
           minimum: 0
           maximum: 100
+        gray_batch_cache_policy_default_max_clear_entries:
+          type: integer
+          nullable: true
+          minimum: 1
+        gray_batch_cache_policy_enabled:
+          type: boolean
         audit_max_records:
           type: integer
           minimum: 1

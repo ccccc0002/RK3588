@@ -589,6 +589,9 @@ GB28181 example:
     - `gray_batch_plan_cache_last_minute_misses`
     - `gray_batch_plan_cache_last_minute_conflicts`
     - `gray_batch_plan_cache_last_minute_hit_rate_percent`
+    - cache clear policy observability:
+      - `gray_batch_cache_policy_default_max_clear_entries` (`null` means disabled)
+      - `gray_batch_cache_policy_enabled`
 
 - `GET /api/v1/metrics`
   - 200 envelope with dispatch/worker metrics and storage stats (`storage_enabled`, `storage`)
@@ -605,6 +608,9 @@ GB28181 example:
     - `gray_batch_plan_cache_last_minute_misses`
     - `gray_batch_plan_cache_last_minute_conflicts`
     - `gray_batch_plan_cache_last_minute_hit_rate_percent` (`hits/(hits+misses)`, integer percent in `0..100`)
+    - cache clear policy observability:
+      - `gray_batch_cache_policy_default_max_clear_entries` (`null` means disabled)
+      - `gray_batch_cache_policy_enabled`
 
 - `POST /api/v1/runtime/schedule`
   - body: `{ "budget": 10.0 }`

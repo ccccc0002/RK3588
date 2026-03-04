@@ -900,6 +900,8 @@ class P0HttpApiTests(unittest.TestCase):
         metrics_before_status, metrics_before_payload = self._get("/api/v1/metrics", token=self.viewer_token)
         self.assertEqual(200, metrics_before_status)
         self.assertTrue(metrics_before_payload["success"])
+        self.assertIn("gray_batch_cache_policy_default_max_clear_entries", metrics_before_payload["data"])
+        self.assertIn("gray_batch_cache_policy_enabled", metrics_before_payload["data"])
         cache_hits_before = int(metrics_before_payload["data"].get("gray_batch_plan_cache_hits", 0))
         cache_misses_before = int(metrics_before_payload["data"].get("gray_batch_plan_cache_misses", 0))
         cache_conflicts_before = int(metrics_before_payload["data"].get("gray_batch_plan_cache_conflicts", 0))
@@ -1030,6 +1032,8 @@ class P0HttpApiTests(unittest.TestCase):
         )
         self.assertIn("gray_batch_plan_cache_evicted_expired", metrics_after_payload["data"])
         self.assertIn("gray_batch_plan_cache_evicted_overflow", metrics_after_payload["data"])
+        self.assertIn("gray_batch_cache_policy_default_max_clear_entries", metrics_after_payload["data"])
+        self.assertIn("gray_batch_cache_policy_enabled", metrics_after_payload["data"])
 
         batch_plan_ttl_requires_key_status, batch_plan_ttl_requires_key_payload = self._post(
             "/api/v1/gray-rollout/plan/batch",
@@ -1908,6 +1912,11 @@ class P0HttpApiTests(unittest.TestCase):
 
     def test_runtime_snapshot_includes_gray_batch_cache_observability(self) -> None:
         self._post(
+            "/api/v1/gray-rollout/plan/batch/cache/policy",
+            {"default_max_clear_entries": 9},
+            token=self.operator_token,
+        )
+        self._post(
             "/api/v1/gray-rollout/policy",
             {
                 "enabled": True,
@@ -1993,6 +2002,10 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertGreaterEqual(int(payload["data"]["gray_batch_plan_cache_last_minute_conflicts"]), 1)
         self.assertGreaterEqual(int(payload["data"]["gray_batch_plan_cache_last_minute_hit_rate_percent"]), 0)
         self.assertLessEqual(int(payload["data"]["gray_batch_plan_cache_last_minute_hit_rate_percent"]), 100)
+        self.assertIn("gray_batch_cache_policy_default_max_clear_entries", payload["data"])
+        self.assertIn("gray_batch_cache_policy_enabled", payload["data"])
+        self.assertEqual(9, int(payload["data"]["gray_batch_cache_policy_default_max_clear_entries"]))
+        self.assertTrue(payload["data"]["gray_batch_cache_policy_enabled"])
 
     def test_auth_guard_requires_bearer_token(self) -> None:
         status, payload = self._get("/api/v1/metrics")

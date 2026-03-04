@@ -1426,6 +1426,8 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(1, metrics["gray_batch_plan_cache_last_minute_misses"])
         self.assertEqual(1, metrics["gray_batch_plan_cache_last_minute_conflicts"])
         self.assertEqual(50, metrics["gray_batch_plan_cache_last_minute_hit_rate_percent"])
+        self.assertIsNone(metrics["gray_batch_cache_policy_default_max_clear_entries"])
+        self.assertFalse(metrics["gray_batch_cache_policy_enabled"])
 
     def test_gray_rollout_dependency_plan_batch_cache_evicted_expired_metric(self) -> None:
         self.runtime.update_gray_rollout_policy(
@@ -1513,6 +1515,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertGreaterEqual(metrics["gray_batch_plan_cache_evicted_overflow"], 1)
 
     def test_snapshot_includes_gray_batch_cache_observability(self) -> None:
+        self.runtime.update_gray_rollout_batch_plan_cache_policy({"default_max_clear_entries": 9})
         self.runtime.update_gray_rollout_policy(
             {
                 "enabled": True,
@@ -1566,6 +1569,8 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(1, snap["gray_batch_plan_cache_last_minute_misses"])
         self.assertEqual(1, snap["gray_batch_plan_cache_last_minute_conflicts"])
         self.assertEqual(50, snap["gray_batch_plan_cache_last_minute_hit_rate_percent"])
+        self.assertEqual(9, snap["gray_batch_cache_policy_default_max_clear_entries"])
+        self.assertTrue(snap["gray_batch_cache_policy_enabled"])
 
     def test_clear_gray_rollout_batch_plan_cache(self) -> None:
         self.runtime.update_gray_rollout_policy(
