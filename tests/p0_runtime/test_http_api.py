@@ -589,6 +589,45 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertFalse(payload["success"])
         self.assertEqual("forbidden", payload["error"]["code"])
 
+    def test_p2_write_endpoints_reject_viewer_role(self) -> None:
+        p2_write_cases = [
+            ("/api/v1/base-libraries/upsert", {"library_id": "x", "version": "1", "capability": "face", "status": "active"}),
+            (
+                "/api/v1/base-libraries/mappings/upsert",
+                {
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "device_id": "cam-1",
+                    "capability": "face",
+                    "library_id": "lib-face-core",
+                    "library_version": "2026.03",
+                },
+            ),
+            (
+                "/api/v1/offline-jobs/create",
+                {
+                    "job_id": "job-viewer-forbidden",
+                    "source_scope": {"tenant_id": "t1", "site_id": "s1"},
+                    "algorithm_id": "any",
+                    "algorithm_version": "1.0.0",
+                },
+            ),
+            (
+                "/api/v1/offline-jobs/status",
+                {
+                    "job_id": "job-viewer-forbidden",
+                    "status": "running",
+                },
+            ),
+        ]
+
+        for path, body in p2_write_cases:
+            status, payload = self._post(path, body, token=self.viewer_token)
+            self.assertEqual(403, status)
+            self.assertFalse(payload["success"])
+            self.assertEqual("forbidden", payload["error"]["code"])
+
 
 if __name__ == "__main__":
     unittest.main()
