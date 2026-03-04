@@ -2846,6 +2846,10 @@ components:
       type: object
       additionalProperties: true
       properties:
+        dry_run:
+          type: boolean
+          default: false
+          description: Preview cache-clear impact without mutating cache or counters.
         reset_counters:
           type: boolean
           default: false
@@ -2854,9 +2858,13 @@ components:
     GrayRolloutPlanBatchCacheClearData:
       type: object
       required:
+        - dry_run
         - cleared_entries
         - cleared_events
+        - would_clear_entries
+        - would_clear_events
         - reset_counters
+        - reset_counters_applied
         - cleared_at
         - gray_batch_plan_cache_entries
         - gray_batch_plan_cache_hits
@@ -2870,13 +2878,23 @@ components:
         - gray_batch_plan_cache_last_minute_conflicts
         - gray_batch_plan_cache_last_minute_hit_rate_percent
       properties:
+        dry_run:
+          type: boolean
         cleared_entries:
           type: integer
           minimum: 0
         cleared_events:
           type: integer
           minimum: 0
+        would_clear_entries:
+          type: integer
+          minimum: 0
+        would_clear_events:
+          type: integer
+          minimum: 0
         reset_counters:
+          type: boolean
+        reset_counters_applied:
           type: boolean
         cleared_at:
           type: string

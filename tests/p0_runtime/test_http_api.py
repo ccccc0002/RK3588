@@ -1130,6 +1130,20 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertFalse(clear_forbidden_payload["success"])
         self.assertEqual("forbidden", clear_forbidden_payload["error"]["code"])
 
+        dry_run_status, dry_run_payload = self._post(
+            "/api/v1/gray-rollout/plan/batch/cache/clear",
+            {"dry_run": True, "reset_counters": True},
+            token=self.operator_token,
+        )
+        self.assertEqual(200, dry_run_status)
+        self.assertTrue(dry_run_payload["success"])
+        self.assertTrue(dry_run_payload["data"]["dry_run"])
+        self.assertEqual(0, int(dry_run_payload["data"]["cleared_entries"]))
+        self.assertEqual(0, int(dry_run_payload["data"]["cleared_events"]))
+        self.assertGreaterEqual(int(dry_run_payload["data"]["would_clear_entries"]), 1)
+        self.assertFalse(dry_run_payload["data"]["reset_counters_applied"])
+        self.assertGreaterEqual(int(dry_run_payload["data"]["gray_batch_plan_cache_entries"]), 1)
+
         clear_status, clear_payload = self._post(
             "/api/v1/gray-rollout/plan/batch/cache/clear",
             {"reset_counters": True},
@@ -1137,7 +1151,9 @@ class P0HttpApiTests(unittest.TestCase):
         )
         self.assertEqual(200, clear_status)
         self.assertTrue(clear_payload["success"])
+        self.assertFalse(clear_payload["data"]["dry_run"])
         self.assertTrue(clear_payload["data"]["reset_counters"])
+        self.assertTrue(clear_payload["data"]["reset_counters_applied"])
         self.assertGreaterEqual(int(clear_payload["data"]["cleared_entries"]), 1)
         self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_entries"])
         self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_hits"])

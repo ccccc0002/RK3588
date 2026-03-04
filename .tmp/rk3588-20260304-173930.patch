@@ -1,0 +1,229 @@
+diff --git a/docs/api/p0-openapi.yaml b/docs/api/p0-openapi.yaml
+index 84cad9e..c2a778e 100644
+--- a/docs/api/p0-openapi.yaml
++++ b/docs/api/p0-openapi.yaml
+@@ -2846,6 +2846,10 @@ components:
+       type: object
+       additionalProperties: true
+       properties:
++        dry_run:
++          type: boolean
++          default: false
++          description: Preview cache-clear impact without mutating cache or counters.
+         reset_counters:
+           type: boolean
+           default: false
+@@ -2854,9 +2858,13 @@ components:
+     GrayRolloutPlanBatchCacheClearData:
+       type: object
+       required:
++        - dry_run
+         - cleared_entries
+         - cleared_events
++        - would_clear_entries
++        - would_clear_events
+         - reset_counters
++        - reset_counters_applied
+         - cleared_at
+         - gray_batch_plan_cache_entries
+         - gray_batch_plan_cache_hits
+@@ -2870,14 +2878,24 @@ components:
+         - gray_batch_plan_cache_last_minute_conflicts
+         - gray_batch_plan_cache_last_minute_hit_rate_percent
+       properties:
++        dry_run:
++          type: boolean
+         cleared_entries:
+           type: integer
+           minimum: 0
+         cleared_events:
+           type: integer
+           minimum: 0
++        would_clear_entries:
++          type: integer
++          minimum: 0
++        would_clear_events:
++          type: integer
++          minimum: 0
+         reset_counters:
+           type: boolean
++        reset_counters_applied:
++          type: boolean
+         cleared_at:
+           type: string
+           format: date-time
+diff --git a/docs/api/p0-runtime-endpoints.md b/docs/api/p0-runtime-endpoints.md
+index fee7dd0..f14bf5e 100644
+--- a/docs/api/p0-runtime-endpoints.md
++++ b/docs/api/p0-runtime-endpoints.md
+@@ -814,11 +814,15 @@ GB28181 example:
+   - body (optional):
+     ```json
+     {
++      "dry_run": false,
+       "reset_counters": true
+     }
+     ```
+   - 200 envelope:
+-    - `cleared_entries`, `cleared_events`, `reset_counters`, `cleared_at`
++    - `dry_run`
++    - `cleared_entries`, `cleared_events` (actual cleared values)
++    - `would_clear_entries`, `would_clear_events` (pre-clear snapshot)
++    - `reset_counters`, `reset_counters_applied`, `cleared_at`
+     - post-clear cache counters:
+       - `gray_batch_plan_cache_entries`
+       - `gray_batch_plan_cache_hits`
+@@ -834,6 +838,9 @@ GB28181 example:
+   - clear rule:
+     - always clears in-memory idempotency cache entries and minute-window cache events
+     - when `reset_counters=true`, cumulative cache metrics counters are reset to `0`
++  - dry-run rule:
++    - when `dry_run=true`, no cache entries/events or counters are changed
++    - response still returns `would_clear_entries` / `would_clear_events` for operational preview
+ 
+ ## FastAPI Compatibility Layer
+ 
+diff --git a/src/p0_runtime/runtime.py b/src/p0_runtime/runtime.py
+index 57d543b..0906065 100644
+--- a/src/p0_runtime/runtime.py
++++ b/src/p0_runtime/runtime.py
+@@ -1960,13 +1960,20 @@ class P0Runtime:
+     def clear_gray_rollout_batch_plan_cache(self, payload: dict | None = None) -> dict:
+         source = dict(payload or {})
+         reset_counters = bool(source.get("reset_counters", False))
++        dry_run = bool(source.get("dry_run", False))
+         with self._lock:
+             self._evict_gray_batch_plan_cache_locked()
+-            cleared_entries = len(self._gray_rollout_batch_plan_cache)
+-            cleared_events = len(self._gray_rollout_batch_plan_cache_events)
+-            self._gray_rollout_batch_plan_cache.clear()
+-            self._gray_rollout_batch_plan_cache_events.clear()
+-            if reset_counters:
++            would_clear_entries = len(self._gray_rollout_batch_plan_cache)
++            would_clear_events = len(self._gray_rollout_batch_plan_cache_events)
++            cleared_entries = 0
++            cleared_events = 0
++            reset_counters_applied = False
++            if not dry_run:
++                cleared_entries = would_clear_entries
++                cleared_events = would_clear_events
++                self._gray_rollout_batch_plan_cache.clear()
++                self._gray_rollout_batch_plan_cache_events.clear()
++            if reset_counters and not dry_run:
+                 for key in (
+                     "gray_batch_plan_cache_hits",
+                     "gray_batch_plan_cache_misses",
+@@ -1975,12 +1982,17 @@ class P0Runtime:
+                     "gray_batch_plan_cache_evicted_overflow",
+                 ):
+                     self._metrics[key] = 0
++                reset_counters_applied = True
+             cache_last_minute = self._gray_batch_plan_cache_last_minute_stats_locked()
+             cleared_at = self._now_or(None).isoformat()
+             result = {
+                 "cleared_entries": cleared_entries,
+                 "cleared_events": cleared_events,
++                "would_clear_entries": would_clear_entries,
++                "would_clear_events": would_clear_events,
++                "dry_run": dry_run,
+                 "reset_counters": reset_counters,
++                "reset_counters_applied": reset_counters_applied,
+                 "cleared_at": cleared_at,
+                 "gray_batch_plan_cache_entries": len(self._gray_rollout_batch_plan_cache),
+                 "gray_batch_plan_cache_hits": int(self._metrics.get("gray_batch_plan_cache_hits", 0)),
+@@ -2009,11 +2021,15 @@ class P0Runtime:
+                 ),
+             }
+             self._append_audit_locked(
+-                "gray_rollout.plan_batch.cache.clear",
++                "gray_rollout.plan_batch.cache.clear.preview" if dry_run else "gray_rollout.plan_batch.cache.clear",
+                 {
++                    "dry_run": dry_run,
+                     "cleared_entries": cleared_entries,
+                     "cleared_events": cleared_events,
++                    "would_clear_entries": would_clear_entries,
++                    "would_clear_events": would_clear_events,
+                     "reset_counters": reset_counters,
++                    "reset_counters_applied": reset_counters_applied,
+                     "cleared_at": cleared_at,
+                 },
+             )
+diff --git a/tests/p0_runtime/test_http_api.py b/tests/p0_runtime/test_http_api.py
+index 2629fc2..f0a19f5 100644
+--- a/tests/p0_runtime/test_http_api.py
++++ b/tests/p0_runtime/test_http_api.py
+@@ -1130,6 +1130,20 @@ class P0HttpApiTests(unittest.TestCase):
+         self.assertFalse(clear_forbidden_payload["success"])
+         self.assertEqual("forbidden", clear_forbidden_payload["error"]["code"])
+ 
++        dry_run_status, dry_run_payload = self._post(
++            "/api/v1/gray-rollout/plan/batch/cache/clear",
++            {"dry_run": True, "reset_counters": True},
++            token=self.operator_token,
++        )
++        self.assertEqual(200, dry_run_status)
++        self.assertTrue(dry_run_payload["success"])
++        self.assertTrue(dry_run_payload["data"]["dry_run"])
++        self.assertEqual(0, int(dry_run_payload["data"]["cleared_entries"]))
++        self.assertEqual(0, int(dry_run_payload["data"]["cleared_events"]))
++        self.assertGreaterEqual(int(dry_run_payload["data"]["would_clear_entries"]), 1)
++        self.assertFalse(dry_run_payload["data"]["reset_counters_applied"])
++        self.assertGreaterEqual(int(dry_run_payload["data"]["gray_batch_plan_cache_entries"]), 1)
++
+         clear_status, clear_payload = self._post(
+             "/api/v1/gray-rollout/plan/batch/cache/clear",
+             {"reset_counters": True},
+@@ -1137,7 +1151,9 @@ class P0HttpApiTests(unittest.TestCase):
+         )
+         self.assertEqual(200, clear_status)
+         self.assertTrue(clear_payload["success"])
++        self.assertFalse(clear_payload["data"]["dry_run"])
+         self.assertTrue(clear_payload["data"]["reset_counters"])
++        self.assertTrue(clear_payload["data"]["reset_counters_applied"])
+         self.assertGreaterEqual(int(clear_payload["data"]["cleared_entries"]), 1)
+         self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_entries"])
+         self.assertEqual(0, clear_payload["data"]["gray_batch_plan_cache_hits"])
+diff --git a/tests/p0_runtime/test_runtime.py b/tests/p0_runtime/test_runtime.py
+index f4a7aca..24f1093 100644
+--- a/tests/p0_runtime/test_runtime.py
++++ b/tests/p0_runtime/test_runtime.py
+@@ -1608,10 +1608,29 @@ class P0RuntimeTests(unittest.TestCase):
+                     ],
+                 }
+             )
++        dry_run_result = self.runtime.clear_gray_rollout_batch_plan_cache(
++            {"dry_run": True, "reset_counters": True}
++        )
++        self.assertTrue(dry_run_result["dry_run"])
++        self.assertEqual(0, dry_run_result["cleared_entries"])
++        self.assertEqual(0, dry_run_result["cleared_events"])
++        self.assertEqual(1, dry_run_result["would_clear_entries"])
++        self.assertGreaterEqual(dry_run_result["would_clear_events"], 3)
++        self.assertTrue(dry_run_result["reset_counters"])
++        self.assertFalse(dry_run_result["reset_counters_applied"])
++        self.assertEqual(1, dry_run_result["gray_batch_plan_cache_entries"])
++        self.assertEqual(1, dry_run_result["gray_batch_plan_cache_hits"])
++        self.assertEqual(1, dry_run_result["gray_batch_plan_cache_misses"])
++        self.assertEqual(1, dry_run_result["gray_batch_plan_cache_conflicts"])
++
+         cleared_no_reset = self.runtime.clear_gray_rollout_batch_plan_cache({"reset_counters": False})
+         self.assertEqual(1, cleared_no_reset["cleared_entries"])
+         self.assertGreaterEqual(cleared_no_reset["cleared_events"], 3)
++        self.assertFalse(cleared_no_reset["dry_run"])
++        self.assertEqual(cleared_no_reset["cleared_entries"], cleared_no_reset["would_clear_entries"])
++        self.assertEqual(cleared_no_reset["cleared_events"], cleared_no_reset["would_clear_events"])
+         self.assertFalse(cleared_no_reset["reset_counters"])
++        self.assertFalse(cleared_no_reset["reset_counters_applied"])
+         self.assertEqual(0, cleared_no_reset["gray_batch_plan_cache_entries"])
+         self.assertEqual(1, cleared_no_reset["gray_batch_plan_cache_hits"])
+         self.assertEqual(1, cleared_no_reset["gray_batch_plan_cache_misses"])
+@@ -1633,7 +1652,9 @@ class P0RuntimeTests(unittest.TestCase):
+             }
+         )
+         cleared_with_reset = self.runtime.clear_gray_rollout_batch_plan_cache({"reset_counters": True})
++        self.assertFalse(cleared_with_reset["dry_run"])
+         self.assertTrue(cleared_with_reset["reset_counters"])
++        self.assertTrue(cleared_with_reset["reset_counters_applied"])
+         self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_entries"])
+         self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_hits"])
+         self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_misses"])

@@ -1960,13 +1960,20 @@ class P0Runtime:
     def clear_gray_rollout_batch_plan_cache(self, payload: dict | None = None) -> dict:
         source = dict(payload or {})
         reset_counters = bool(source.get("reset_counters", False))
+        dry_run = bool(source.get("dry_run", False))
         with self._lock:
             self._evict_gray_batch_plan_cache_locked()
-            cleared_entries = len(self._gray_rollout_batch_plan_cache)
-            cleared_events = len(self._gray_rollout_batch_plan_cache_events)
-            self._gray_rollout_batch_plan_cache.clear()
-            self._gray_rollout_batch_plan_cache_events.clear()
-            if reset_counters:
+            would_clear_entries = len(self._gray_rollout_batch_plan_cache)
+            would_clear_events = len(self._gray_rollout_batch_plan_cache_events)
+            cleared_entries = 0
+            cleared_events = 0
+            reset_counters_applied = False
+            if not dry_run:
+                cleared_entries = would_clear_entries
+                cleared_events = would_clear_events
+                self._gray_rollout_batch_plan_cache.clear()
+                self._gray_rollout_batch_plan_cache_events.clear()
+            if reset_counters and not dry_run:
                 for key in (
                     "gray_batch_plan_cache_hits",
                     "gray_batch_plan_cache_misses",
@@ -1975,12 +1982,17 @@ class P0Runtime:
                     "gray_batch_plan_cache_evicted_overflow",
                 ):
                     self._metrics[key] = 0
+                reset_counters_applied = True
             cache_last_minute = self._gray_batch_plan_cache_last_minute_stats_locked()
             cleared_at = self._now_or(None).isoformat()
             result = {
                 "cleared_entries": cleared_entries,
                 "cleared_events": cleared_events,
+                "would_clear_entries": would_clear_entries,
+                "would_clear_events": would_clear_events,
+                "dry_run": dry_run,
                 "reset_counters": reset_counters,
+                "reset_counters_applied": reset_counters_applied,
                 "cleared_at": cleared_at,
                 "gray_batch_plan_cache_entries": len(self._gray_rollout_batch_plan_cache),
                 "gray_batch_plan_cache_hits": int(self._metrics.get("gray_batch_plan_cache_hits", 0)),
@@ -2009,11 +2021,15 @@ class P0Runtime:
                 ),
             }
             self._append_audit_locked(
-                "gray_rollout.plan_batch.cache.clear",
+                "gray_rollout.plan_batch.cache.clear.preview" if dry_run else "gray_rollout.plan_batch.cache.clear",
                 {
+                    "dry_run": dry_run,
                     "cleared_entries": cleared_entries,
                     "cleared_events": cleared_events,
+                    "would_clear_entries": would_clear_entries,
+                    "would_clear_events": would_clear_events,
                     "reset_counters": reset_counters,
+                    "reset_counters_applied": reset_counters_applied,
                     "cleared_at": cleared_at,
                 },
             )

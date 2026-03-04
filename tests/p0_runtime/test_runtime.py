@@ -1608,10 +1608,29 @@ class P0RuntimeTests(unittest.TestCase):
                     ],
                 }
             )
+        dry_run_result = self.runtime.clear_gray_rollout_batch_plan_cache(
+            {"dry_run": True, "reset_counters": True}
+        )
+        self.assertTrue(dry_run_result["dry_run"])
+        self.assertEqual(0, dry_run_result["cleared_entries"])
+        self.assertEqual(0, dry_run_result["cleared_events"])
+        self.assertEqual(1, dry_run_result["would_clear_entries"])
+        self.assertGreaterEqual(dry_run_result["would_clear_events"], 3)
+        self.assertTrue(dry_run_result["reset_counters"])
+        self.assertFalse(dry_run_result["reset_counters_applied"])
+        self.assertEqual(1, dry_run_result["gray_batch_plan_cache_entries"])
+        self.assertEqual(1, dry_run_result["gray_batch_plan_cache_hits"])
+        self.assertEqual(1, dry_run_result["gray_batch_plan_cache_misses"])
+        self.assertEqual(1, dry_run_result["gray_batch_plan_cache_conflicts"])
+
         cleared_no_reset = self.runtime.clear_gray_rollout_batch_plan_cache({"reset_counters": False})
         self.assertEqual(1, cleared_no_reset["cleared_entries"])
         self.assertGreaterEqual(cleared_no_reset["cleared_events"], 3)
+        self.assertFalse(cleared_no_reset["dry_run"])
+        self.assertEqual(cleared_no_reset["cleared_entries"], cleared_no_reset["would_clear_entries"])
+        self.assertEqual(cleared_no_reset["cleared_events"], cleared_no_reset["would_clear_events"])
         self.assertFalse(cleared_no_reset["reset_counters"])
+        self.assertFalse(cleared_no_reset["reset_counters_applied"])
         self.assertEqual(0, cleared_no_reset["gray_batch_plan_cache_entries"])
         self.assertEqual(1, cleared_no_reset["gray_batch_plan_cache_hits"])
         self.assertEqual(1, cleared_no_reset["gray_batch_plan_cache_misses"])
@@ -1633,7 +1652,9 @@ class P0RuntimeTests(unittest.TestCase):
             }
         )
         cleared_with_reset = self.runtime.clear_gray_rollout_batch_plan_cache({"reset_counters": True})
+        self.assertFalse(cleared_with_reset["dry_run"])
         self.assertTrue(cleared_with_reset["reset_counters"])
+        self.assertTrue(cleared_with_reset["reset_counters_applied"])
         self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_entries"])
         self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_hits"])
         self.assertEqual(0, cleared_with_reset["gray_batch_plan_cache_misses"])

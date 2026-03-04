@@ -814,11 +814,15 @@ GB28181 example:
   - body (optional):
     ```json
     {
+      "dry_run": false,
       "reset_counters": true
     }
     ```
   - 200 envelope:
-    - `cleared_entries`, `cleared_events`, `reset_counters`, `cleared_at`
+    - `dry_run`
+    - `cleared_entries`, `cleared_events` (actual cleared values)
+    - `would_clear_entries`, `would_clear_events` (pre-clear snapshot)
+    - `reset_counters`, `reset_counters_applied`, `cleared_at`
     - post-clear cache counters:
       - `gray_batch_plan_cache_entries`
       - `gray_batch_plan_cache_hits`
@@ -834,6 +838,9 @@ GB28181 example:
   - clear rule:
     - always clears in-memory idempotency cache entries and minute-window cache events
     - when `reset_counters=true`, cumulative cache metrics counters are reset to `0`
+  - dry-run rule:
+    - when `dry_run=true`, no cache entries/events or counters are changed
+    - response still returns `would_clear_entries` / `would_clear_events` for operational preview
 
 ## FastAPI Compatibility Layer
 
