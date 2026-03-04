@@ -240,3 +240,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P1-iteration-9-policy-enforcement-validated/20260304-112911
 - Summary: validated policy-enforcement iteration on local py3.11 and remote py3.8
 - Next: prepare P1 pre-closure review and remaining hardening backlog
+
+## [2026-03-04T11:31:57+08:00] P1-pre-closure-review-local
+- Branch: stage/P1-capability-enhancement
+- Commit: d7ead05
+- Tag: checkpoint/P1-pre-closure-review-local/20260304-113157
+- Summary: documented P1 pre-closure status, gates, and remaining hardening backlog
+- Next: implement remaining hardening items and issue P1 stage closure checkpoint
