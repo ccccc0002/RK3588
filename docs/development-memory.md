@@ -128,3 +128,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P0-closure-review-local/20260304-095727
 - Summary: completed local P0 closure review with openapi parity and full local test pass; remote py3.8 compatibility remains blocker
 - Next: run unittest suite on remote py3.8 host and then issue final P0 stage-closure checkpoint
+
+## [2026-03-04T10:12:17+08:00] P0-remote-validation-runner
+- Branch: stage/P0-closed-loop
+- Commit: bf49e13
+- Tag: checkpoint/P0-remote-validation-runner/20260304-101217
+- Summary: added remote py3.8 validation runner and documented execution path; blocked on SSH credentials
+- Next: run scripts/run-remote-p0-validation.ps1 with valid remote user/repo path, then finalize P0 stage closure
