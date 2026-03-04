@@ -15,6 +15,8 @@ def required_get_action(path: str) -> str | None:
         return "alert:read"
     if path == "/api/v1/devices":
         return "device:read"
+    if path == "/api/v1/algorithms":
+        return "device:read"
     if path == "/api/v1/push/worker/status":
         return "device:read"
     if path == "/api/v1/audit/recent":
@@ -32,6 +34,8 @@ def required_post_action(path: str) -> str | None:
     if path == "/api/v1/devices/register":
         return "device:write"
     if path == "/api/v1/devices/capabilities":
+        return "device:write"
+    if path == "/api/v1/algorithms/upsert":
         return "device:write"
     if path == "/api/v1/runtime/schedule":
         return "device:read"

@@ -49,6 +49,17 @@ class RuntimeStorage:
             )
             cur.execute(
                 """
+                CREATE TABLE IF NOT EXISTS algorithms (
+                  algorithm_id TEXT NOT NULL,
+                  version TEXT NOT NULL,
+                  record_json TEXT NOT NULL,
+                  updated_at TEXT NOT NULL,
+                  PRIMARY KEY (algorithm_id, version)
+                )
+                """
+            )
+            cur.execute(
+                """
                 CREATE TABLE IF NOT EXISTS push_queue (
                   sequence_no INTEGER NOT NULL,
                   task_id TEXT PRIMARY KEY,
@@ -150,6 +161,38 @@ class RuntimeStorage:
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (key[0], key[1], key[2], key[3], payload, now),
+            )
+            self._conn.commit()
+
+    def load_algorithms(self) -> Dict[Tuple[str, str], dict]:
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT algorithm_id, version, record_json
+                FROM algorithms
+                ORDER BY algorithm_id, version
+                """
+            ).fetchall()
+
+        items: Dict[Tuple[str, str], dict] = {}
+        for row in rows:
+            record = dict(json.loads(row["record_json"]))
+            key = (str(row["algorithm_id"]), str(row["version"]))
+            items[key] = record
+        return items
+
+    def upsert_algorithm(self, record: dict) -> None:
+        key = (str(record["algorithm_id"]), str(record["version"]))
+        payload = json.dumps(record, sort_keys=True, separators=(",", ":"))
+        now = datetime.utcnow().isoformat()
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO algorithms
+                (algorithm_id, version, record_json, updated_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (key[0], key[1], payload, now),
             )
             self._conn.commit()
 
@@ -383,6 +426,7 @@ class RuntimeStorage:
     def stats(self) -> dict:
         with self._lock:
             device_count = int(self._conn.execute("SELECT COUNT(1) FROM devices").fetchone()[0])
+            algorithm_count = int(self._conn.execute("SELECT COUNT(1) FROM algorithms").fetchone()[0])
             push_queue_count = int(self._conn.execute("SELECT COUNT(1) FROM push_queue").fetchone()[0])
             dead_letter_count = int(self._conn.execute("SELECT COUNT(1) FROM push_dead_letters").fetchone()[0])
             event_seen_count = int(self._conn.execute("SELECT COUNT(1) FROM event_seen_keys").fetchone()[0])
@@ -392,6 +436,7 @@ class RuntimeStorage:
         return {
             "db_path": self._db_path,
             "device_count": device_count,
+            "algorithm_count": algorithm_count,
             "push_queue_count": push_queue_count,
             "dead_letter_count": dead_letter_count,
             "event_seen_count": event_seen_count,

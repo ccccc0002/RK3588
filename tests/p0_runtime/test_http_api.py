@@ -134,6 +134,27 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(list_payload["success"])
         self.assertTrue(any(item["device_id"] == "cam-2" for item in list_payload["data"]["items"]))
 
+    def test_algorithm_upsert_and_list_endpoints(self) -> None:
+        upsert_status, upsert_payload = self._post(
+            "/api/v1/algorithms/upsert",
+            {
+                "algorithm_id": "face-detector-http",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, upsert_status)
+        self.assertTrue(upsert_payload["success"])
+        self.assertEqual("face-detector-http", upsert_payload["data"]["algorithm_id"])
+
+        list_status, list_payload = self._get("/api/v1/algorithms", token=self.viewer_token)
+        self.assertEqual(200, list_status)
+        self.assertTrue(list_payload["success"])
+        ids = {(item["algorithm_id"], item["version"]) for item in list_payload["data"]["items"]}
+        self.assertIn(("face-detector-http", "1.0.0"), ids)
+
     def test_register_gb28181_device_endpoint(self) -> None:
         reg_status, reg_payload = self._post(
             "/api/v1/devices/register",

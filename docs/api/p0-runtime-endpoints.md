@@ -151,6 +151,25 @@ GB28181 example:
 - `GET /api/v1/devices`
   - 200: envelope with `{ "items": [ ... ] }`
 
+### Algorithm Repository
+
+- `GET /api/v1/algorithms`
+  - RBAC: requires `device:read`
+  - 200 envelope with `{ "items": [ { "algorithm_id": "...", "version": "...", "status": "draft|active|disabled", "capabilities": [], "updated_at": "..." } ] }`
+
+- `POST /api/v1/algorithms/upsert`
+  - RBAC: requires `device:write`
+  - body:
+    ```json
+    {
+      "algorithm_id": "face-detector",
+      "version": "1.0.0",
+      "status": "active",
+      "capabilities": ["face"]
+    }
+    ```
+  - 200 envelope with upserted algorithm record
+
 ### Viewer sessions
 
 - `POST /api/v1/viewer-sessions/{streamId}/join`

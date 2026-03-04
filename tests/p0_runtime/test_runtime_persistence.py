@@ -53,6 +53,31 @@ class P0RuntimePersistenceTests(unittest.TestCase):
                 if rt2 is not None:
                     rt2.close()
 
+    def test_algorithm_registry_recovers_after_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "runtime.db")
+            rt1 = self._runtime(db_path)
+            rt2 = None
+            try:
+                rt1.upsert_algorithm(
+                    {
+                        "algorithm_id": "detector-a",
+                        "version": "1.0.0",
+                        "status": "active",
+                        "capabilities": ["face"],
+                    }
+                )
+
+                rt2 = self._runtime(db_path)
+                items = rt2.list_algorithms()
+                self.assertEqual(1, len(items))
+                self.assertEqual("detector-a", items[0]["algorithm_id"])
+                self.assertEqual("1.0.0", items[0]["version"])
+            finally:
+                rt1.close()
+                if rt2 is not None:
+                    rt2.close()
+
     def test_push_queue_recovers_after_restart(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "runtime.db")

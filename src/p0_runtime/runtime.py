@@ -34,6 +34,7 @@ class P0Runtime:
         self._event_state: EventState = self._storage.load_event_state() if self._storage else initial_event_state()
         self._push_state: PushState = self._storage.load_push_state() if self._storage else initial_push_state()
         self._devices: Dict[tuple[str, str, str, str], dict] = self._storage.load_devices() if self._storage else {}
+        self._algorithms: Dict[tuple[str, str], dict] = self._storage.load_algorithms() if self._storage else {}
         self._push_worker: PushWorker | None = None
         self._last_capability_schedule: SchedulePlan | None = None
         self._audit_records: list[dict] = self._storage.load_audit_records() if self._storage else []
@@ -205,6 +206,56 @@ class P0Runtime:
         with self._lock:
             items = [dict(item) for item in self._devices.values()]
         items.sort(key=lambda item: (item["tenant_id"], item["site_id"], item["box_id"], item["device_id"]))
+        return items
+
+    @staticmethod
+    def _normalize_algorithm_status(value: str) -> str:
+        status = str(value).strip().lower()
+        if status not in {"draft", "active", "disabled"}:
+            raise ValueError(f"unsupported algorithm status: {status}")
+        return status
+
+    def upsert_algorithm(self, payload: dict) -> dict:
+        required = ("algorithm_id", "version", "status")
+        for field in required:
+            if field not in payload:
+                raise ValueError(f"missing required field: {field}")
+
+        capabilities_raw = payload.get("capabilities", [])
+        if not isinstance(capabilities_raw, list):
+            raise ValueError("capabilities must be a list")
+
+        record = {
+            "algorithm_id": str(payload["algorithm_id"]).strip(),
+            "version": str(payload["version"]).strip(),
+            "status": self._normalize_algorithm_status(str(payload["status"])),
+            "capabilities": [str(item) for item in capabilities_raw],
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if not record["algorithm_id"]:
+            raise ValueError("algorithm_id must not be empty")
+        if not record["version"]:
+            raise ValueError("version must not be empty")
+
+        key = (record["algorithm_id"], record["version"])
+        with self._lock:
+            self._algorithms[key] = record
+            if self._storage:
+                self._storage.upsert_algorithm(record)
+            self._append_audit_locked(
+                "algorithm.upsert",
+                {
+                    "algorithm_id": record["algorithm_id"],
+                    "version": record["version"],
+                    "status": record["status"],
+                },
+            )
+        return dict(record)
+
+    def list_algorithms(self) -> list[dict]:
+        with self._lock:
+            items = [dict(item) for item in self._algorithms.values()]
+        items.sort(key=lambda item: (item["algorithm_id"], item["version"]))
         return items
 
     def list_audit_records(self, limit: int = 20) -> list[dict]:
@@ -542,6 +593,7 @@ class P0Runtime:
             data["queue_current"] = len(self._push_state.tasks)
             data["dead_letter_current"] = len(self._push_state.dead_letters)
             data["device_count"] = len(self._devices)
+            data["algorithm_count"] = len(self._algorithms)
             data["telemetry_count"] = len(self._stream_telemetry)
             data["audit_max_records"] = int(self._audit_policy.get("max_records", 2000))
             data["storage_enabled"] = bool(storage is not None)
@@ -564,6 +616,7 @@ class P0Runtime:
             return {
                 "sessions": sessions,
                 "device_count": len(self._devices),
+                "algorithm_count": len(self._algorithms),
                 "event_dedupe_size": len(self._event_state.seen_keys),
                 "push_queue_size": len(self._push_state.tasks),
                 "dead_letter_size": len(self._push_state.dead_letters),

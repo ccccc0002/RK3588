@@ -72,6 +72,33 @@ class P0RuntimeTests(unittest.TestCase):
         listed = self.runtime.list_devices()
         self.assertEqual({"ocr": True, "face": False}, listed[0]["capabilities"])
 
+    def test_upsert_and_list_algorithms(self) -> None:
+        created = self.runtime.upsert_algorithm(
+            {
+                "algorithm_id": "face-detector",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            }
+        )
+        self.assertEqual("face-detector", created["algorithm_id"])
+        self.assertEqual("1.0.0", created["version"])
+        self.assertEqual("active", created["status"])
+
+        self.runtime.upsert_algorithm(
+            {
+                "algorithm_id": "ocr-engine",
+                "version": "2.1.0",
+                "status": "draft",
+                "capabilities": ["ocr"],
+            }
+        )
+
+        items = self.runtime.list_algorithms()
+        pairs = {(item["algorithm_id"], item["version"]) for item in items}
+        self.assertIn(("face-detector", "1.0.0"), pairs)
+        self.assertIn(("ocr-engine", "2.1.0"), pairs)
+
     def test_capability_schedule_prioritizes_face_stream(self) -> None:
         self.runtime.register_device(
             {

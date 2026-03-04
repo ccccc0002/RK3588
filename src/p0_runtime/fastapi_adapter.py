@@ -84,6 +84,13 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return denied
         return ok_payload({"items": rt.list_devices()})
 
+    @app.get("/api/v1/algorithms")
+    def list_algorithms(authorization: str = Header(default="", alias="Authorization")):
+        denied = _authorize_request(authorization, required_get_action("/api/v1/algorithms") or "device:read")
+        if denied is not None:
+            return denied
+        return ok_payload({"items": rt.list_algorithms()})
+
     @app.get("/api/v1/push/worker/status")
     def push_worker_status(authorization: str = Header(default="", alias="Authorization")):
         denied = _authorize_request(authorization, required_get_action("/api/v1/push/worker/status") or "device:read")
@@ -172,6 +179,19 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
             return denied
         try:
             return ok_payload(rt.update_device_capabilities(dict(payload)))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/algorithms/upsert")
+    def upsert_algorithm_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, required_post_action("/api/v1/algorithms/upsert") or "device:write")
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.upsert_algorithm(dict(payload)))
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 

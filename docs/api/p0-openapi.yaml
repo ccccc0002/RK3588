@@ -117,6 +117,50 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/algorithms:
+    get:
+      tags: [runtime]
+      summary: List algorithm repository metadata
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Algorithm metadata list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlgorithmListEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/algorithms/upsert:
+    post:
+      tags: [runtime]
+      summary: Upsert algorithm repository metadata
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertAlgorithmRequest'
+      responses:
+        '200':
+          description: Upserted algorithm metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlgorithmEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/viewer-sessions/{streamId}/join:
     post:
       tags: [viewer]
@@ -710,6 +754,51 @@ components:
         capabilities:
           $ref: '#/components/schemas/DeviceCapabilities'
 
+    UpsertAlgorithmRequest:
+      type: object
+      required: [algorithm_id, version, status]
+      additionalProperties: true
+      properties:
+        algorithm_id:
+          type: string
+        version:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, disabled]
+        capabilities:
+          type: array
+          items:
+            type: string
+
+    AlgorithmRecord:
+      type: object
+      required: [algorithm_id, version, status, capabilities, updated_at]
+      properties:
+        algorithm_id:
+          type: string
+        version:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, disabled]
+        capabilities:
+          type: array
+          items:
+            type: string
+        updated_at:
+          type: string
+          format: date-time
+
+    AlgorithmListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlgorithmRecord'
+
     DeviceListData:
       type: object
       required: [items]
@@ -874,7 +963,7 @@ components:
 
     RuntimeSnapshotData:
       type: object
-      required: [sessions, device_count, event_dedupe_size, push_queue_size, dead_letter_size]
+      required: [sessions, device_count, algorithm_count, event_dedupe_size, push_queue_size, dead_letter_size]
       properties:
         sessions:
           type: object
@@ -889,6 +978,9 @@ components:
                 type: string
                 format: date-time
         device_count:
+          type: integer
+          minimum: 0
+        algorithm_count:
           type: integer
           minimum: 0
         event_dedupe_size:
@@ -1060,6 +1152,7 @@ components:
         - queue_current
         - dead_letter_current
         - device_count
+        - algorithm_count
         - telemetry_count
         - audit_max_records
         - storage_enabled
@@ -1099,6 +1192,9 @@ components:
         device_count:
           type: integer
           minimum: 0
+        algorithm_count:
+          type: integer
+          minimum: 0
         telemetry_count:
           type: integer
           minimum: 0
@@ -1135,6 +1231,22 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/DeviceListData'
+
+    AlgorithmEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AlgorithmRecord'
+
+    AlgorithmListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AlgorithmListData'
 
     ViewerSessionEnvelope:
       allOf:

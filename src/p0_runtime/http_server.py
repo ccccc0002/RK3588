@@ -94,6 +94,10 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             _json_response(self, 200, ok_payload({"items": self.runtime.list_devices()}))
             return
 
+        if parsed.path == "/api/v1/algorithms":
+            _json_response(self, 200, ok_payload({"items": self.runtime.list_algorithms()}))
+            return
+
         if parsed.path == "/api/v1/push/worker/status":
             _json_response(self, 200, ok_payload(self.runtime.push_worker_status()))
             return
@@ -165,6 +169,11 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
 
             if parsed.path == "/api/v1/devices/capabilities":
                 res = self.runtime.update_device_capabilities(dict(body))
+                _json_response(self, 200, ok_payload(res))
+                return
+
+            if parsed.path == "/api/v1/algorithms/upsert":
+                res = self.runtime.upsert_algorithm(dict(body))
                 _json_response(self, 200, ok_payload(res))
                 return
 
