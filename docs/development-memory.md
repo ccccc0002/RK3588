@@ -100,3 +100,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P0-iteration-10-fastapi-parity/20260303-190233
 - Summary: aligned fastapi adapter with stdlib auth/envelope endpoints and fixed py3.8 forward-ref compatibility
 - Next: prepare P0 closure review and residual security hardening
+
+## [2026-03-04T09:19:38+08:00] P0-iteration-11-policy-centralization
+- Branch: stage/P0-closed-loop
+- Commit: bc0b998
+- Tag: checkpoint/P0-iteration-11-policy-centralization/20260304-091938
+- Summary: centralized runtime API role/action policy shared by stdlib and fastapi adapters
+- Next: P0 closure review with api/openapi documentation alignment
