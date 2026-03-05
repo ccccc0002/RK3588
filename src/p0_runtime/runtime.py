@@ -1570,6 +1570,7 @@ class P0Runtime:
         window_oldest_at = None
         window_time_parseable = None
         window_time_unparseable_count = None
+        window_time_parseable_count = None
         window_time_unparseable_ratio = None
         window_time_parseable_ratio = None
         window_time_span_seconds = None
@@ -1598,6 +1599,7 @@ class P0Runtime:
             window_time_unparseable_count = unparseable_count
             window_time_parseable = unparseable_count == 0
             parseable_count = max(0, int(returned_items) - int(unparseable_count))
+            window_time_parseable_count = parseable_count
             window_time_unparseable_ratio = round(
                 float(unparseable_count) / float(returned_items),
                 6,
@@ -1701,6 +1703,7 @@ class P0Runtime:
             "window_oldest_at": window_oldest_at,
             "window_time_parseable": window_time_parseable,
             "window_time_unparseable_count": window_time_unparseable_count,
+            "window_time_parseable_count": window_time_parseable_count,
             "window_time_unparseable_ratio": window_time_unparseable_ratio,
             "window_time_parseable_ratio": window_time_parseable_ratio,
             "window_time_span_seconds": window_time_span_seconds,
