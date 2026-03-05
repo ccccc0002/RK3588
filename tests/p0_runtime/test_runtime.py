@@ -2180,6 +2180,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(0, int(page["window_time_gap_zero_count"]))
         self.assertEqual(0, int(page["window_time_gap_nonzero_count"]))
         self.assertAlmostEqual(0.0, float(page["window_time_gap_zero_ratio"]), places=6)
+        self.assertAlmostEqual(0.0, float(page["window_time_gap_nonzero_ratio"]), places=6)
         self.assertAlmostEqual(0.0, float(page["window_time_gap_total_seconds"]), places=6)
         self.assertAlmostEqual(
             (
@@ -2290,6 +2291,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertEqual(0, int(page_with_cursor["window_time_gap_zero_count"]))
             self.assertEqual(0, int(page_with_cursor["window_time_gap_nonzero_count"]))
             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_zero_ratio"]), places=6)
+            self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_nonzero_ratio"]), places=6)
             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_total_seconds"]), places=6)
             self.assertAlmostEqual(
                 (
@@ -2335,6 +2337,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["window_time_gap_zero_count"])
             self.assertIsNone(page_with_cursor["window_time_gap_nonzero_count"])
             self.assertIsNone(page_with_cursor["window_time_gap_zero_ratio"])
+            self.assertIsNone(page_with_cursor["window_time_gap_nonzero_ratio"])
             self.assertIsNone(page_with_cursor["window_time_gap_total_seconds"])
             self.assertIsNone(page_with_cursor["window_time_gap_avg_seconds"])
         if page_with_cursor["has_more"]:
@@ -2421,6 +2424,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(0, int(page_with_total["window_time_gap_zero_count"]))
         self.assertEqual(0, int(page_with_total["window_time_gap_nonzero_count"]))
         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_zero_ratio"]), places=6)
+        self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_nonzero_ratio"]), places=6)
         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_total_seconds"]), places=6)
         self.assertAlmostEqual(
             (
