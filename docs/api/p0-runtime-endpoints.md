@@ -650,7 +650,7 @@ GB28181 example:
   - 200 envelope:
     - `items[]` audit records
     - `limit`, `before_id` (request cursor echo, nullable)
-    - `returned_items`, `order` (`id_desc`)
+    - `returned_items`, `snapshot_at`, `order` (`id_desc`)
     - `has_more`, `next_before_id` (`null` when no next page)
     - `next_query` (`null` when no next page; otherwise `{limit,before_id,include_total}`)
     - `total_candidates` (`null` when `include_total=false`)
@@ -897,7 +897,7 @@ GB28181 example:
     - `items[]` from audit records filtered by action:
       - `gray_rollout.plan_batch.cache.policy.update`
     - `limit`, `before_id` (request cursor echo, nullable)
-    - `returned_items`, `order` (`id_desc`)
+    - `returned_items`, `snapshot_at`, `order` (`id_desc`)
     - `has_more`, `next_before_id` (`null` when no next page)
     - `next_query` (`null` when no next page; otherwise `{limit,before_id,include_total}`)
     - `total_candidates` (`null` when `include_total=false`)
@@ -937,7 +937,7 @@ GB28181 example:
       - `gray_rollout.plan_batch.cache.clear.blocked`
       - `gray_rollout.plan_batch.cache.clear`
     - `limit`, `before_id` (request cursor echo, nullable)
-    - `returned_items`, `order` (`id_desc`)
+    - `returned_items`, `snapshot_at`, `order` (`id_desc`)
     - `has_more`, `next_before_id` (`null` when no next page)
     - `next_query` (`null` when no next page; otherwise `{limit,before_id,include_total}`)
     - `total_candidates` (`null` when `include_total=false`)

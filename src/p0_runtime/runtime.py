@@ -1556,7 +1556,10 @@ class P0Runtime:
         capped = self._normalize_cache_operations_list_limit(limit)
         normalized_before_id = self._normalize_audit_before_id(before_id)
         include_total_normalized = self._normalize_audit_include_total(include_total)
+        snapshot_at = self._now_or(None).isoformat()
         items = list_fn(limit=capped, before_id=normalized_before_id)
+        returned_items = len(items)
+        total_candidates = count_fn(normalized_before_id) if include_total_normalized else None
         has_more = False
         next_before_id: int | None = None
         if items:
@@ -1565,15 +1568,16 @@ class P0Runtime:
             except (TypeError, ValueError):
                 candidate_next = None
             if candidate_next is not None and candidate_next > 0:
-                if len(items) >= capped:
+                if include_total_normalized and total_candidates is not None:
+                    has_more = int(total_candidates) > returned_items
+                elif returned_items >= capped:
                     probe = list_fn(limit=1, before_id=candidate_next)
                     has_more = len(probe) > 0
-                    if has_more:
-                        next_before_id = candidate_next
-        total_candidates = count_fn(normalized_before_id) if include_total_normalized else None
+                if has_more:
+                    next_before_id = candidate_next
         remaining_candidates = None
         if total_candidates is not None:
-            remaining_candidates = max(0, int(total_candidates) - len(items))
+            remaining_candidates = max(0, int(total_candidates) - returned_items)
         next_query = None
         if has_more and next_before_id is not None:
             next_query = {
@@ -1585,7 +1589,8 @@ class P0Runtime:
             "items": items,
             "limit": capped,
             "before_id": normalized_before_id,
-            "returned_items": len(items),
+            "returned_items": returned_items,
+            "snapshot_at": snapshot_at,
             "order": "id_desc",
             "has_more": has_more,
             "next_before_id": next_before_id,

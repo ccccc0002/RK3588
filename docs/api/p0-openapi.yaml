@@ -2699,7 +2699,7 @@ components:
 
     AuditListData:
       type: object
-      required: [items, limit, before_id, returned_items, order, has_more, next_before_id, next_query, total_candidates, remaining_candidates]
+      required: [items, limit, before_id, returned_items, snapshot_at, order, has_more, next_before_id, next_query, total_candidates, remaining_candidates]
       properties:
         items:
           type: array
@@ -2716,6 +2716,9 @@ components:
         returned_items:
           type: integer
           minimum: 0
+        snapshot_at:
+          type: string
+          format: date-time
         order:
           type: string
           enum: [id_desc]
