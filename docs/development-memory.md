@@ -681,3 +681,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-27-audit-cursor-navigation-fields-validated/20260305-091850
 - Summary: added before_id echo and order metadata to audit cursor pages across runtime/http/fastapi with docs/openapi updates and local+remote validation
 - Next: continue post-P3 audit pagination usability hardening
+
+## [2026-03-05T09:23:50+08:00] P4-iteration-28-audit-cursor-include-total-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 93bf5a6
+- Tag: checkpoint/P4-iteration-28-audit-cursor-include-total-validated/20260305-092350
+- Summary: added include_total and total_candidates to audit cursor endpoints with runtime/http/fastapi/docs/openapi parity and local+remote validation
+- Next: continue post-P3 audit pagination performance and ergonomics hardening
