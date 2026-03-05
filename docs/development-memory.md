@@ -730,3 +730,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-34-audit-cursor-query-string-validated/20260305-113057
 - Summary: added normalized query_string echo for audit cursor pages with runtime/docs/openapi/test parity and local+remote validation
 - Next: continue post-P3 audit cursor ergonomics and client interop hardening
+
+## [2026-03-05T11:41:44+08:00] P4-iteration-35-audit-cursor-window-span-density-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: b731aff
+- Tag: checkpoint/P4-iteration-35-audit-cursor-window-span-density-validated/20260305-114144
+- Summary: added window_span/dense_window audit cursor metadata with runtime/http/docs/openapi parity and local+remote py3.8 validation
+- Next: continue post-P3 audit cursor ergonomics and client interop hardening
