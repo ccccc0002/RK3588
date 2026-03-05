@@ -1570,6 +1570,7 @@ class P0Runtime:
         window_oldest_at = None
         window_time_span_seconds = None
         window_time_desc_order = None
+        window_time_gap_max_seconds = None
         if items:
             newest_at = items[0].get("at")
             oldest_at = items[-1].get("at")
@@ -1591,6 +1592,14 @@ class P0Runtime:
                 window_time_desc_order = all(
                     parsed_times[i] >= parsed_times[i + 1] for i in range(len(parsed_times) - 1)
                 )
+                if len(parsed_times) == 1:
+                    window_time_gap_max_seconds = 0
+                else:
+                    max_gap = max(
+                        abs((parsed_times[i] - parsed_times[i + 1]).total_seconds())
+                        for i in range(len(parsed_times) - 1)
+                    )
+                    window_time_gap_max_seconds = int(max(0.0, max_gap))
             if window_newest_at is not None and window_oldest_at is not None:
                 try:
                     newest_dt = datetime.fromisoformat(window_newest_at)
@@ -1661,6 +1670,7 @@ class P0Runtime:
             "window_oldest_at": window_oldest_at,
             "window_time_span_seconds": window_time_span_seconds,
             "window_time_desc_order": window_time_desc_order,
+            "window_time_gap_max_seconds": window_time_gap_max_seconds,
             "snapshot_at": snapshot_at,
             "order": "id_desc",
             "has_more": has_more,
