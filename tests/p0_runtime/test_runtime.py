@@ -2166,6 +2166,24 @@ class P0RuntimeTests(unittest.TestCase):
             else 0,
             int(page["window_time_gap_max_seconds"]),
         )
+        self.assertAlmostEqual(
+            (
+                sum(
+                    abs(
+                        (
+                            datetime.fromisoformat(str(page["items"][i]["at"]))
+                            - datetime.fromisoformat(str(page["items"][i + 1]["at"]))
+                        ).total_seconds()
+                    )
+                    for i in range(len(page["items"]) - 1)
+                )
+                / float(len(page["items"]) - 1)
+            )
+            if len(page["items"]) > 1
+            else 0.0,
+            float(page["window_time_gap_avg_seconds"]),
+            places=6,
+        )
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
         self.assertIsNone(page["remaining_candidates"])
@@ -2243,6 +2261,24 @@ class P0RuntimeTests(unittest.TestCase):
                 else 0,
                 int(page_with_cursor["window_time_gap_max_seconds"]),
             )
+            self.assertAlmostEqual(
+                (
+                    sum(
+                        abs(
+                            (
+                                datetime.fromisoformat(str(page_with_cursor["items"][i]["at"]))
+                                - datetime.fromisoformat(str(page_with_cursor["items"][i + 1]["at"]))
+                            ).total_seconds()
+                        )
+                        for i in range(len(page_with_cursor["items"]) - 1)
+                    )
+                    / float(len(page_with_cursor["items"]) - 1)
+                )
+                if len(page_with_cursor["items"]) > 1
+                else 0.0,
+                float(page_with_cursor["window_time_gap_avg_seconds"]),
+                places=6,
+            )
         else:
             self.assertIsNone(page_with_cursor["window_max_id"])
             self.assertIsNone(page_with_cursor["window_min_id"])
@@ -2255,6 +2291,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["window_time_span_seconds"])
             self.assertIsNone(page_with_cursor["window_time_desc_order"])
             self.assertIsNone(page_with_cursor["window_time_gap_max_seconds"])
+            self.assertIsNone(page_with_cursor["window_time_gap_avg_seconds"])
         if page_with_cursor["has_more"]:
             self.assertIsNotNone(page_with_cursor["next_query_string"])
         else:
@@ -2324,6 +2361,24 @@ class P0RuntimeTests(unittest.TestCase):
             if len(page_with_total["items"]) > 1
             else 0,
             int(page_with_total["window_time_gap_max_seconds"]),
+        )
+        self.assertAlmostEqual(
+            (
+                sum(
+                    abs(
+                        (
+                            datetime.fromisoformat(str(page_with_total["items"][i]["at"]))
+                            - datetime.fromisoformat(str(page_with_total["items"][i + 1]["at"]))
+                        ).total_seconds()
+                    )
+                    for i in range(len(page_with_total["items"]) - 1)
+                )
+                / float(len(page_with_total["items"]) - 1)
+            )
+            if len(page_with_total["items"]) > 1
+            else 0.0,
+            float(page_with_total["window_time_gap_avg_seconds"]),
+            places=6,
         )
         self.assertIsNotNone(page_with_total["next_query"])
         self.assertIsNotNone(page_with_total["next_query_string"])
@@ -2458,6 +2513,24 @@ class P0RuntimeTests(unittest.TestCase):
             else 0,
             int(page["window_time_gap_max_seconds"]),
         )
+        self.assertAlmostEqual(
+            (
+                sum(
+                    abs(
+                        (
+                            datetime.fromisoformat(str(page["items"][i]["at"]))
+                            - datetime.fromisoformat(str(page["items"][i + 1]["at"]))
+                        ).total_seconds()
+                    )
+                    for i in range(len(page["items"]) - 1)
+                )
+                / float(len(page["items"]) - 1)
+            )
+            if len(page["items"]) > 1
+            else 0.0,
+            float(page["window_time_gap_avg_seconds"]),
+            places=6,
+        )
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
         self.assertIsNone(page["remaining_candidates"])
@@ -2535,6 +2608,24 @@ class P0RuntimeTests(unittest.TestCase):
                 else 0,
                 int(page_with_cursor["window_time_gap_max_seconds"]),
             )
+            self.assertAlmostEqual(
+                (
+                    sum(
+                        abs(
+                            (
+                                datetime.fromisoformat(str(page_with_cursor["items"][i]["at"]))
+                                - datetime.fromisoformat(str(page_with_cursor["items"][i + 1]["at"]))
+                            ).total_seconds()
+                        )
+                        for i in range(len(page_with_cursor["items"]) - 1)
+                    )
+                    / float(len(page_with_cursor["items"]) - 1)
+                )
+                if len(page_with_cursor["items"]) > 1
+                else 0.0,
+                float(page_with_cursor["window_time_gap_avg_seconds"]),
+                places=6,
+            )
         else:
             self.assertIsNone(page_with_cursor["window_max_id"])
             self.assertIsNone(page_with_cursor["window_min_id"])
@@ -2547,6 +2638,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["window_time_span_seconds"])
             self.assertIsNone(page_with_cursor["window_time_desc_order"])
             self.assertIsNone(page_with_cursor["window_time_gap_max_seconds"])
+            self.assertIsNone(page_with_cursor["window_time_gap_avg_seconds"])
         if page_with_cursor["has_more"]:
             self.assertIsNotNone(page_with_cursor["next_query_string"])
         else:
@@ -2616,6 +2708,24 @@ class P0RuntimeTests(unittest.TestCase):
             if len(page_with_total["items"]) > 1
             else 0,
             int(page_with_total["window_time_gap_max_seconds"]),
+        )
+        self.assertAlmostEqual(
+            (
+                sum(
+                    abs(
+                        (
+                            datetime.fromisoformat(str(page_with_total["items"][i]["at"]))
+                            - datetime.fromisoformat(str(page_with_total["items"][i + 1]["at"]))
+                        ).total_seconds()
+                    )
+                    for i in range(len(page_with_total["items"]) - 1)
+                )
+                / float(len(page_with_total["items"]) - 1)
+            )
+            if len(page_with_total["items"]) > 1
+            else 0.0,
+            float(page_with_total["window_time_gap_avg_seconds"]),
+            places=6,
         )
         self.assertIsNotNone(page_with_total["next_query"])
         self.assertIsNotNone(page_with_total["next_query_string"])
@@ -2778,6 +2888,24 @@ class P0RuntimeTests(unittest.TestCase):
             else 0,
             int(page["window_time_gap_max_seconds"]),
         )
+        self.assertAlmostEqual(
+            (
+                sum(
+                    abs(
+                        (
+                            datetime.fromisoformat(str(page["items"][i]["at"]))
+                            - datetime.fromisoformat(str(page["items"][i + 1]["at"]))
+                        ).total_seconds()
+                    )
+                    for i in range(len(page["items"]) - 1)
+                )
+                / float(len(page["items"]) - 1)
+            )
+            if len(page["items"]) > 1
+            else 0.0,
+            float(page["window_time_gap_avg_seconds"]),
+            places=6,
+        )
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
         self.assertIsNone(page["remaining_candidates"])
@@ -2858,6 +2986,24 @@ class P0RuntimeTests(unittest.TestCase):
                 else 0,
                 int(page_with_cursor["window_time_gap_max_seconds"]),
             )
+            self.assertAlmostEqual(
+                (
+                    sum(
+                        abs(
+                            (
+                                datetime.fromisoformat(str(page_with_cursor["items"][i]["at"]))
+                                - datetime.fromisoformat(str(page_with_cursor["items"][i + 1]["at"]))
+                            ).total_seconds()
+                        )
+                        for i in range(len(page_with_cursor["items"]) - 1)
+                    )
+                    / float(len(page_with_cursor["items"]) - 1)
+                )
+                if len(page_with_cursor["items"]) > 1
+                else 0.0,
+                float(page_with_cursor["window_time_gap_avg_seconds"]),
+                places=6,
+            )
         else:
             self.assertIsNone(page_with_cursor["window_max_id"])
             self.assertIsNone(page_with_cursor["window_min_id"])
@@ -2870,6 +3016,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["window_time_span_seconds"])
             self.assertIsNone(page_with_cursor["window_time_desc_order"])
             self.assertIsNone(page_with_cursor["window_time_gap_max_seconds"])
+            self.assertIsNone(page_with_cursor["window_time_gap_avg_seconds"])
         if page_with_cursor["has_more"]:
             self.assertIsNotNone(page_with_cursor["next_query_string"])
         else:
@@ -2939,6 +3086,24 @@ class P0RuntimeTests(unittest.TestCase):
             if len(page_with_total["items"]) > 1
             else 0,
             int(page_with_total["window_time_gap_max_seconds"]),
+        )
+        self.assertAlmostEqual(
+            (
+                sum(
+                    abs(
+                        (
+                            datetime.fromisoformat(str(page_with_total["items"][i]["at"]))
+                            - datetime.fromisoformat(str(page_with_total["items"][i + 1]["at"]))
+                        ).total_seconds()
+                    )
+                    for i in range(len(page_with_total["items"]) - 1)
+                )
+                / float(len(page_with_total["items"]) - 1)
+            )
+            if len(page_with_total["items"]) > 1
+            else 0.0,
+            float(page_with_total["window_time_gap_avg_seconds"]),
+            places=6,
         )
         self.assertIsNotNone(page_with_total["next_query"])
         self.assertIsNotNone(page_with_total["next_query_string"])
