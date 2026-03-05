@@ -765,3 +765,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-39-audit-cursor-assertion-dedup-validated/20260305-120030
 - Summary: deduplicated runtime test assertions after window time-boundary metadata with local+remote py3.8 validation
 - Next: continue post-P3 audit cursor ergonomics and client interop hardening
+
+## [2026-03-05T12:06:19+08:00] P4-iteration-40-audit-cursor-window-time-span-seconds-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 878633b
+- Tag: checkpoint/P4-iteration-40-audit-cursor-window-time-span-seconds-validated/20260305-120619
+- Summary: added window_time_span_seconds audit cursor metadata with runtime/http/docs/openapi parity and local+remote py3.8 validation
+- Next: continue post-P3 audit cursor ergonomics and client interop hardening
