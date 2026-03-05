@@ -1583,6 +1583,7 @@ class P0Runtime:
         window_time_gap_min_seconds = None
         window_time_gap_count = None
         window_time_gap_zero_count = None
+        window_time_gap_nonzero_count = None
         window_time_gap_zero_ratio = None
         window_time_gap_total_seconds = None
         window_time_gap_avg_seconds = None
@@ -1635,6 +1636,7 @@ class P0Runtime:
                     window_time_gap_min_seconds = 0
                     window_time_gap_count = 0
                     window_time_gap_zero_count = 0
+                    window_time_gap_nonzero_count = 0
                     window_time_gap_zero_ratio = 0.0
                     window_time_gap_total_seconds = 0.0
                     window_time_gap_avg_seconds = 0.0
@@ -1649,6 +1651,7 @@ class P0Runtime:
                     window_time_gap_min_seconds = int(max(0.0, min_gap))
                     window_time_gap_count = len(gaps)
                     window_time_gap_zero_count = sum(1 for gap in gaps if gap == 0.0)
+                    window_time_gap_nonzero_count = max(0, int(window_time_gap_count) - int(window_time_gap_zero_count))
                     window_time_gap_zero_ratio = round(
                         float(window_time_gap_zero_count) / float(len(gaps)),
                         6,
@@ -1741,6 +1744,7 @@ class P0Runtime:
             "window_time_gap_min_seconds": window_time_gap_min_seconds,
             "window_time_gap_count": window_time_gap_count,
             "window_time_gap_zero_count": window_time_gap_zero_count,
+            "window_time_gap_nonzero_count": window_time_gap_nonzero_count,
             "window_time_gap_zero_ratio": window_time_gap_zero_ratio,
             "window_time_gap_total_seconds": window_time_gap_total_seconds,
             "window_time_gap_avg_seconds": window_time_gap_avg_seconds,

@@ -117,6 +117,7 @@ class P0HttpApiTests(unittest.TestCase):
         expected_max = int(max(0.0, max(gaps))) if gaps else 0
         expected_count = len(gaps)
         expected_zero_count = sum(1 for gap in gaps if gap == 0.0)
+        expected_nonzero_count = max(0, expected_count - expected_zero_count)
         expected_zero_ratio = (
             round(float(expected_zero_count) / float(len(gaps)), 6) if gaps else 0.0
         )
@@ -126,6 +127,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(expected_max, int(data["window_time_gap_max_seconds"]))
         self.assertEqual(expected_count, int(data["window_time_gap_count"]))
         self.assertEqual(expected_zero_count, int(data["window_time_gap_zero_count"]))
+        self.assertEqual(expected_nonzero_count, int(data["window_time_gap_nonzero_count"]))
         self.assertAlmostEqual(expected_zero_ratio, float(data["window_time_gap_zero_ratio"]), places=6)
         self.assertAlmostEqual(expected_total, float(data["window_time_gap_total_seconds"]), places=6)
         self.assertAlmostEqual(expected_avg, float(data["window_time_gap_avg_seconds"]), places=6)
