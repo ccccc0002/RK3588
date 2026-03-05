@@ -77,7 +77,11 @@ class P0HttpApiTests(unittest.TestCase):
                 datetime.fromisoformat(str(item["at"]))
             except (KeyError, TypeError, ValueError):
                 expected_unparseable_count += 1
+        expected_unparseable_ratio = (
+            round(float(expected_unparseable_count) / float(len(items)), 6) if items else 0.0
+        )
         self.assertEqual(expected_unparseable_count, int(data["window_time_unparseable_count"]))
+        self.assertAlmostEqual(expected_unparseable_ratio, float(data["window_time_unparseable_ratio"]), places=6)
         self.assertEqual(expected_unparseable_count == 0, bool(data["window_time_parseable"]))
         gaps = [
             abs(
