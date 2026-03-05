@@ -1003,3 +1003,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-73-audit-cursor-window-time-gap-inlier-count-validated/20260305-165221
 - Summary: validated window_time_gap_inlier_count metadata with local and remote py3.8 gates
 - Next: continue next audit cursor metadata iteration
+
+## [2026-03-05T17:34:48+08:00] P4-iteration-74-audit-cursor-window-time-gap-inlier-ratio-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: ffa8151
+- Tag: checkpoint/P4-iteration-74-audit-cursor-window-time-gap-inlier-ratio-validated/20260305-173448
+- Summary: validated window_time_gap_inlier_ratio metadata with local and remote py3.8 gates
+- Next: continue next audit cursor metadata iteration
