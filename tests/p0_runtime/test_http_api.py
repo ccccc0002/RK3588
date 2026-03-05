@@ -1644,6 +1644,14 @@ class P0HttpApiTests(unittest.TestCase):
             bool(int(op_payload["data"]["window_span"]) == int(op_payload["data"]["returned_items"])),
             bool(op_payload["data"]["dense_window"]),
         )
+        self.assertEqual(
+            max(0, int(op_payload["data"]["window_span"]) - int(op_payload["data"]["returned_items"])),
+            int(op_payload["data"]["id_gap_count"]),
+        )
+        self.assertEqual(
+            bool(int(op_payload["data"]["id_gap_count"]) == 0),
+            bool(op_payload["data"]["dense_window"]),
+        )
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -1700,6 +1708,14 @@ class P0HttpApiTests(unittest.TestCase):
             bool(int(win_payload["data"]["window_span"]) == int(win_payload["data"]["returned_items"])),
             bool(win_payload["data"]["dense_window"]),
         )
+        self.assertEqual(
+            max(0, int(win_payload["data"]["window_span"]) - int(win_payload["data"]["returned_items"])),
+            int(win_payload["data"]["id_gap_count"]),
+        )
+        self.assertEqual(
+            bool(int(win_payload["data"]["id_gap_count"]) == 0),
+            bool(win_payload["data"]["dense_window"]),
+        )
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -1726,6 +1742,14 @@ class P0HttpApiTests(unittest.TestCase):
         )
         self.assertEqual(
             bool(int(total_payload["data"]["window_span"]) == int(total_payload["data"]["returned_items"])),
+            bool(total_payload["data"]["dense_window"]),
+        )
+        self.assertEqual(
+            max(0, int(total_payload["data"]["window_span"]) - int(total_payload["data"]["returned_items"])),
+            int(total_payload["data"]["id_gap_count"]),
+        )
+        self.assertEqual(
+            bool(int(total_payload["data"]["id_gap_count"]) == 0),
             bool(total_payload["data"]["dense_window"]),
         )
         self.assertEqual(
@@ -1868,6 +1892,14 @@ class P0HttpApiTests(unittest.TestCase):
             bool(int(op_payload["data"]["window_span"]) == int(op_payload["data"]["returned_items"])),
             bool(op_payload["data"]["dense_window"]),
         )
+        self.assertEqual(
+            max(0, int(op_payload["data"]["window_span"]) - int(op_payload["data"]["returned_items"])),
+            int(op_payload["data"]["id_gap_count"]),
+        )
+        self.assertEqual(
+            bool(int(op_payload["data"]["id_gap_count"]) == 0),
+            bool(op_payload["data"]["dense_window"]),
+        )
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -1928,6 +1960,14 @@ class P0HttpApiTests(unittest.TestCase):
             bool(int(win_payload["data"]["window_span"]) == int(win_payload["data"]["returned_items"])),
             bool(win_payload["data"]["dense_window"]),
         )
+        self.assertEqual(
+            max(0, int(win_payload["data"]["window_span"]) - int(win_payload["data"]["returned_items"])),
+            int(win_payload["data"]["id_gap_count"]),
+        )
+        self.assertEqual(
+            bool(int(win_payload["data"]["id_gap_count"]) == 0),
+            bool(win_payload["data"]["dense_window"]),
+        )
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -1957,6 +1997,14 @@ class P0HttpApiTests(unittest.TestCase):
         )
         self.assertEqual(
             bool(int(total_payload["data"]["window_span"]) == int(total_payload["data"]["returned_items"])),
+            bool(total_payload["data"]["dense_window"]),
+        )
+        self.assertEqual(
+            max(0, int(total_payload["data"]["window_span"]) - int(total_payload["data"]["returned_items"])),
+            int(total_payload["data"]["id_gap_count"]),
+        )
+        self.assertEqual(
+            bool(int(total_payload["data"]["id_gap_count"]) == 0),
             bool(total_payload["data"]["dense_window"]),
         )
         self.assertEqual(
@@ -2135,6 +2183,14 @@ class P0HttpApiTests(unittest.TestCase):
             bool(int(op_payload["data"]["window_span"]) == int(op_payload["data"]["returned_items"])),
             bool(op_payload["data"]["dense_window"]),
         )
+        self.assertEqual(
+            max(0, int(op_payload["data"]["window_span"]) - int(op_payload["data"]["returned_items"])),
+            int(op_payload["data"]["id_gap_count"]),
+        )
+        self.assertEqual(
+            bool(int(op_payload["data"]["id_gap_count"]) == 0),
+            bool(op_payload["data"]["dense_window"]),
+        )
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -2195,6 +2251,14 @@ class P0HttpApiTests(unittest.TestCase):
             bool(int(win_payload["data"]["window_span"]) == int(win_payload["data"]["returned_items"])),
             bool(win_payload["data"]["dense_window"]),
         )
+        self.assertEqual(
+            max(0, int(win_payload["data"]["window_span"]) - int(win_payload["data"]["returned_items"])),
+            int(win_payload["data"]["id_gap_count"]),
+        )
+        self.assertEqual(
+            bool(int(win_payload["data"]["id_gap_count"]) == 0),
+            bool(win_payload["data"]["dense_window"]),
+        )
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -2224,6 +2288,14 @@ class P0HttpApiTests(unittest.TestCase):
         )
         self.assertEqual(
             bool(int(total_payload["data"]["window_span"]) == int(total_payload["data"]["returned_items"])),
+            bool(total_payload["data"]["dense_window"]),
+        )
+        self.assertEqual(
+            max(0, int(total_payload["data"]["window_span"]) - int(total_payload["data"]["returned_items"])),
+            int(total_payload["data"]["id_gap_count"]),
+        )
+        self.assertEqual(
+            bool(int(total_payload["data"]["id_gap_count"]) == 0),
             bool(total_payload["data"]["dense_window"]),
         )
         self.assertEqual(

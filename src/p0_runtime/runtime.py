@@ -1564,6 +1564,7 @@ class P0Runtime:
         window_min_id = None
         window_span = None
         dense_window = None
+        id_gap_count = None
         if items:
             try:
                 window_max_id = int(items[0].get("id"))
@@ -1576,6 +1577,7 @@ class P0Runtime:
             if window_max_id is not None and window_min_id is not None and window_max_id >= window_min_id:
                 window_span = int(window_max_id - window_min_id + 1)
                 dense_window = bool(window_span == returned_items)
+                id_gap_count = max(0, int(window_span) - int(returned_items))
         has_more = False
         next_before_id: int | None = None
         if items:
@@ -1619,6 +1621,7 @@ class P0Runtime:
             "window_min_id": window_min_id,
             "window_span": window_span,
             "dense_window": dense_window,
+            "id_gap_count": id_gap_count,
             "snapshot_at": snapshot_at,
             "order": "id_desc",
             "has_more": has_more,
