@@ -2116,6 +2116,9 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIsNone(page["remaining_candidates"])
         self.assertTrue(page["has_more"])
         self.assertIsNotNone(page["next_before_id"])
+        self.assertIsNotNone(page["next_query"])
+        self.assertEqual(page["next_before_id"], page["next_query"]["before_id"])
+        self.assertFalse(page["next_query"]["include_total"])
         self.assertEqual(1, len(page["items"]))
 
         page_with_cursor = self.runtime.list_audit_records_page(limit=1, before_id=anchor_id)
@@ -2130,6 +2133,8 @@ class P0RuntimeTests(unittest.TestCase):
             int(page_with_total["total_candidates"]) - int(page_with_total["returned_items"]),
             int(page_with_total["remaining_candidates"]),
         )
+        self.assertIsNotNone(page_with_total["next_query"])
+        self.assertTrue(page_with_total["next_query"]["include_total"])
         with self.assertRaisesRegex(ValueError, "include_total must be a boolean"):
             self.runtime.list_audit_records_page(limit=1, include_total="bad")
 
@@ -2209,6 +2214,9 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIsNone(page["remaining_candidates"])
         self.assertTrue(page["has_more"])
         self.assertIsNotNone(page["next_before_id"])
+        self.assertIsNotNone(page["next_query"])
+        self.assertEqual(page["next_before_id"], page["next_query"]["before_id"])
+        self.assertFalse(page["next_query"]["include_total"])
         self.assertEqual(1, len(page["items"]))
 
         page_with_cursor = self.runtime.list_gray_rollout_batch_plan_cache_operations_page(limit=1, before_id=anchor_id)
@@ -2223,6 +2231,8 @@ class P0RuntimeTests(unittest.TestCase):
             int(page_with_total["total_candidates"]) - int(page_with_total["returned_items"]),
             int(page_with_total["remaining_candidates"]),
         )
+        self.assertIsNotNone(page_with_total["next_query"])
+        self.assertTrue(page_with_total["next_query"]["include_total"])
         with self.assertRaisesRegex(ValueError, "include_total must be a boolean"):
             self.runtime.list_gray_rollout_batch_plan_cache_operations_page(limit=1, include_total="bad")
 
@@ -2330,6 +2340,9 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIsNone(page["remaining_candidates"])
         self.assertTrue(page["has_more"])
         self.assertIsNotNone(page["next_before_id"])
+        self.assertIsNotNone(page["next_query"])
+        self.assertEqual(page["next_before_id"], page["next_query"]["before_id"])
+        self.assertFalse(page["next_query"]["include_total"])
         self.assertEqual(1, len(page["items"]))
 
         page_with_cursor = self.runtime.list_gray_rollout_batch_plan_cache_policy_history_page(
@@ -2347,6 +2360,8 @@ class P0RuntimeTests(unittest.TestCase):
             int(page_with_total["total_candidates"]) - int(page_with_total["returned_items"]),
             int(page_with_total["remaining_candidates"]),
         )
+        self.assertIsNotNone(page_with_total["next_query"])
+        self.assertTrue(page_with_total["next_query"]["include_total"])
         with self.assertRaisesRegex(ValueError, "include_total must be a boolean"):
             self.runtime.list_gray_rollout_batch_plan_cache_policy_history_page(limit=1, include_total="bad")
 

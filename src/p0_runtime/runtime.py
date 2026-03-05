@@ -1574,6 +1574,13 @@ class P0Runtime:
         remaining_candidates = None
         if total_candidates is not None:
             remaining_candidates = max(0, int(total_candidates) - len(items))
+        next_query = None
+        if has_more and next_before_id is not None:
+            next_query = {
+                "limit": capped,
+                "before_id": next_before_id,
+                "include_total": include_total_normalized,
+            }
         return {
             "items": items,
             "limit": capped,
@@ -1582,6 +1589,7 @@ class P0Runtime:
             "order": "id_desc",
             "has_more": has_more,
             "next_before_id": next_before_id,
+            "next_query": next_query,
             "total_candidates": total_candidates,
             "remaining_candidates": remaining_candidates,
         }

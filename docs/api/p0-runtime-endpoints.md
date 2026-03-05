@@ -652,6 +652,7 @@ GB28181 example:
     - `limit`, `before_id` (request cursor echo, nullable)
     - `returned_items`, `order` (`id_desc`)
     - `has_more`, `next_before_id` (`null` when no next page)
+    - `next_query` (`null` when no next page; otherwise `{limit,before_id,include_total}`)
     - `total_candidates` (`null` when `include_total=false`)
     - `remaining_candidates` (`total_candidates-returned_items`; `null` when `include_total=false`)
   - validation:
@@ -898,6 +899,7 @@ GB28181 example:
     - `limit`, `before_id` (request cursor echo, nullable)
     - `returned_items`, `order` (`id_desc`)
     - `has_more`, `next_before_id` (`null` when no next page)
+    - `next_query` (`null` when no next page; otherwise `{limit,before_id,include_total}`)
     - `total_candidates` (`null` when `include_total=false`)
     - `remaining_candidates` (`total_candidates-returned_items`; `null` when `include_total=false`)
   - validation:
@@ -937,6 +939,7 @@ GB28181 example:
     - `limit`, `before_id` (request cursor echo, nullable)
     - `returned_items`, `order` (`id_desc`)
     - `has_more`, `next_before_id` (`null` when no next page)
+    - `next_query` (`null` when no next page; otherwise `{limit,before_id,include_total}`)
     - `total_candidates` (`null` when `include_total=false`)
     - `remaining_candidates` (`total_candidates-returned_items`; `null` when `include_total=false`)
   - validation:

@@ -2699,7 +2699,7 @@ components:
 
     AuditListData:
       type: object
-      required: [items, limit, before_id, returned_items, order, has_more, next_before_id, total_candidates, remaining_candidates]
+      required: [items, limit, before_id, returned_items, order, has_more, next_before_id, next_query, total_candidates, remaining_candidates]
       properties:
         items:
           type: array
@@ -2725,6 +2725,20 @@ components:
           type: integer
           minimum: 1
           nullable: true
+        next_query:
+          type: object
+          nullable: true
+          required: [limit, before_id, include_total]
+          properties:
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+            before_id:
+              type: integer
+              minimum: 1
+            include_total:
+              type: boolean
         total_candidates:
           type: integer
           minimum: 0
