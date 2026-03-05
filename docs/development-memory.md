@@ -975,3 +975,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-69-audit-cursor-window-time-gap-mad-seconds-validated/20260305-154427
 - Summary: validated window_time_gap_mad_seconds metadata with local and remote py3.8 gates
 - Next: continue next audit cursor metadata iteration
+
+## [2026-03-05T15:58:38+08:00] P4-iteration-70-audit-cursor-window-time-gap-mad-ratio-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 8e7f2c8
+- Tag: checkpoint/P4-iteration-70-audit-cursor-window-time-gap-mad-ratio-validated/20260305-155838
+- Summary: validated window_time_gap_mad_ratio metadata with local and remote py3.8 gates
+- Next: continue next audit cursor metadata iteration
