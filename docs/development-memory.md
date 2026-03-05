@@ -751,3 +751,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-37-audit-cursor-window-density-validated/20260305-115239
 - Summary: added window_density audit cursor metadata with runtime/http/docs/openapi parity and local+remote py3.8 validation
 - Next: continue post-P3 audit cursor ergonomics and client interop hardening
+
+## [2026-03-05T11:57:56+08:00] P4-iteration-38-audit-cursor-window-time-boundary-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: b7788ec
+- Tag: checkpoint/P4-iteration-38-audit-cursor-window-time-boundary-validated/20260305-115756
+- Summary: added window_newest_at/window_oldest_at audit cursor metadata with runtime/http/docs/openapi parity and local+remote py3.8 validation
+- Next: continue post-P3 audit cursor ergonomics and client interop hardening
