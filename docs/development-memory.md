@@ -856,3 +856,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-52-audit-cursor-window-time-parseability-breakdown-validated/20260305-135815
 - Summary: add audit cursor missing/invalid time breakdown metadata with runtime/http/docs/openapi parity and local+remote py3.8 validation
 - Next: continue P4 hardening backlog
+
+## [2026-03-05T14:01:06+08:00] P4-iteration-53-audit-cursor-window-time-breakdown-counts-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: ef3153d
+- Tag: checkpoint/P4-iteration-53-audit-cursor-window-time-breakdown-counts-validated/20260305-140106
+- Summary: add audit cursor missing/invalid time breakdown count metadata with runtime/http/docs/openapi parity and local+remote py3.8 validation
+- Next: continue P4 hardening backlog
