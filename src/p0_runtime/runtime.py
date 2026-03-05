@@ -1568,11 +1568,19 @@ class P0Runtime:
         window_density = None
         window_newest_at = None
         window_oldest_at = None
+        window_time_span_seconds = None
         if items:
             newest_at = items[0].get("at")
             oldest_at = items[-1].get("at")
             window_newest_at = str(newest_at) if newest_at is not None else None
             window_oldest_at = str(oldest_at) if oldest_at is not None else None
+            if window_newest_at is not None and window_oldest_at is not None:
+                try:
+                    newest_dt = datetime.fromisoformat(window_newest_at)
+                    oldest_dt = datetime.fromisoformat(window_oldest_at)
+                    window_time_span_seconds = int(max(0.0, (newest_dt - oldest_dt).total_seconds()))
+                except (TypeError, ValueError):
+                    window_time_span_seconds = None
             try:
                 window_max_id = int(items[0].get("id"))
             except (TypeError, ValueError):
@@ -1634,6 +1642,7 @@ class P0Runtime:
             "window_density": window_density,
             "window_newest_at": window_newest_at,
             "window_oldest_at": window_oldest_at,
+            "window_time_span_seconds": window_time_span_seconds,
             "snapshot_at": snapshot_at,
             "order": "id_desc",
             "has_more": has_more,

@@ -2699,7 +2699,7 @@ components:
 
     AuditListData:
       type: object
-      required: [items, limit, before_id, query_string, returned_items, window_max_id, window_min_id, window_span, dense_window, id_gap_count, window_density, window_newest_at, window_oldest_at, snapshot_at, order, has_more, next_before_id, next_query, next_query_string, total_candidates, remaining_candidates]
+      required: [items, limit, before_id, query_string, returned_items, window_max_id, window_min_id, window_span, dense_window, id_gap_count, window_density, window_newest_at, window_oldest_at, window_time_span_seconds, snapshot_at, order, has_more, next_before_id, next_query, next_query_string, total_candidates, remaining_candidates]
       properties:
         items:
           type: array
@@ -2749,6 +2749,10 @@ components:
         window_oldest_at:
           type: string
           format: date-time
+          nullable: true
+        window_time_span_seconds:
+          type: integer
+          minimum: 0
           nullable: true
         snapshot_at:
           type: string
