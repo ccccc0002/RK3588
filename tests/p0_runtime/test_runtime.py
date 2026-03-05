@@ -2135,6 +2135,8 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(1, int(page["window_time_parseable_count"]))
         self.assertEqual(0, int(page["window_time_missing_at_count"]))
         self.assertEqual(0, int(page["window_time_invalid_at_count"]))
+        self.assertAlmostEqual(0.0, float(page["window_time_missing_at_ratio"]), places=6)
+        self.assertAlmostEqual(0.0, float(page["window_time_invalid_at_ratio"]), places=6)
         self.assertAlmostEqual(0.0, float(page["window_time_unparseable_ratio"]), places=6)
         self.assertAlmostEqual(1.0, float(page["window_time_parseable_ratio"]), places=6)
         self.assertEqual(
@@ -2240,6 +2242,8 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertEqual(1, int(page_with_cursor["window_time_parseable_count"]))
             self.assertEqual(0, int(page_with_cursor["window_time_missing_at_count"]))
             self.assertEqual(0, int(page_with_cursor["window_time_invalid_at_count"]))
+            self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_missing_at_ratio"]), places=6)
+            self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_invalid_at_ratio"]), places=6)
             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_unparseable_ratio"]), places=6)
             self.assertAlmostEqual(1.0, float(page_with_cursor["window_time_parseable_ratio"]), places=6)
             self.assertEqual(
@@ -2313,6 +2317,8 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["window_time_parseable_count"])
             self.assertIsNone(page_with_cursor["window_time_missing_at_count"])
             self.assertIsNone(page_with_cursor["window_time_invalid_at_count"])
+            self.assertIsNone(page_with_cursor["window_time_missing_at_ratio"])
+            self.assertIsNone(page_with_cursor["window_time_invalid_at_ratio"])
             self.assertIsNone(page_with_cursor["window_time_unparseable_ratio"])
             self.assertIsNone(page_with_cursor["window_time_parseable_ratio"])
             self.assertIsNone(page_with_cursor["window_time_span_seconds"])
@@ -2361,6 +2367,8 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(1, int(page_with_total["window_time_parseable_count"]))
         self.assertEqual(0, int(page_with_total["window_time_missing_at_count"]))
         self.assertEqual(0, int(page_with_total["window_time_invalid_at_count"]))
+        self.assertAlmostEqual(0.0, float(page_with_total["window_time_missing_at_ratio"]), places=6)
+        self.assertAlmostEqual(0.0, float(page_with_total["window_time_invalid_at_ratio"]), places=6)
         self.assertAlmostEqual(0.0, float(page_with_total["window_time_unparseable_ratio"]), places=6)
         self.assertAlmostEqual(1.0, float(page_with_total["window_time_parseable_ratio"]), places=6)
         self.assertEqual(

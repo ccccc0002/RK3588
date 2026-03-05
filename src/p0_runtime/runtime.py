@@ -1573,6 +1573,8 @@ class P0Runtime:
         window_time_parseable_count = None
         window_time_missing_at_count = None
         window_time_invalid_at_count = None
+        window_time_missing_at_ratio = None
+        window_time_invalid_at_ratio = None
         window_time_unparseable_ratio = None
         window_time_parseable_ratio = None
         window_time_span_seconds = None
@@ -1606,6 +1608,14 @@ class P0Runtime:
             window_time_parseable = unparseable_count == 0
             parseable_count = max(0, int(returned_items) - int(unparseable_count))
             window_time_parseable_count = parseable_count
+            window_time_missing_at_ratio = round(
+                float(missing_at_count) / float(returned_items),
+                6,
+            )
+            window_time_invalid_at_ratio = round(
+                float(invalid_at_count) / float(returned_items),
+                6,
+            )
             window_time_unparseable_ratio = round(
                 float(unparseable_count) / float(returned_items),
                 6,
@@ -1712,6 +1722,8 @@ class P0Runtime:
             "window_time_parseable_count": window_time_parseable_count,
             "window_time_missing_at_count": window_time_missing_at_count,
             "window_time_invalid_at_count": window_time_invalid_at_count,
+            "window_time_missing_at_ratio": window_time_missing_at_ratio,
+            "window_time_invalid_at_ratio": window_time_invalid_at_ratio,
             "window_time_unparseable_ratio": window_time_unparseable_ratio,
             "window_time_parseable_ratio": window_time_parseable_ratio,
             "window_time_span_seconds": window_time_span_seconds,
