@@ -82,9 +82,11 @@ class P0HttpApiTests(unittest.TestCase):
         ]
         expected_min = int(max(0.0, min(gaps))) if gaps else 0
         expected_max = int(max(0.0, max(gaps))) if gaps else 0
+        expected_count = len(gaps)
         expected_avg = round(sum(gaps) / float(len(gaps)), 6) if gaps else 0.0
         self.assertEqual(expected_min, int(data["window_time_gap_min_seconds"]))
         self.assertEqual(expected_max, int(data["window_time_gap_max_seconds"]))
+        self.assertEqual(expected_count, int(data["window_time_gap_count"]))
         self.assertAlmostEqual(expected_avg, float(data["window_time_gap_avg_seconds"]), places=6)
 
     def test_issue_token_endpoint(self) -> None:
