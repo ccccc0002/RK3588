@@ -702,3 +702,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-30-audit-cursor-next-query-validated/20260305-093050
 - Summary: added next_query metadata to audit cursor page responses across runtime/http/fastapi with docs/openapi/test parity and local+remote validation
 - Next: continue post-P3 audit pagination client ergonomics hardening
+
+## [2026-03-05T09:36:19+08:00] P4-iteration-31-audit-cursor-snapshot-optimized-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: d5501f9
+- Tag: checkpoint/P4-iteration-31-audit-cursor-snapshot-optimized-validated/20260305-093619
+- Summary: added snapshot_at to audit cursor pages and optimized has_more derivation for include_total queries with runtime/docs/openapi/test parity and local+remote validation
+- Next: continue post-P3 audit pagination operational consistency hardening
