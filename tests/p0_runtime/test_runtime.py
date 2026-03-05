@@ -2110,6 +2110,7 @@ class P0RuntimeTests(unittest.TestCase):
         page = self.runtime.list_audit_records_page(limit=1)
         self.assertEqual(1, page["limit"])
         self.assertIsNone(page["before_id"])
+        self.assertEqual("limit=1&include_total=false", page["query_string"])
         self.assertIn("snapshot_at", page)
         datetime.fromisoformat(str(page["snapshot_at"]))
         self.assertEqual(1, page["returned_items"])
@@ -2129,6 +2130,7 @@ class P0RuntimeTests(unittest.TestCase):
 
         page_with_cursor = self.runtime.list_audit_records_page(limit=1, before_id=anchor_id)
         self.assertEqual(anchor_id, page_with_cursor["before_id"])
+        self.assertEqual(f"limit=1&before_id={anchor_id}&include_total=false", page_with_cursor["query_string"])
         self.assertEqual("id_desc", page_with_cursor["order"])
         self.assertIsNone(page_with_cursor["total_candidates"])
         self.assertIsNone(page_with_cursor["remaining_candidates"])
@@ -2144,6 +2146,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["next_query_string"])
 
         page_with_total = self.runtime.list_audit_records_page(limit=1, include_total=True)
+        self.assertEqual("limit=1&include_total=true", page_with_total["query_string"])
         self.assertGreaterEqual(int(page_with_total["total_candidates"]), 3)
         self.assertEqual(
             int(page_with_total["total_candidates"]) - int(page_with_total["returned_items"]),
@@ -2228,6 +2231,7 @@ class P0RuntimeTests(unittest.TestCase):
         page = self.runtime.list_gray_rollout_batch_plan_cache_operations_page(limit=1)
         self.assertEqual(1, page["limit"])
         self.assertIsNone(page["before_id"])
+        self.assertEqual("limit=1&include_total=false", page["query_string"])
         self.assertIn("snapshot_at", page)
         datetime.fromisoformat(str(page["snapshot_at"]))
         self.assertEqual(1, page["returned_items"])
@@ -2247,6 +2251,7 @@ class P0RuntimeTests(unittest.TestCase):
 
         page_with_cursor = self.runtime.list_gray_rollout_batch_plan_cache_operations_page(limit=1, before_id=anchor_id)
         self.assertEqual(anchor_id, page_with_cursor["before_id"])
+        self.assertEqual(f"limit=1&before_id={anchor_id}&include_total=false", page_with_cursor["query_string"])
         self.assertEqual("id_desc", page_with_cursor["order"])
         self.assertIsNone(page_with_cursor["total_candidates"])
         self.assertIsNone(page_with_cursor["remaining_candidates"])
@@ -2262,6 +2267,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["next_query_string"])
 
         page_with_total = self.runtime.list_gray_rollout_batch_plan_cache_operations_page(limit=1, include_total=True)
+        self.assertEqual("limit=1&include_total=true", page_with_total["query_string"])
         self.assertGreaterEqual(int(page_with_total["total_candidates"]), 3)
         self.assertEqual(
             int(page_with_total["total_candidates"]) - int(page_with_total["returned_items"]),
@@ -2374,6 +2380,7 @@ class P0RuntimeTests(unittest.TestCase):
         page = self.runtime.list_gray_rollout_batch_plan_cache_policy_history_page(limit=1)
         self.assertEqual(1, page["limit"])
         self.assertIsNone(page["before_id"])
+        self.assertEqual("limit=1&include_total=false", page["query_string"])
         self.assertIn("snapshot_at", page)
         datetime.fromisoformat(str(page["snapshot_at"]))
         self.assertEqual(1, page["returned_items"])
@@ -2396,6 +2403,7 @@ class P0RuntimeTests(unittest.TestCase):
             before_id=anchor_id,
         )
         self.assertEqual(anchor_id, page_with_cursor["before_id"])
+        self.assertEqual(f"limit=1&before_id={anchor_id}&include_total=false", page_with_cursor["query_string"])
         self.assertEqual("id_desc", page_with_cursor["order"])
         self.assertIsNone(page_with_cursor["total_candidates"])
         self.assertIsNone(page_with_cursor["remaining_candidates"])
@@ -2411,6 +2419,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["next_query_string"])
 
         page_with_total = self.runtime.list_gray_rollout_batch_plan_cache_policy_history_page(limit=1, include_total=True)
+        self.assertEqual("limit=1&include_total=true", page_with_total["query_string"])
         self.assertGreaterEqual(int(page_with_total["total_candidates"]), 3)
         self.assertEqual(
             int(page_with_total["total_candidates"]) - int(page_with_total["returned_items"]),

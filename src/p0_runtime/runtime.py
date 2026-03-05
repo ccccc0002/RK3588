@@ -1589,6 +1589,12 @@ class P0Runtime:
         remaining_candidates = None
         if total_candidates is not None:
             remaining_candidates = max(0, int(total_candidates) - returned_items)
+        include_total_flag = "true" if include_total_normalized else "false"
+        query_parts = [f"limit={capped}"]
+        if normalized_before_id is not None:
+            query_parts.append(f"before_id={normalized_before_id}")
+        query_parts.append(f"include_total={include_total_flag}")
+        query_string = "&".join(query_parts)
         next_query = None
         next_query_string = None
         if has_more and next_before_id is not None:
@@ -1597,12 +1603,12 @@ class P0Runtime:
                 "before_id": next_before_id,
                 "include_total": include_total_normalized,
             }
-            include_total_flag = "true" if include_total_normalized else "false"
             next_query_string = f"limit={capped}&before_id={next_before_id}&include_total={include_total_flag}"
         return {
             "items": items,
             "limit": capped,
             "before_id": normalized_before_id,
+            "query_string": query_string,
             "returned_items": returned_items,
             "window_max_id": window_max_id,
             "window_min_id": window_min_id,

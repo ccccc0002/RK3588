@@ -649,7 +649,7 @@ GB28181 example:
     - `include_total` (`true|false`, default `false`; when `true`, includes `total_candidates`)
   - 200 envelope:
     - `items[]` audit records
-    - `limit`, `before_id` (request cursor echo, nullable)
+    - `limit`, `before_id` (request cursor echo, nullable), `query_string` (normalized current-page query string)
     - `returned_items`, `window_max_id`, `window_min_id`, `snapshot_at`, `order` (`id_desc`)
     - `has_more`, `next_before_id` (`null` when no next page)
     - `next_query` (`null` when no next page; otherwise `{limit,before_id,include_total}`)
@@ -897,7 +897,7 @@ GB28181 example:
   - 200 envelope:
     - `items[]` from audit records filtered by action:
       - `gray_rollout.plan_batch.cache.policy.update`
-    - `limit`, `before_id` (request cursor echo, nullable)
+    - `limit`, `before_id` (request cursor echo, nullable), `query_string` (normalized current-page query string)
     - `returned_items`, `window_max_id`, `window_min_id`, `snapshot_at`, `order` (`id_desc`)
     - `has_more`, `next_before_id` (`null` when no next page)
     - `next_query` (`null` when no next page; otherwise `{limit,before_id,include_total}`)
@@ -938,7 +938,7 @@ GB28181 example:
       - `gray_rollout.plan_batch.cache.clear.preview`
       - `gray_rollout.plan_batch.cache.clear.blocked`
       - `gray_rollout.plan_batch.cache.clear`
-    - `limit`, `before_id` (request cursor echo, nullable)
+    - `limit`, `before_id` (request cursor echo, nullable), `query_string` (normalized current-page query string)
     - `returned_items`, `window_max_id`, `window_min_id`, `snapshot_at`, `order` (`id_desc`)
     - `has_more`, `next_before_id` (`null` when no next page)
     - `next_query` (`null` when no next page; otherwise `{limit,before_id,include_total}`)

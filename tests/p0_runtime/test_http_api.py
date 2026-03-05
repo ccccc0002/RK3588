@@ -1630,6 +1630,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(op_payload["success"])
         self.assertEqual(5, op_payload["data"]["limit"])
         self.assertIsNone(op_payload["data"]["before_id"])
+        self.assertEqual("limit=5&include_total=false", op_payload["data"]["query_string"])
         self.assertIn("snapshot_at", op_payload["data"])
         datetime.fromisoformat(str(op_payload["data"]["snapshot_at"]))
         self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
@@ -1665,6 +1666,10 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(page_payload["success"])
         self.assertEqual(5, page_payload["data"]["limit"])
         self.assertEqual(anchor_id, page_payload["data"]["before_id"])
+        self.assertEqual(
+            f"limit=5&before_id={anchor_id}&include_total=false",
+            page_payload["data"]["query_string"],
+        )
         self.assertEqual(len(page_payload["data"]["items"]), page_payload["data"]["returned_items"])
         self.assertEqual("id_desc", page_payload["data"]["order"])
         self.assertTrue(all(int(item["id"]) < anchor_id for item in page_payload["data"]["items"]))
@@ -1673,6 +1678,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(200, win_status)
         self.assertTrue(win_payload["success"])
         self.assertIsNone(win_payload["data"]["before_id"])
+        self.assertEqual("limit=1&include_total=false", win_payload["data"]["query_string"])
         self.assertIn("snapshot_at", win_payload["data"])
         datetime.fromisoformat(str(win_payload["data"]["snapshot_at"]))
         self.assertEqual("id_desc", win_payload["data"]["order"])
@@ -1692,6 +1698,7 @@ class P0HttpApiTests(unittest.TestCase):
         total_status, total_payload = self._get("/api/v1/audit/recent?limit=1&include_total=true", token=self.operator_token)
         self.assertEqual(200, total_status)
         self.assertTrue(total_payload["success"])
+        self.assertEqual("limit=1&include_total=true", total_payload["data"]["query_string"])
         self.assertIn("snapshot_at", total_payload["data"])
         datetime.fromisoformat(str(total_payload["data"]["snapshot_at"]))
         self.assertGreaterEqual(int(total_payload["data"]["total_candidates"]), 2)
@@ -1823,6 +1830,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(op_payload["success"])
         self.assertEqual(5, op_payload["data"]["limit"])
         self.assertIsNone(op_payload["data"]["before_id"])
+        self.assertEqual("limit=5&include_total=false", op_payload["data"]["query_string"])
         self.assertIn("snapshot_at", op_payload["data"])
         datetime.fromisoformat(str(op_payload["data"]["snapshot_at"]))
         self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
@@ -1859,6 +1867,10 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(page_payload["success"])
         self.assertEqual(5, page_payload["data"]["limit"])
         self.assertEqual(anchor_id, page_payload["data"]["before_id"])
+        self.assertEqual(
+            f"limit=5&before_id={anchor_id}&include_total=false",
+            page_payload["data"]["query_string"],
+        )
         self.assertEqual(len(page_payload["data"]["items"]), page_payload["data"]["returned_items"])
         self.assertEqual("id_desc", page_payload["data"]["order"])
         self.assertTrue(all(int(item["id"]) < anchor_id for item in page_payload["data"]["items"]))
@@ -1870,6 +1882,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(200, win_status)
         self.assertTrue(win_payload["success"])
         self.assertIsNone(win_payload["data"]["before_id"])
+        self.assertEqual("limit=1&include_total=false", win_payload["data"]["query_string"])
         self.assertIn("snapshot_at", win_payload["data"])
         datetime.fromisoformat(str(win_payload["data"]["snapshot_at"]))
         self.assertEqual("id_desc", win_payload["data"]["order"])
@@ -1892,6 +1905,7 @@ class P0HttpApiTests(unittest.TestCase):
         )
         self.assertEqual(200, total_status)
         self.assertTrue(total_payload["success"])
+        self.assertEqual("limit=1&include_total=true", total_payload["data"]["query_string"])
         self.assertIn("snapshot_at", total_payload["data"])
         datetime.fromisoformat(str(total_payload["data"]["snapshot_at"]))
         self.assertGreaterEqual(int(total_payload["data"]["total_candidates"]), 3)
@@ -2059,6 +2073,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(op_payload["success"])
         self.assertEqual(5, op_payload["data"]["limit"])
         self.assertIsNone(op_payload["data"]["before_id"])
+        self.assertEqual("limit=5&include_total=false", op_payload["data"]["query_string"])
         self.assertIn("snapshot_at", op_payload["data"])
         datetime.fromisoformat(str(op_payload["data"]["snapshot_at"]))
         self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
@@ -2095,6 +2110,10 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(page_payload["success"])
         self.assertEqual(5, page_payload["data"]["limit"])
         self.assertEqual(anchor_id, page_payload["data"]["before_id"])
+        self.assertEqual(
+            f"limit=5&before_id={anchor_id}&include_total=false",
+            page_payload["data"]["query_string"],
+        )
         self.assertEqual(len(page_payload["data"]["items"]), page_payload["data"]["returned_items"])
         self.assertEqual("id_desc", page_payload["data"]["order"])
         self.assertTrue(all(int(item["id"]) < anchor_id for item in page_payload["data"]["items"]))
@@ -2106,6 +2125,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(200, win_status)
         self.assertTrue(win_payload["success"])
         self.assertIsNone(win_payload["data"]["before_id"])
+        self.assertEqual("limit=1&include_total=false", win_payload["data"]["query_string"])
         self.assertIn("snapshot_at", win_payload["data"])
         datetime.fromisoformat(str(win_payload["data"]["snapshot_at"]))
         self.assertEqual("id_desc", win_payload["data"]["order"])
@@ -2128,6 +2148,7 @@ class P0HttpApiTests(unittest.TestCase):
         )
         self.assertEqual(200, total_status)
         self.assertTrue(total_payload["success"])
+        self.assertEqual("limit=1&include_total=true", total_payload["data"]["query_string"])
         self.assertIn("snapshot_at", total_payload["data"])
         datetime.fromisoformat(str(total_payload["data"]["snapshot_at"]))
         self.assertGreaterEqual(int(total_payload["data"]["total_candidates"]), 2)
