@@ -2130,8 +2130,6 @@ class P0RuntimeTests(unittest.TestCase):
         )
         self.assertEqual(str(page["items"][0]["at"]), page["window_newest_at"])
         self.assertEqual(str(page["items"][-1]["at"]), page["window_oldest_at"])
-        self.assertEqual(str(page["items"][0]["at"]), page["window_newest_at"])
-        self.assertEqual(str(page["items"][-1]["at"]), page["window_oldest_at"])
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
         self.assertIsNone(page["remaining_candidates"])
