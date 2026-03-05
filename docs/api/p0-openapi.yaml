@@ -2699,7 +2699,7 @@ components:
 
     AuditListData:
       type: object
-      required: [items, limit, before_id, query_string, returned_items, window_max_id, window_min_id, window_span, dense_window, id_gap_count, window_density, window_newest_at, window_oldest_at, window_time_parseable, window_time_unparseable_count, window_time_parseable_count, window_time_missing_at_count, window_time_invalid_at_count, window_time_missing_at_ratio, window_time_invalid_at_ratio, window_time_unparseable_ratio, window_time_parseable_ratio, window_time_span_seconds, window_time_desc_order, window_time_gap_max_seconds, window_time_gap_min_seconds, window_time_gap_range_seconds, window_time_gap_count, window_time_gap_zero_count, window_time_gap_nonzero_count, window_time_gap_zero_ratio, window_time_gap_nonzero_ratio, window_time_gap_median_seconds, window_time_gap_p90_seconds, window_time_gap_p75_seconds, window_time_gap_p25_seconds, window_time_gap_iqr_seconds, window_time_gap_p95_seconds, window_time_gap_p99_seconds, window_time_gap_total_seconds, window_time_gap_avg_seconds, window_time_gap_stddev_seconds, window_time_gap_cv_ratio, snapshot_at, order, has_more, next_before_id, next_query, next_query_string, total_candidates, remaining_candidates]
+      required: [items, limit, before_id, query_string, returned_items, window_max_id, window_min_id, window_span, dense_window, id_gap_count, window_density, window_newest_at, window_oldest_at, window_time_parseable, window_time_unparseable_count, window_time_parseable_count, window_time_missing_at_count, window_time_invalid_at_count, window_time_missing_at_ratio, window_time_invalid_at_ratio, window_time_unparseable_ratio, window_time_parseable_ratio, window_time_span_seconds, window_time_desc_order, window_time_gap_max_seconds, window_time_gap_min_seconds, window_time_gap_range_seconds, window_time_gap_count, window_time_gap_zero_count, window_time_gap_nonzero_count, window_time_gap_zero_ratio, window_time_gap_nonzero_ratio, window_time_gap_median_seconds, window_time_gap_p90_seconds, window_time_gap_p75_seconds, window_time_gap_p25_seconds, window_time_gap_iqr_seconds, window_time_gap_p95_seconds, window_time_gap_p99_seconds, window_time_gap_total_seconds, window_time_gap_avg_seconds, window_time_gap_stddev_seconds, window_time_gap_cv_ratio, window_time_gap_mad_seconds, snapshot_at, order, has_more, next_before_id, next_query, next_query_string, total_candidates, remaining_candidates]
       properties:
         items:
           type: array
@@ -2871,6 +2871,10 @@ components:
           minimum: 0
           nullable: true
         window_time_gap_cv_ratio:
+          type: number
+          minimum: 0
+          nullable: true
+        window_time_gap_mad_seconds:
           type: number
           minimum: 0
           nullable: true
