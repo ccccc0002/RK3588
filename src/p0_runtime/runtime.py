@@ -1581,6 +1581,7 @@ class P0Runtime:
         window_time_desc_order = None
         window_time_gap_max_seconds = None
         window_time_gap_min_seconds = None
+        window_time_gap_range_seconds = None
         window_time_gap_count = None
         window_time_gap_zero_count = None
         window_time_gap_nonzero_count = None
@@ -1642,6 +1643,7 @@ class P0Runtime:
                 if len(parsed_times) == 1:
                     window_time_gap_max_seconds = 0
                     window_time_gap_min_seconds = 0
+                    window_time_gap_range_seconds = 0.0
                     window_time_gap_count = 0
                     window_time_gap_zero_count = 0
                     window_time_gap_nonzero_count = 0
@@ -1665,6 +1667,7 @@ class P0Runtime:
                     min_gap = min(gaps)
                     window_time_gap_max_seconds = int(max(0.0, max_gap))
                     window_time_gap_min_seconds = int(max(0.0, min_gap))
+                    window_time_gap_range_seconds = round(max(0.0, float(max_gap) - float(min_gap)), 6)
                     window_time_gap_count = len(gaps)
                     window_time_gap_zero_count = sum(1 for gap in gaps if gap == 0.0)
                     window_time_gap_nonzero_count = max(0, int(window_time_gap_count) - int(window_time_gap_zero_count))
@@ -1781,6 +1784,7 @@ class P0Runtime:
             "window_time_desc_order": window_time_desc_order,
             "window_time_gap_max_seconds": window_time_gap_max_seconds,
             "window_time_gap_min_seconds": window_time_gap_min_seconds,
+            "window_time_gap_range_seconds": window_time_gap_range_seconds,
             "window_time_gap_count": window_time_gap_count,
             "window_time_gap_zero_count": window_time_gap_zero_count,
             "window_time_gap_nonzero_count": window_time_gap_nonzero_count,

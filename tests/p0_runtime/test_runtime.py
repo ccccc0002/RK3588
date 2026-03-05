@@ -2176,6 +2176,7 @@ class P0RuntimeTests(unittest.TestCase):
             int(page["window_time_gap_max_seconds"]),
         )
         self.assertEqual(0, int(page["window_time_gap_min_seconds"]))
+        self.assertAlmostEqual(0.0, float(page["window_time_gap_range_seconds"]), places=6)
         self.assertEqual(0, int(page["window_time_gap_count"]))
         self.assertEqual(0, int(page["window_time_gap_zero_count"]))
         self.assertEqual(0, int(page["window_time_gap_nonzero_count"]))
@@ -2294,6 +2295,7 @@ class P0RuntimeTests(unittest.TestCase):
                 int(page_with_cursor["window_time_gap_max_seconds"]),
             )
             self.assertEqual(0, int(page_with_cursor["window_time_gap_min_seconds"]))
+            self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_range_seconds"]), places=6)
             self.assertEqual(0, int(page_with_cursor["window_time_gap_count"]))
             self.assertEqual(0, int(page_with_cursor["window_time_gap_zero_count"]))
             self.assertEqual(0, int(page_with_cursor["window_time_gap_nonzero_count"]))
@@ -2347,6 +2349,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["window_time_desc_order"])
             self.assertIsNone(page_with_cursor["window_time_gap_max_seconds"])
             self.assertIsNone(page_with_cursor["window_time_gap_min_seconds"])
+            self.assertIsNone(page_with_cursor["window_time_gap_range_seconds"])
             self.assertIsNone(page_with_cursor["window_time_gap_count"])
             self.assertIsNone(page_with_cursor["window_time_gap_zero_count"])
             self.assertIsNone(page_with_cursor["window_time_gap_nonzero_count"])
@@ -2441,6 +2444,7 @@ class P0RuntimeTests(unittest.TestCase):
             int(page_with_total["window_time_gap_max_seconds"]),
         )
         self.assertEqual(0, int(page_with_total["window_time_gap_min_seconds"]))
+        self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_range_seconds"]), places=6)
         self.assertEqual(0, int(page_with_total["window_time_gap_count"]))
         self.assertEqual(0, int(page_with_total["window_time_gap_zero_count"]))
         self.assertEqual(0, int(page_with_total["window_time_gap_nonzero_count"]))
