@@ -68,6 +68,25 @@ class P0HttpApiTests(unittest.TestCase):
         except HTTPError as exc:
             return exc.code, json.loads(exc.read().decode("utf-8"))
 
+    def _assert_window_time_gap_metrics(self, payload: dict) -> None:
+        data = payload["data"]
+        items = data["items"]
+        gaps = [
+            abs(
+                (
+                    datetime.fromisoformat(str(items[i]["at"]))
+                    - datetime.fromisoformat(str(items[i + 1]["at"]))
+                ).total_seconds()
+            )
+            for i in range(len(items) - 1)
+        ]
+        expected_min = int(max(0.0, min(gaps))) if gaps else 0
+        expected_max = int(max(0.0, max(gaps))) if gaps else 0
+        expected_avg = round(sum(gaps) / float(len(gaps)), 6) if gaps else 0.0
+        self.assertEqual(expected_min, int(data["window_time_gap_min_seconds"]))
+        self.assertEqual(expected_max, int(data["window_time_gap_max_seconds"]))
+        self.assertAlmostEqual(expected_avg, float(data["window_time_gap_avg_seconds"]), places=6)
+
     def test_issue_token_endpoint(self) -> None:
         status, payload = self._post("/api/v1/auth/token", {"user_id": "u1", "role": "operator"})
         self.assertEqual(200, status)
@@ -1695,24 +1714,7 @@ class P0HttpApiTests(unittest.TestCase):
             else 0,
             int(op_payload["data"]["window_time_gap_max_seconds"]),
         )
-        self.assertAlmostEqual(
-            (
-                sum(
-                    abs(
-                        (
-                            datetime.fromisoformat(str(op_payload["data"]["items"][i]["at"]))
-                            - datetime.fromisoformat(str(op_payload["data"]["items"][i + 1]["at"]))
-                        ).total_seconds()
-                    )
-                    for i in range(len(op_payload["data"]["items"]) - 1)
-                )
-                / float(len(op_payload["data"]["items"]) - 1)
-            )
-            if len(op_payload["data"]["items"]) > 1
-            else 0.0,
-            float(op_payload["data"]["window_time_gap_avg_seconds"]),
-            places=6,
-        )
+        self._assert_window_time_gap_metrics(op_payload)
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -1820,24 +1822,7 @@ class P0HttpApiTests(unittest.TestCase):
             else 0,
             int(win_payload["data"]["window_time_gap_max_seconds"]),
         )
-        self.assertAlmostEqual(
-            (
-                sum(
-                    abs(
-                        (
-                            datetime.fromisoformat(str(win_payload["data"]["items"][i]["at"]))
-                            - datetime.fromisoformat(str(win_payload["data"]["items"][i + 1]["at"]))
-                        ).total_seconds()
-                    )
-                    for i in range(len(win_payload["data"]["items"]) - 1)
-                )
-                / float(len(win_payload["data"]["items"]) - 1)
-            )
-            if len(win_payload["data"]["items"]) > 1
-            else 0.0,
-            float(win_payload["data"]["window_time_gap_avg_seconds"]),
-            places=6,
-        )
+        self._assert_window_time_gap_metrics(win_payload)
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -1917,24 +1902,7 @@ class P0HttpApiTests(unittest.TestCase):
             else 0,
             int(total_payload["data"]["window_time_gap_max_seconds"]),
         )
-        self.assertAlmostEqual(
-            (
-                sum(
-                    abs(
-                        (
-                            datetime.fromisoformat(str(total_payload["data"]["items"][i]["at"]))
-                            - datetime.fromisoformat(str(total_payload["data"]["items"][i + 1]["at"]))
-                        ).total_seconds()
-                    )
-                    for i in range(len(total_payload["data"]["items"]) - 1)
-                )
-                / float(len(total_payload["data"]["items"]) - 1)
-            )
-            if len(total_payload["data"]["items"]) > 1
-            else 0.0,
-            float(total_payload["data"]["window_time_gap_avg_seconds"]),
-            places=6,
-        )
+        self._assert_window_time_gap_metrics(total_payload)
         self.assertEqual(
             int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
             int(total_payload["data"]["remaining_candidates"]),
@@ -2126,24 +2094,7 @@ class P0HttpApiTests(unittest.TestCase):
             else 0,
             int(op_payload["data"]["window_time_gap_max_seconds"]),
         )
-        self.assertAlmostEqual(
-            (
-                sum(
-                    abs(
-                        (
-                            datetime.fromisoformat(str(op_payload["data"]["items"][i]["at"]))
-                            - datetime.fromisoformat(str(op_payload["data"]["items"][i + 1]["at"]))
-                        ).total_seconds()
-                    )
-                    for i in range(len(op_payload["data"]["items"]) - 1)
-                )
-                / float(len(op_payload["data"]["items"]) - 1)
-            )
-            if len(op_payload["data"]["items"]) > 1
-            else 0.0,
-            float(op_payload["data"]["window_time_gap_avg_seconds"]),
-            places=6,
-        )
+        self._assert_window_time_gap_metrics(op_payload)
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -2255,24 +2206,7 @@ class P0HttpApiTests(unittest.TestCase):
             else 0,
             int(win_payload["data"]["window_time_gap_max_seconds"]),
         )
-        self.assertAlmostEqual(
-            (
-                sum(
-                    abs(
-                        (
-                            datetime.fromisoformat(str(win_payload["data"]["items"][i]["at"]))
-                            - datetime.fromisoformat(str(win_payload["data"]["items"][i + 1]["at"]))
-                        ).total_seconds()
-                    )
-                    for i in range(len(win_payload["data"]["items"]) - 1)
-                )
-                / float(len(win_payload["data"]["items"]) - 1)
-            )
-            if len(win_payload["data"]["items"]) > 1
-            else 0.0,
-            float(win_payload["data"]["window_time_gap_avg_seconds"]),
-            places=6,
-        )
+        self._assert_window_time_gap_metrics(win_payload)
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -2355,24 +2289,7 @@ class P0HttpApiTests(unittest.TestCase):
             else 0,
             int(total_payload["data"]["window_time_gap_max_seconds"]),
         )
-        self.assertAlmostEqual(
-            (
-                sum(
-                    abs(
-                        (
-                            datetime.fromisoformat(str(total_payload["data"]["items"][i]["at"]))
-                            - datetime.fromisoformat(str(total_payload["data"]["items"][i + 1]["at"]))
-                        ).total_seconds()
-                    )
-                    for i in range(len(total_payload["data"]["items"]) - 1)
-                )
-                / float(len(total_payload["data"]["items"]) - 1)
-            )
-            if len(total_payload["data"]["items"]) > 1
-            else 0.0,
-            float(total_payload["data"]["window_time_gap_avg_seconds"]),
-            places=6,
-        )
+        self._assert_window_time_gap_metrics(total_payload)
         self.assertEqual(
             int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
             int(total_payload["data"]["remaining_candidates"]),
@@ -2600,24 +2517,7 @@ class P0HttpApiTests(unittest.TestCase):
             else 0,
             int(op_payload["data"]["window_time_gap_max_seconds"]),
         )
-        self.assertAlmostEqual(
-            (
-                sum(
-                    abs(
-                        (
-                            datetime.fromisoformat(str(op_payload["data"]["items"][i]["at"]))
-                            - datetime.fromisoformat(str(op_payload["data"]["items"][i + 1]["at"]))
-                        ).total_seconds()
-                    )
-                    for i in range(len(op_payload["data"]["items"]) - 1)
-                )
-                / float(len(op_payload["data"]["items"]) - 1)
-            )
-            if len(op_payload["data"]["items"]) > 1
-            else 0.0,
-            float(op_payload["data"]["window_time_gap_avg_seconds"]),
-            places=6,
-        )
+        self._assert_window_time_gap_metrics(op_payload)
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -2729,24 +2629,7 @@ class P0HttpApiTests(unittest.TestCase):
             else 0,
             int(win_payload["data"]["window_time_gap_max_seconds"]),
         )
-        self.assertAlmostEqual(
-            (
-                sum(
-                    abs(
-                        (
-                            datetime.fromisoformat(str(win_payload["data"]["items"][i]["at"]))
-                            - datetime.fromisoformat(str(win_payload["data"]["items"][i + 1]["at"]))
-                        ).total_seconds()
-                    )
-                    for i in range(len(win_payload["data"]["items"]) - 1)
-                )
-                / float(len(win_payload["data"]["items"]) - 1)
-            )
-            if len(win_payload["data"]["items"]) > 1
-            else 0.0,
-            float(win_payload["data"]["window_time_gap_avg_seconds"]),
-            places=6,
-        )
+        self._assert_window_time_gap_metrics(win_payload)
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -2829,24 +2712,7 @@ class P0HttpApiTests(unittest.TestCase):
             else 0,
             int(total_payload["data"]["window_time_gap_max_seconds"]),
         )
-        self.assertAlmostEqual(
-            (
-                sum(
-                    abs(
-                        (
-                            datetime.fromisoformat(str(total_payload["data"]["items"][i]["at"]))
-                            - datetime.fromisoformat(str(total_payload["data"]["items"][i + 1]["at"]))
-                        ).total_seconds()
-                    )
-                    for i in range(len(total_payload["data"]["items"]) - 1)
-                )
-                / float(len(total_payload["data"]["items"]) - 1)
-            )
-            if len(total_payload["data"]["items"]) > 1
-            else 0.0,
-            float(total_payload["data"]["window_time_gap_avg_seconds"]),
-            places=6,
-        )
+        self._assert_window_time_gap_metrics(total_payload)
         self.assertEqual(
             int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
             int(total_payload["data"]["remaining_candidates"]),

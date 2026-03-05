@@ -1571,6 +1571,7 @@ class P0Runtime:
         window_time_span_seconds = None
         window_time_desc_order = None
         window_time_gap_max_seconds = None
+        window_time_gap_min_seconds = None
         window_time_gap_avg_seconds = None
         if items:
             newest_at = items[0].get("at")
@@ -1595,6 +1596,7 @@ class P0Runtime:
                 )
                 if len(parsed_times) == 1:
                     window_time_gap_max_seconds = 0
+                    window_time_gap_min_seconds = 0
                     window_time_gap_avg_seconds = 0.0
                 else:
                     gaps = [
@@ -1602,7 +1604,9 @@ class P0Runtime:
                         for i in range(len(parsed_times) - 1)
                     ]
                     max_gap = max(gaps)
+                    min_gap = min(gaps)
                     window_time_gap_max_seconds = int(max(0.0, max_gap))
+                    window_time_gap_min_seconds = int(max(0.0, min_gap))
                     window_time_gap_avg_seconds = round(
                         float(sum(gaps)) / float(len(gaps)),
                         6,
@@ -1678,6 +1682,7 @@ class P0Runtime:
             "window_time_span_seconds": window_time_span_seconds,
             "window_time_desc_order": window_time_desc_order,
             "window_time_gap_max_seconds": window_time_gap_max_seconds,
+            "window_time_gap_min_seconds": window_time_gap_min_seconds,
             "window_time_gap_avg_seconds": window_time_gap_avg_seconds,
             "snapshot_at": snapshot_at,
             "order": "id_desc",
