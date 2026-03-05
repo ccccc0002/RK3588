@@ -814,3 +814,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-46-audit-cursor-window-time-gap-total-seconds-validated/20260305-133442
 - Summary: add audit cursor window_time_gap_total_seconds metadata with runtime/http/docs/openapi parity and local+remote py3.8 validation
 - Next: continue P4 hardening backlog
+
+## [2026-03-05T13:39:02+08:00] P4-iteration-47-audit-cursor-window-time-parseable-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: f91e43a
+- Tag: checkpoint/P4-iteration-47-audit-cursor-window-time-parseable-validated/20260305-133902
+- Summary: add audit cursor window_time_parseable metadata with runtime/http/docs/openapi parity and local+remote py3.8 validation
+- Next: continue P4 hardening backlog
