@@ -898,3 +898,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-58-audit-cursor-window-time-gap-nonzero-ratio-validated/20260305-142609
 - Summary: add window_time_gap_nonzero_ratio metadata with runtime/http/docs/openapi parity and local+remote validation
 - Next: start P4-iteration-59
+
+## [2026-03-05T14:29:16+08:00] P4-iteration-59-audit-cursor-window-time-gap-median-seconds-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: d8b9071
+- Tag: checkpoint/P4-iteration-59-audit-cursor-window-time-gap-median-seconds-validated/20260305-142916
+- Summary: add window_time_gap_median_seconds metadata with runtime/http/docs/openapi parity and local+remote validation
+- Next: start P4-iteration-60
