@@ -156,6 +156,7 @@ class P0HttpApiTests(unittest.TestCase):
                 for gap in gaps
                 if (float(gap) < float(expected_outlier_lower)) or (float(gap) > float(expected_outlier_upper))
             )
+            expected_outlier_upper_seconds = round(float(expected_outlier_upper), 6)
             expected_outlier_ratio = round(float(expected_outlier_count) / float(len(gaps)), 6)
             expected_inlier_count = max(0, int(len(gaps)) - int(expected_outlier_count))
             expected_inlier_ratio = round(float(expected_inlier_count) / float(len(gaps)), 6)
@@ -174,6 +175,7 @@ class P0HttpApiTests(unittest.TestCase):
             expected_mad = 0.0
             expected_mad_ratio = 0.0
             expected_outlier_count = 0
+            expected_outlier_upper_seconds = 0.0
             expected_outlier_ratio = 0.0
             expected_inlier_count = 0
             expected_inlier_ratio = 0.0
@@ -214,6 +216,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertAlmostEqual(expected_mad, float(data["window_time_gap_mad_seconds"]), places=6)
         self.assertAlmostEqual(expected_mad_ratio, float(data["window_time_gap_mad_ratio"]), places=6)
         self.assertEqual(expected_outlier_count, int(data["window_time_gap_outlier_count"]))
+        self.assertAlmostEqual(expected_outlier_upper_seconds, float(data["window_time_gap_outlier_upper_seconds"]), places=6)
         self.assertAlmostEqual(expected_outlier_ratio, float(data["window_time_gap_outlier_ratio"]), places=6)
         self.assertEqual(expected_inlier_count, int(data["window_time_gap_inlier_count"]))
         self.assertAlmostEqual(expected_inlier_ratio, float(data["window_time_gap_inlier_ratio"]), places=6)
