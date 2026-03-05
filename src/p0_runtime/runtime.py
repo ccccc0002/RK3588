@@ -1569,7 +1569,9 @@ class P0Runtime:
         return {
             "items": items,
             "limit": capped,
+            "before_id": normalized_before_id,
             "returned_items": len(items),
+            "order": "id_desc",
             "has_more": has_more,
             "next_before_id": next_before_id,
         }

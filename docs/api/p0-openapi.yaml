@@ -2681,7 +2681,7 @@ components:
 
     AuditListData:
       type: object
-      required: [items, limit, returned_items, has_more, next_before_id]
+      required: [items, limit, before_id, returned_items, order, has_more, next_before_id]
       properties:
         items:
           type: array
@@ -2691,9 +2691,16 @@ components:
           type: integer
           minimum: 1
           maximum: 200
+        before_id:
+          type: integer
+          minimum: 1
+          nullable: true
         returned_items:
           type: integer
           minimum: 0
+        order:
+          type: string
+          enum: [id_desc]
         has_more:
           type: boolean
         next_before_id:

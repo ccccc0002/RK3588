@@ -1629,7 +1629,9 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(200, op_status)
         self.assertTrue(op_payload["success"])
         self.assertEqual(5, op_payload["data"]["limit"])
+        self.assertIsNone(op_payload["data"]["before_id"])
         self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
+        self.assertEqual("id_desc", op_payload["data"]["order"])
         if op_payload["data"]["has_more"]:
             self.assertIsNotNone(op_payload["data"]["next_before_id"])
         else:
@@ -1647,12 +1649,16 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(200, page_status)
         self.assertTrue(page_payload["success"])
         self.assertEqual(5, page_payload["data"]["limit"])
+        self.assertEqual(anchor_id, page_payload["data"]["before_id"])
         self.assertEqual(len(page_payload["data"]["items"]), page_payload["data"]["returned_items"])
+        self.assertEqual("id_desc", page_payload["data"]["order"])
         self.assertTrue(all(int(item["id"]) < anchor_id for item in page_payload["data"]["items"]))
 
         win_status, win_payload = self._get("/api/v1/audit/recent?limit=1", token=self.operator_token)
         self.assertEqual(200, win_status)
         self.assertTrue(win_payload["success"])
+        self.assertIsNone(win_payload["data"]["before_id"])
+        self.assertEqual("id_desc", win_payload["data"]["order"])
         self.assertTrue(win_payload["data"]["has_more"])
         self.assertIsNotNone(win_payload["data"]["next_before_id"])
         self.assertEqual(1, win_payload["data"]["returned_items"])
@@ -1765,7 +1771,9 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(200, op_status)
         self.assertTrue(op_payload["success"])
         self.assertEqual(5, op_payload["data"]["limit"])
+        self.assertIsNone(op_payload["data"]["before_id"])
         self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
+        self.assertEqual("id_desc", op_payload["data"]["order"])
         if op_payload["data"]["has_more"]:
             self.assertIsNotNone(op_payload["data"]["next_before_id"])
         else:
@@ -1784,7 +1792,9 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(200, page_status)
         self.assertTrue(page_payload["success"])
         self.assertEqual(5, page_payload["data"]["limit"])
+        self.assertEqual(anchor_id, page_payload["data"]["before_id"])
         self.assertEqual(len(page_payload["data"]["items"]), page_payload["data"]["returned_items"])
+        self.assertEqual("id_desc", page_payload["data"]["order"])
         self.assertTrue(all(int(item["id"]) < anchor_id for item in page_payload["data"]["items"]))
 
         win_status, win_payload = self._get(
@@ -1793,6 +1803,8 @@ class P0HttpApiTests(unittest.TestCase):
         )
         self.assertEqual(200, win_status)
         self.assertTrue(win_payload["success"])
+        self.assertIsNone(win_payload["data"]["before_id"])
+        self.assertEqual("id_desc", win_payload["data"]["order"])
         self.assertTrue(win_payload["data"]["has_more"])
         self.assertIsNotNone(win_payload["data"]["next_before_id"])
         self.assertEqual(1, win_payload["data"]["returned_items"])
@@ -1941,7 +1953,9 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(200, op_status)
         self.assertTrue(op_payload["success"])
         self.assertEqual(5, op_payload["data"]["limit"])
+        self.assertIsNone(op_payload["data"]["before_id"])
         self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
+        self.assertEqual("id_desc", op_payload["data"]["order"])
         if op_payload["data"]["has_more"]:
             self.assertIsNotNone(op_payload["data"]["next_before_id"])
         else:
@@ -1960,7 +1974,9 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(200, page_status)
         self.assertTrue(page_payload["success"])
         self.assertEqual(5, page_payload["data"]["limit"])
+        self.assertEqual(anchor_id, page_payload["data"]["before_id"])
         self.assertEqual(len(page_payload["data"]["items"]), page_payload["data"]["returned_items"])
+        self.assertEqual("id_desc", page_payload["data"]["order"])
         self.assertTrue(all(int(item["id"]) < anchor_id for item in page_payload["data"]["items"]))
 
         win_status, win_payload = self._get(
@@ -1969,6 +1985,8 @@ class P0HttpApiTests(unittest.TestCase):
         )
         self.assertEqual(200, win_status)
         self.assertTrue(win_payload["success"])
+        self.assertIsNone(win_payload["data"]["before_id"])
+        self.assertEqual("id_desc", win_payload["data"]["order"])
         self.assertTrue(win_payload["data"]["has_more"])
         self.assertIsNotNone(win_payload["data"]["next_before_id"])
         self.assertEqual(1, win_payload["data"]["returned_items"])
