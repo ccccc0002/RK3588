@@ -2116,6 +2116,11 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(1, page["returned_items"])
         self.assertEqual(int(page["items"][0]["id"]), int(page["window_max_id"]))
         self.assertEqual(int(page["items"][-1]["id"]), int(page["window_min_id"]))
+        self.assertEqual(
+            int(page["window_max_id"]) - int(page["window_min_id"]) + 1,
+            int(page["window_span"]),
+        )
+        self.assertEqual(bool(int(page["window_span"]) == int(page["returned_items"])), bool(page["dense_window"]))
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
         self.assertIsNone(page["remaining_candidates"])
@@ -2137,9 +2142,19 @@ class P0RuntimeTests(unittest.TestCase):
         if page_with_cursor["items"]:
             self.assertEqual(int(page_with_cursor["items"][0]["id"]), int(page_with_cursor["window_max_id"]))
             self.assertEqual(int(page_with_cursor["items"][-1]["id"]), int(page_with_cursor["window_min_id"]))
+            self.assertEqual(
+                int(page_with_cursor["window_max_id"]) - int(page_with_cursor["window_min_id"]) + 1,
+                int(page_with_cursor["window_span"]),
+            )
+            self.assertEqual(
+                bool(int(page_with_cursor["window_span"]) == int(page_with_cursor["returned_items"])),
+                bool(page_with_cursor["dense_window"]),
+            )
         else:
             self.assertIsNone(page_with_cursor["window_max_id"])
             self.assertIsNone(page_with_cursor["window_min_id"])
+            self.assertIsNone(page_with_cursor["window_span"])
+            self.assertIsNone(page_with_cursor["dense_window"])
         if page_with_cursor["has_more"]:
             self.assertIsNotNone(page_with_cursor["next_query_string"])
         else:
@@ -2154,6 +2169,14 @@ class P0RuntimeTests(unittest.TestCase):
         )
         self.assertEqual(int(page_with_total["items"][0]["id"]), int(page_with_total["window_max_id"]))
         self.assertEqual(int(page_with_total["items"][-1]["id"]), int(page_with_total["window_min_id"]))
+        self.assertEqual(
+            int(page_with_total["window_max_id"]) - int(page_with_total["window_min_id"]) + 1,
+            int(page_with_total["window_span"]),
+        )
+        self.assertEqual(
+            bool(int(page_with_total["window_span"]) == int(page_with_total["returned_items"])),
+            bool(page_with_total["dense_window"]),
+        )
         self.assertIsNotNone(page_with_total["next_query"])
         self.assertIsNotNone(page_with_total["next_query_string"])
         self.assertIn("include_total=true", page_with_total["next_query_string"])
@@ -2237,6 +2260,11 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(1, page["returned_items"])
         self.assertEqual(int(page["items"][0]["id"]), int(page["window_max_id"]))
         self.assertEqual(int(page["items"][-1]["id"]), int(page["window_min_id"]))
+        self.assertEqual(
+            int(page["window_max_id"]) - int(page["window_min_id"]) + 1,
+            int(page["window_span"]),
+        )
+        self.assertEqual(bool(int(page["window_span"]) == int(page["returned_items"])), bool(page["dense_window"]))
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
         self.assertIsNone(page["remaining_candidates"])
@@ -2258,9 +2286,19 @@ class P0RuntimeTests(unittest.TestCase):
         if page_with_cursor["items"]:
             self.assertEqual(int(page_with_cursor["items"][0]["id"]), int(page_with_cursor["window_max_id"]))
             self.assertEqual(int(page_with_cursor["items"][-1]["id"]), int(page_with_cursor["window_min_id"]))
+            self.assertEqual(
+                int(page_with_cursor["window_max_id"]) - int(page_with_cursor["window_min_id"]) + 1,
+                int(page_with_cursor["window_span"]),
+            )
+            self.assertEqual(
+                bool(int(page_with_cursor["window_span"]) == int(page_with_cursor["returned_items"])),
+                bool(page_with_cursor["dense_window"]),
+            )
         else:
             self.assertIsNone(page_with_cursor["window_max_id"])
             self.assertIsNone(page_with_cursor["window_min_id"])
+            self.assertIsNone(page_with_cursor["window_span"])
+            self.assertIsNone(page_with_cursor["dense_window"])
         if page_with_cursor["has_more"]:
             self.assertIsNotNone(page_with_cursor["next_query_string"])
         else:
@@ -2275,6 +2313,14 @@ class P0RuntimeTests(unittest.TestCase):
         )
         self.assertEqual(int(page_with_total["items"][0]["id"]), int(page_with_total["window_max_id"]))
         self.assertEqual(int(page_with_total["items"][-1]["id"]), int(page_with_total["window_min_id"]))
+        self.assertEqual(
+            int(page_with_total["window_max_id"]) - int(page_with_total["window_min_id"]) + 1,
+            int(page_with_total["window_span"]),
+        )
+        self.assertEqual(
+            bool(int(page_with_total["window_span"]) == int(page_with_total["returned_items"])),
+            bool(page_with_total["dense_window"]),
+        )
         self.assertIsNotNone(page_with_total["next_query"])
         self.assertIsNotNone(page_with_total["next_query_string"])
         self.assertIn("include_total=true", page_with_total["next_query_string"])
@@ -2386,6 +2432,11 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(1, page["returned_items"])
         self.assertEqual(int(page["items"][0]["id"]), int(page["window_max_id"]))
         self.assertEqual(int(page["items"][-1]["id"]), int(page["window_min_id"]))
+        self.assertEqual(
+            int(page["window_max_id"]) - int(page["window_min_id"]) + 1,
+            int(page["window_span"]),
+        )
+        self.assertEqual(bool(int(page["window_span"]) == int(page["returned_items"])), bool(page["dense_window"]))
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
         self.assertIsNone(page["remaining_candidates"])
@@ -2410,9 +2461,19 @@ class P0RuntimeTests(unittest.TestCase):
         if page_with_cursor["items"]:
             self.assertEqual(int(page_with_cursor["items"][0]["id"]), int(page_with_cursor["window_max_id"]))
             self.assertEqual(int(page_with_cursor["items"][-1]["id"]), int(page_with_cursor["window_min_id"]))
+            self.assertEqual(
+                int(page_with_cursor["window_max_id"]) - int(page_with_cursor["window_min_id"]) + 1,
+                int(page_with_cursor["window_span"]),
+            )
+            self.assertEqual(
+                bool(int(page_with_cursor["window_span"]) == int(page_with_cursor["returned_items"])),
+                bool(page_with_cursor["dense_window"]),
+            )
         else:
             self.assertIsNone(page_with_cursor["window_max_id"])
             self.assertIsNone(page_with_cursor["window_min_id"])
+            self.assertIsNone(page_with_cursor["window_span"])
+            self.assertIsNone(page_with_cursor["dense_window"])
         if page_with_cursor["has_more"]:
             self.assertIsNotNone(page_with_cursor["next_query_string"])
         else:
@@ -2427,6 +2488,14 @@ class P0RuntimeTests(unittest.TestCase):
         )
         self.assertEqual(int(page_with_total["items"][0]["id"]), int(page_with_total["window_max_id"]))
         self.assertEqual(int(page_with_total["items"][-1]["id"]), int(page_with_total["window_min_id"]))
+        self.assertEqual(
+            int(page_with_total["window_max_id"]) - int(page_with_total["window_min_id"]) + 1,
+            int(page_with_total["window_span"]),
+        )
+        self.assertEqual(
+            bool(int(page_with_total["window_span"]) == int(page_with_total["returned_items"])),
+            bool(page_with_total["dense_window"]),
+        )
         self.assertIsNotNone(page_with_total["next_query"])
         self.assertIsNotNone(page_with_total["next_query_string"])
         self.assertIn("include_total=true", page_with_total["next_query_string"])

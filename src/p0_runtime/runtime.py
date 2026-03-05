@@ -1562,6 +1562,8 @@ class P0Runtime:
         total_candidates = count_fn(normalized_before_id) if include_total_normalized else None
         window_max_id = None
         window_min_id = None
+        window_span = None
+        dense_window = None
         if items:
             try:
                 window_max_id = int(items[0].get("id"))
@@ -1571,6 +1573,9 @@ class P0Runtime:
                 window_min_id = int(items[-1].get("id"))
             except (TypeError, ValueError):
                 window_min_id = None
+            if window_max_id is not None and window_min_id is not None and window_max_id >= window_min_id:
+                window_span = int(window_max_id - window_min_id + 1)
+                dense_window = bool(window_span == returned_items)
         has_more = False
         next_before_id: int | None = None
         if items:
@@ -1612,6 +1617,8 @@ class P0Runtime:
             "returned_items": returned_items,
             "window_max_id": window_max_id,
             "window_min_id": window_min_id,
+            "window_span": window_span,
+            "dense_window": dense_window,
             "snapshot_at": snapshot_at,
             "order": "id_desc",
             "has_more": has_more,

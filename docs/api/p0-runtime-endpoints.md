@@ -650,7 +650,9 @@ GB28181 example:
   - 200 envelope:
     - `items[]` audit records
     - `limit`, `before_id` (request cursor echo, nullable), `query_string` (normalized current-page query string)
-    - `returned_items`, `window_max_id`, `window_min_id`, `snapshot_at`, `order` (`id_desc`)
+    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `snapshot_at`, `order` (`id_desc`)
+    - `window_span` = `window_max_id - window_min_id + 1` when page has items; otherwise `null`
+    - `dense_window` = whether `window_span == returned_items` when page has items; otherwise `null`
     - `has_more`, `next_before_id` (`null` when no next page)
     - `next_query` (`null` when no next page; otherwise `{limit,before_id,include_total}`)
     - `next_query_string` (`null` when no next page; otherwise `limit=...&before_id=...&include_total=...`)
@@ -898,7 +900,9 @@ GB28181 example:
     - `items[]` from audit records filtered by action:
       - `gray_rollout.plan_batch.cache.policy.update`
     - `limit`, `before_id` (request cursor echo, nullable), `query_string` (normalized current-page query string)
-    - `returned_items`, `window_max_id`, `window_min_id`, `snapshot_at`, `order` (`id_desc`)
+    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `snapshot_at`, `order` (`id_desc`)
+    - `window_span` = `window_max_id - window_min_id + 1` when page has items; otherwise `null`
+    - `dense_window` = whether `window_span == returned_items` when page has items; otherwise `null`
     - `has_more`, `next_before_id` (`null` when no next page)
     - `next_query` (`null` when no next page; otherwise `{limit,before_id,include_total}`)
     - `next_query_string` (`null` when no next page; otherwise `limit=...&before_id=...&include_total=...`)
@@ -939,7 +943,9 @@ GB28181 example:
       - `gray_rollout.plan_batch.cache.clear.blocked`
       - `gray_rollout.plan_batch.cache.clear`
     - `limit`, `before_id` (request cursor echo, nullable), `query_string` (normalized current-page query string)
-    - `returned_items`, `window_max_id`, `window_min_id`, `snapshot_at`, `order` (`id_desc`)
+    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `snapshot_at`, `order` (`id_desc`)
+    - `window_span` = `window_max_id - window_min_id + 1` when page has items; otherwise `null`
+    - `dense_window` = whether `window_span == returned_items` when page has items; otherwise `null`
     - `has_more`, `next_before_id` (`null` when no next page)
     - `next_query` (`null` when no next page; otherwise `{limit,before_id,include_total}`)
     - `next_query_string` (`null` when no next page; otherwise `limit=...&before_id=...&include_total=...`)
