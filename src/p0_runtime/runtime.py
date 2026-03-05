@@ -1600,6 +1600,7 @@ class P0Runtime:
         window_time_gap_cv_ratio = None
         window_time_gap_mad_seconds = None
         window_time_gap_mad_ratio = None
+        window_time_gap_outlier_count = None
         if items:
             newest_at = items[0].get("at")
             oldest_at = items[-1].get("at")
@@ -1666,6 +1667,7 @@ class P0Runtime:
                     window_time_gap_cv_ratio = 0.0
                     window_time_gap_mad_seconds = 0.0
                     window_time_gap_mad_ratio = 0.0
+                    window_time_gap_outlier_count = 0
                 else:
                     gaps = [
                         abs((parsed_times[i] - parsed_times[i + 1]).total_seconds())
@@ -1713,6 +1715,11 @@ class P0Runtime:
                     window_time_gap_p25_seconds = round(float(sorted_gaps[p25_index]), 6)
                     iqr_gap = max(0.0, float(sorted_gaps[p75_index]) - float(sorted_gaps[p25_index]))
                     window_time_gap_iqr_seconds = round(iqr_gap, 6)
+                    outlier_lower = float(sorted_gaps[p25_index]) - (1.5 * float(iqr_gap))
+                    outlier_upper = float(sorted_gaps[p75_index]) + (1.5 * float(iqr_gap))
+                    window_time_gap_outlier_count = sum(
+                        1 for gap in gaps if (float(gap) < outlier_lower) or (float(gap) > outlier_upper)
+                    )
                     p95_index = max(0, int((len(sorted_gaps) * 95 + 99) // 100) - 1)
                     window_time_gap_p95_seconds = round(float(sorted_gaps[p95_index]), 6)
                     p99_index = max(0, int((len(sorted_gaps) * 99 + 99) // 100) - 1)
@@ -1832,6 +1839,7 @@ class P0Runtime:
             "window_time_gap_cv_ratio": window_time_gap_cv_ratio,
             "window_time_gap_mad_seconds": window_time_gap_mad_seconds,
             "window_time_gap_mad_ratio": window_time_gap_mad_ratio,
+            "window_time_gap_outlier_count": window_time_gap_outlier_count,
             "snapshot_at": snapshot_at,
             "order": "id_desc",
             "has_more": has_more,

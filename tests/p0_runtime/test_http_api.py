@@ -147,7 +147,15 @@ class P0HttpApiTests(unittest.TestCase):
             expected_p75 = round(float(sorted_gaps[p75_index]), 6)
             p25_index = max(0, int((len(sorted_gaps) * 25 + 99) // 100) - 1)
             expected_p25 = round(float(sorted_gaps[p25_index]), 6)
-            expected_iqr = round(max(0.0, float(sorted_gaps[p75_index]) - float(sorted_gaps[p25_index])), 6)
+            iqr_raw = max(0.0, float(sorted_gaps[p75_index]) - float(sorted_gaps[p25_index]))
+            expected_iqr = round(iqr_raw, 6)
+            expected_outlier_lower = float(sorted_gaps[p25_index]) - (1.5 * float(iqr_raw))
+            expected_outlier_upper = float(sorted_gaps[p75_index]) + (1.5 * float(iqr_raw))
+            expected_outlier_count = sum(
+                1
+                for gap in gaps
+                if (float(gap) < float(expected_outlier_lower)) or (float(gap) > float(expected_outlier_upper))
+            )
             p95_index = max(0, int((len(sorted_gaps) * 95 + 99) // 100) - 1)
             expected_p95 = round(float(sorted_gaps[p95_index]), 6)
             p99_index = max(0, int((len(sorted_gaps) * 99 + 99) // 100) - 1)
@@ -162,6 +170,7 @@ class P0HttpApiTests(unittest.TestCase):
             expected_p99 = 0.0
             expected_mad = 0.0
             expected_mad_ratio = 0.0
+            expected_outlier_count = 0
         if gaps:
             expected_total_raw = float(sum(gaps))
             expected_avg_raw = expected_total_raw / float(len(gaps))
@@ -198,6 +207,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertAlmostEqual(expected_cv, float(data["window_time_gap_cv_ratio"]), places=6)
         self.assertAlmostEqual(expected_mad, float(data["window_time_gap_mad_seconds"]), places=6)
         self.assertAlmostEqual(expected_mad_ratio, float(data["window_time_gap_mad_ratio"]), places=6)
+        self.assertEqual(expected_outlier_count, int(data["window_time_gap_outlier_count"]))
 
     def test_issue_token_endpoint(self) -> None:
         status, payload = self._post("/api/v1/auth/token", {"user_id": "u1", "role": "operator"})
