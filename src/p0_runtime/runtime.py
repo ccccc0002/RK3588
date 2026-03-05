@@ -1568,6 +1568,7 @@ class P0Runtime:
         window_density = None
         window_newest_at = None
         window_oldest_at = None
+        window_time_parseable = None
         window_time_span_seconds = None
         window_time_desc_order = None
         window_time_gap_max_seconds = None
@@ -1592,6 +1593,7 @@ class P0Runtime:
                 except (TypeError, ValueError):
                     parse_failed = True
                     break
+            window_time_parseable = not parse_failed
             if not parse_failed and parsed_times:
                 window_time_desc_order = all(
                     parsed_times[i] >= parsed_times[i + 1] for i in range(len(parsed_times) - 1)
@@ -1685,6 +1687,7 @@ class P0Runtime:
             "window_density": window_density,
             "window_newest_at": window_newest_at,
             "window_oldest_at": window_oldest_at,
+            "window_time_parseable": window_time_parseable,
             "window_time_span_seconds": window_time_span_seconds,
             "window_time_desc_order": window_time_desc_order,
             "window_time_gap_max_seconds": window_time_gap_max_seconds,

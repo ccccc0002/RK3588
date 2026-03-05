@@ -2130,6 +2130,7 @@ class P0RuntimeTests(unittest.TestCase):
         )
         self.assertEqual(str(page["items"][0]["at"]), page["window_newest_at"])
         self.assertEqual(str(page["items"][-1]["at"]), page["window_oldest_at"])
+        self.assertTrue(bool(page["window_time_parseable"]))
         self.assertEqual(
             max(
                 0,
@@ -2228,6 +2229,7 @@ class P0RuntimeTests(unittest.TestCase):
             )
             self.assertEqual(str(page_with_cursor["items"][0]["at"]), page_with_cursor["window_newest_at"])
             self.assertEqual(str(page_with_cursor["items"][-1]["at"]), page_with_cursor["window_oldest_at"])
+            self.assertTrue(bool(page_with_cursor["window_time_parseable"]))
             self.assertEqual(
                 max(
                     0,
@@ -2294,6 +2296,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["window_density"])
             self.assertIsNone(page_with_cursor["window_newest_at"])
             self.assertIsNone(page_with_cursor["window_oldest_at"])
+            self.assertIsNone(page_with_cursor["window_time_parseable"])
             self.assertIsNone(page_with_cursor["window_time_span_seconds"])
             self.assertIsNone(page_with_cursor["window_time_desc_order"])
             self.assertIsNone(page_with_cursor["window_time_gap_max_seconds"])
@@ -2335,6 +2338,7 @@ class P0RuntimeTests(unittest.TestCase):
         )
         self.assertEqual(str(page_with_total["items"][0]["at"]), page_with_total["window_newest_at"])
         self.assertEqual(str(page_with_total["items"][-1]["at"]), page_with_total["window_oldest_at"])
+        self.assertTrue(bool(page_with_total["window_time_parseable"]))
         self.assertEqual(
             max(
                 0,

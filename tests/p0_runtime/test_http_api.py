@@ -71,6 +71,7 @@ class P0HttpApiTests(unittest.TestCase):
     def _assert_window_time_gap_metrics(self, payload: dict) -> None:
         data = payload["data"]
         items = data["items"]
+        self.assertTrue(bool(data["window_time_parseable"]))
         gaps = [
             abs(
                 (
