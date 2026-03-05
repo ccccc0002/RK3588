@@ -1569,11 +1569,28 @@ class P0Runtime:
         window_newest_at = None
         window_oldest_at = None
         window_time_span_seconds = None
+        window_time_desc_order = None
         if items:
             newest_at = items[0].get("at")
             oldest_at = items[-1].get("at")
             window_newest_at = str(newest_at) if newest_at is not None else None
             window_oldest_at = str(oldest_at) if oldest_at is not None else None
+            parsed_times: list[datetime] = []
+            parse_failed = False
+            for item in items:
+                at_raw = item.get("at")
+                if at_raw is None:
+                    parse_failed = True
+                    break
+                try:
+                    parsed_times.append(datetime.fromisoformat(str(at_raw)))
+                except (TypeError, ValueError):
+                    parse_failed = True
+                    break
+            if not parse_failed and parsed_times:
+                window_time_desc_order = all(
+                    parsed_times[i] >= parsed_times[i + 1] for i in range(len(parsed_times) - 1)
+                )
             if window_newest_at is not None and window_oldest_at is not None:
                 try:
                     newest_dt = datetime.fromisoformat(window_newest_at)
@@ -1643,6 +1660,7 @@ class P0Runtime:
             "window_newest_at": window_newest_at,
             "window_oldest_at": window_oldest_at,
             "window_time_span_seconds": window_time_span_seconds,
+            "window_time_desc_order": window_time_desc_order,
             "snapshot_at": snapshot_at,
             "order": "id_desc",
             "has_more": has_more,

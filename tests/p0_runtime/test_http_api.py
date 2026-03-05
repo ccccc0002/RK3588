@@ -1671,6 +1671,14 @@ class P0HttpApiTests(unittest.TestCase):
             ),
             int(op_payload["data"]["window_time_span_seconds"]),
         )
+        self.assertEqual(
+            all(
+                datetime.fromisoformat(str(op_payload["data"]["items"][i]["at"]))
+                >= datetime.fromisoformat(str(op_payload["data"]["items"][i + 1]["at"]))
+                for i in range(len(op_payload["data"]["items"]) - 1)
+            ),
+            bool(op_payload["data"]["window_time_desc_order"]),
+        )
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -1754,6 +1762,14 @@ class P0HttpApiTests(unittest.TestCase):
             ),
             int(win_payload["data"]["window_time_span_seconds"]),
         )
+        self.assertEqual(
+            all(
+                datetime.fromisoformat(str(win_payload["data"]["items"][i]["at"]))
+                >= datetime.fromisoformat(str(win_payload["data"]["items"][i + 1]["at"]))
+                for i in range(len(win_payload["data"]["items"]) - 1)
+            ),
+            bool(win_payload["data"]["window_time_desc_order"]),
+        )
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -1808,6 +1824,14 @@ class P0HttpApiTests(unittest.TestCase):
                 ),
             ),
             int(total_payload["data"]["window_time_span_seconds"]),
+        )
+        self.assertEqual(
+            all(
+                datetime.fromisoformat(str(total_payload["data"]["items"][i]["at"]))
+                >= datetime.fromisoformat(str(total_payload["data"]["items"][i + 1]["at"]))
+                for i in range(len(total_payload["data"]["items"]) - 1)
+            ),
+            bool(total_payload["data"]["window_time_desc_order"]),
         )
         self.assertEqual(
             int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
@@ -1976,6 +2000,14 @@ class P0HttpApiTests(unittest.TestCase):
             ),
             int(op_payload["data"]["window_time_span_seconds"]),
         )
+        self.assertEqual(
+            all(
+                datetime.fromisoformat(str(op_payload["data"]["items"][i]["at"]))
+                >= datetime.fromisoformat(str(op_payload["data"]["items"][i + 1]["at"]))
+                for i in range(len(op_payload["data"]["items"]) - 1)
+            ),
+            bool(op_payload["data"]["window_time_desc_order"]),
+        )
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -2063,6 +2095,14 @@ class P0HttpApiTests(unittest.TestCase):
             ),
             int(win_payload["data"]["window_time_span_seconds"]),
         )
+        self.assertEqual(
+            all(
+                datetime.fromisoformat(str(win_payload["data"]["items"][i]["at"]))
+                >= datetime.fromisoformat(str(win_payload["data"]["items"][i + 1]["at"]))
+                for i in range(len(win_payload["data"]["items"]) - 1)
+            ),
+            bool(win_payload["data"]["window_time_desc_order"]),
+        )
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -2120,6 +2160,14 @@ class P0HttpApiTests(unittest.TestCase):
                 ),
             ),
             int(total_payload["data"]["window_time_span_seconds"]),
+        )
+        self.assertEqual(
+            all(
+                datetime.fromisoformat(str(total_payload["data"]["items"][i]["at"]))
+                >= datetime.fromisoformat(str(total_payload["data"]["items"][i + 1]["at"]))
+                for i in range(len(total_payload["data"]["items"]) - 1)
+            ),
+            bool(total_payload["data"]["window_time_desc_order"]),
         )
         self.assertEqual(
             int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
@@ -2324,6 +2372,14 @@ class P0HttpApiTests(unittest.TestCase):
             ),
             int(op_payload["data"]["window_time_span_seconds"]),
         )
+        self.assertEqual(
+            all(
+                datetime.fromisoformat(str(op_payload["data"]["items"][i]["at"]))
+                >= datetime.fromisoformat(str(op_payload["data"]["items"][i + 1]["at"]))
+                for i in range(len(op_payload["data"]["items"]) - 1)
+            ),
+            bool(op_payload["data"]["window_time_desc_order"]),
+        )
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -2411,6 +2467,14 @@ class P0HttpApiTests(unittest.TestCase):
             ),
             int(win_payload["data"]["window_time_span_seconds"]),
         )
+        self.assertEqual(
+            all(
+                datetime.fromisoformat(str(win_payload["data"]["items"][i]["at"]))
+                >= datetime.fromisoformat(str(win_payload["data"]["items"][i + 1]["at"]))
+                for i in range(len(win_payload["data"]["items"]) - 1)
+            ),
+            bool(win_payload["data"]["window_time_desc_order"]),
+        )
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -2468,6 +2532,14 @@ class P0HttpApiTests(unittest.TestCase):
                 ),
             ),
             int(total_payload["data"]["window_time_span_seconds"]),
+        )
+        self.assertEqual(
+            all(
+                datetime.fromisoformat(str(total_payload["data"]["items"][i]["at"]))
+                >= datetime.fromisoformat(str(total_payload["data"]["items"][i + 1]["at"]))
+                for i in range(len(total_payload["data"]["items"]) - 1)
+            ),
+            bool(total_payload["data"]["window_time_desc_order"]),
         )
         self.assertEqual(
             int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
