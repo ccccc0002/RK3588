@@ -164,13 +164,14 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
     def audit_recent(
         limit: int = 20,
         before_id: Optional[str] = None,
+        include_total: Optional[str] = None,
         authorization: str = Header(default="", alias="Authorization"),
     ):
         denied = _authorize_request(authorization, required_get_action("/api/v1/audit/recent") or "device:write")
         if denied is not None:
             return denied
         try:
-            return ok_payload(rt.list_audit_records_page(limit=limit, before_id=before_id))
+            return ok_payload(rt.list_audit_records_page(limit=limit, before_id=before_id, include_total=include_total))
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 
@@ -222,6 +223,7 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
     def list_gray_rollout_batch_cache_policy_history_ep(
         limit: int = 20,
         before_id: Optional[str] = None,
+        include_total: Optional[str] = None,
         authorization: str = Header(default="", alias="Authorization"),
     ):
         denied = _authorize_request(
@@ -231,7 +233,13 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         if denied is not None:
             return denied
         try:
-            return ok_payload(rt.list_gray_rollout_batch_plan_cache_policy_history_page(limit=limit, before_id=before_id))
+            return ok_payload(
+                rt.list_gray_rollout_batch_plan_cache_policy_history_page(
+                    limit=limit,
+                    before_id=before_id,
+                    include_total=include_total,
+                )
+            )
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 
@@ -258,6 +266,7 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
     def list_gray_rollout_batch_cache_ops_ep(
         limit: int = 20,
         before_id: Optional[str] = None,
+        include_total: Optional[str] = None,
         authorization: str = Header(default="", alias="Authorization"),
     ):
         denied = _authorize_request(
@@ -267,7 +276,13 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         if denied is not None:
             return denied
         try:
-            return ok_payload(rt.list_gray_rollout_batch_plan_cache_operations_page(limit=limit, before_id=before_id))
+            return ok_payload(
+                rt.list_gray_rollout_batch_plan_cache_operations_page(
+                    limit=limit,
+                    before_id=before_id,
+                    include_total=include_total,
+                )
+            )
         except ValueError as exc:
             return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
 

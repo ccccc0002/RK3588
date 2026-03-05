@@ -138,11 +138,18 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             query = parse_qs(parsed.query)
             limit_raw = (query.get("limit", ["20"]) or ["20"])[0]
             before_id_raw = (query.get("before_id", [None]) or [None])[0]
+            include_total_raw = (query.get("include_total", ["false"]) or ["false"])[0]
             try:
                 _json_response(
                     self,
                     200,
-                    ok_payload(self.runtime.list_audit_records_page(limit=limit_raw, before_id=before_id_raw)),
+                    ok_payload(
+                        self.runtime.list_audit_records_page(
+                            limit=limit_raw,
+                            before_id=before_id_raw,
+                            include_total=include_total_raw,
+                        )
+                    ),
                 )
             except ValueError as exc:
                 _json_response(self, 400, error_payload("bad_request", str(exc)))
@@ -168,6 +175,7 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             query = parse_qs(parsed.query)
             limit_raw = (query.get("limit", ["20"]) or ["20"])[0]
             before_id_raw = (query.get("before_id", [None]) or [None])[0]
+            include_total_raw = (query.get("include_total", ["false"]) or ["false"])[0]
             try:
                 _json_response(
                     self,
@@ -176,6 +184,7 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                         self.runtime.list_gray_rollout_batch_plan_cache_policy_history_page(
                             limit=limit_raw,
                             before_id=before_id_raw,
+                            include_total=include_total_raw,
                         )
                     ),
                 )
@@ -200,6 +209,7 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             query = parse_qs(parsed.query)
             limit_raw = (query.get("limit", ["20"]) or ["20"])[0]
             before_id_raw = (query.get("before_id", [None]) or [None])[0]
+            include_total_raw = (query.get("include_total", ["false"]) or ["false"])[0]
             try:
                 _json_response(
                     self,
@@ -208,6 +218,7 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                         self.runtime.list_gray_rollout_batch_plan_cache_operations_page(
                             limit=limit_raw,
                             before_id=before_id_raw,
+                            include_total=include_total_raw,
                         )
                     ),
                 )

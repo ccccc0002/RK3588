@@ -1548,11 +1548,14 @@ class P0Runtime:
     def _build_audit_cursor_page(
         self,
         list_fn: Callable[..., list[dict]],
+        count_fn: Callable[[int | None], int],
         limit: object = 20,
         before_id: object = None,
+        include_total: object = False,
     ) -> dict:
         capped = self._normalize_cache_operations_list_limit(limit)
         normalized_before_id = self._normalize_audit_before_id(before_id)
+        include_total_normalized = self._normalize_audit_include_total(include_total)
         items = list_fn(limit=capped, before_id=normalized_before_id)
         has_more = False
         next_before_id: int | None = None
@@ -1562,10 +1565,12 @@ class P0Runtime:
             except (TypeError, ValueError):
                 candidate_next = None
             if candidate_next is not None and candidate_next > 0:
-                probe = list_fn(limit=1, before_id=candidate_next)
-                has_more = len(probe) > 0
-                if has_more:
-                    next_before_id = candidate_next
+                if len(items) >= capped:
+                    probe = list_fn(limit=1, before_id=candidate_next)
+                    has_more = len(probe) > 0
+                    if has_more:
+                        next_before_id = candidate_next
+        total_candidates = count_fn(normalized_before_id) if include_total_normalized else None
         return {
             "items": items,
             "limit": capped,
@@ -1574,10 +1579,17 @@ class P0Runtime:
             "order": "id_desc",
             "has_more": has_more,
             "next_before_id": next_before_id,
+            "total_candidates": total_candidates,
         }
 
-    def list_audit_records_page(self, limit: object = 20, before_id: object = None) -> dict:
-        return self._build_audit_cursor_page(self.list_audit_records, limit=limit, before_id=before_id)
+    def list_audit_records_page(self, limit: object = 20, before_id: object = None, include_total: object = False) -> dict:
+        return self._build_audit_cursor_page(
+            self.list_audit_records,
+            self._count_audit_records,
+            limit=limit,
+            before_id=before_id,
+            include_total=include_total,
+        )
 
     @staticmethod
     def _normalize_cache_operations_list_limit(limit: object) -> int:
@@ -1605,6 +1617,33 @@ class P0Runtime:
             raise ValueError("before_id must be a positive integer")
         return value
 
+    @staticmethod
+    def _normalize_audit_include_total(include_total: object) -> bool:
+        if isinstance(include_total, bool):
+            return include_total
+        if include_total is None:
+            return False
+        value = str(include_total).strip().lower()
+        if value in {"1", "true", "yes", "on"}:
+            return True
+        if value in {"0", "false", "no", "off"}:
+            return False
+        raise ValueError("include_total must be a boolean")
+
+    def _count_audit_records(self, before_id: int | None) -> int:
+        with self._lock:
+            if before_id is None:
+                return len(self._audit_records)
+            total = 0
+            for item in self._audit_records:
+                try:
+                    record_id = int(item.get("id"))
+                except (TypeError, ValueError):
+                    continue
+                if record_id < before_id:
+                    total += 1
+            return total
+
     def list_gray_rollout_batch_plan_cache_operations(self, limit: object = 20, before_id: object = None) -> list[dict]:
         capped = self._normalize_cache_operations_list_limit(limit)
         max_id_exclusive = self._normalize_audit_before_id(before_id)
@@ -1626,11 +1665,35 @@ class P0Runtime:
             items = [dict(item) for item in reversed(tail)]
         return items
 
-    def list_gray_rollout_batch_plan_cache_operations_page(self, limit: object = 20, before_id: object = None) -> dict:
+    def _count_gray_rollout_batch_plan_cache_operations(self, before_id: int | None) -> int:
+        prefix = "gray_rollout.plan_batch.cache.clear"
+        with self._lock:
+            total = 0
+            for item in self._audit_records:
+                if not str(item.get("action", "")).startswith(prefix):
+                    continue
+                if before_id is not None:
+                    try:
+                        record_id = int(item.get("id"))
+                    except (TypeError, ValueError):
+                        continue
+                    if record_id >= before_id:
+                        continue
+                total += 1
+            return total
+
+    def list_gray_rollout_batch_plan_cache_operations_page(
+        self,
+        limit: object = 20,
+        before_id: object = None,
+        include_total: object = False,
+    ) -> dict:
         return self._build_audit_cursor_page(
             self.list_gray_rollout_batch_plan_cache_operations,
+            self._count_gray_rollout_batch_plan_cache_operations,
             limit=limit,
             before_id=before_id,
+            include_total=include_total,
         )
 
     def list_gray_rollout_batch_plan_cache_policy_history(
@@ -1656,13 +1719,35 @@ class P0Runtime:
             items = [dict(item) for item in reversed(tail)]
         return items
 
+    def _count_gray_rollout_batch_plan_cache_policy_history(self, before_id: int | None) -> int:
+        action = "gray_rollout.plan_batch.cache.policy.update"
+        with self._lock:
+            total = 0
+            for item in self._audit_records:
+                if str(item.get("action", "")) != action:
+                    continue
+                if before_id is not None:
+                    try:
+                        record_id = int(item.get("id"))
+                    except (TypeError, ValueError):
+                        continue
+                    if record_id >= before_id:
+                        continue
+                total += 1
+            return total
+
     def list_gray_rollout_batch_plan_cache_policy_history_page(
-        self, limit: object = 20, before_id: object = None
+        self,
+        limit: object = 20,
+        before_id: object = None,
+        include_total: object = False,
     ) -> dict:
         return self._build_audit_cursor_page(
             self.list_gray_rollout_batch_plan_cache_policy_history,
+            self._count_gray_rollout_batch_plan_cache_policy_history,
             limit=limit,
             before_id=before_id,
+            include_total=include_total,
         )
 
     @staticmethod

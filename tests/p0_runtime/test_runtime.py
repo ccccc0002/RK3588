@@ -2112,6 +2112,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIsNone(page["before_id"])
         self.assertEqual(1, page["returned_items"])
         self.assertEqual("id_desc", page["order"])
+        self.assertIsNone(page["total_candidates"])
         self.assertTrue(page["has_more"])
         self.assertIsNotNone(page["next_before_id"])
         self.assertEqual(1, len(page["items"]))
@@ -2119,6 +2120,12 @@ class P0RuntimeTests(unittest.TestCase):
         page_with_cursor = self.runtime.list_audit_records_page(limit=1, before_id=anchor_id)
         self.assertEqual(anchor_id, page_with_cursor["before_id"])
         self.assertEqual("id_desc", page_with_cursor["order"])
+        self.assertIsNone(page_with_cursor["total_candidates"])
+
+        page_with_total = self.runtime.list_audit_records_page(limit=1, include_total=True)
+        self.assertGreaterEqual(int(page_with_total["total_candidates"]), 3)
+        with self.assertRaisesRegex(ValueError, "include_total must be a boolean"):
+            self.runtime.list_audit_records_page(limit=1, include_total="bad")
 
     def test_list_gray_rollout_batch_plan_cache_operations(self) -> None:
         self.runtime.update_gray_rollout_policy(
@@ -2192,6 +2199,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIsNone(page["before_id"])
         self.assertEqual(1, page["returned_items"])
         self.assertEqual("id_desc", page["order"])
+        self.assertIsNone(page["total_candidates"])
         self.assertTrue(page["has_more"])
         self.assertIsNotNone(page["next_before_id"])
         self.assertEqual(1, len(page["items"]))
@@ -2199,6 +2207,12 @@ class P0RuntimeTests(unittest.TestCase):
         page_with_cursor = self.runtime.list_gray_rollout_batch_plan_cache_operations_page(limit=1, before_id=anchor_id)
         self.assertEqual(anchor_id, page_with_cursor["before_id"])
         self.assertEqual("id_desc", page_with_cursor["order"])
+        self.assertIsNone(page_with_cursor["total_candidates"])
+
+        page_with_total = self.runtime.list_gray_rollout_batch_plan_cache_operations_page(limit=1, include_total=True)
+        self.assertGreaterEqual(int(page_with_total["total_candidates"]), 3)
+        with self.assertRaisesRegex(ValueError, "include_total must be a boolean"):
+            self.runtime.list_gray_rollout_batch_plan_cache_operations_page(limit=1, include_total="bad")
 
     def test_gray_rollout_batch_cache_policy_default_max_clear_entries(self) -> None:
         updated = self.runtime.update_gray_rollout_batch_plan_cache_policy({"default_max_clear_entries": 1})
@@ -2300,6 +2314,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIsNone(page["before_id"])
         self.assertEqual(1, page["returned_items"])
         self.assertEqual("id_desc", page["order"])
+        self.assertIsNone(page["total_candidates"])
         self.assertTrue(page["has_more"])
         self.assertIsNotNone(page["next_before_id"])
         self.assertEqual(1, len(page["items"]))
@@ -2310,6 +2325,12 @@ class P0RuntimeTests(unittest.TestCase):
         )
         self.assertEqual(anchor_id, page_with_cursor["before_id"])
         self.assertEqual("id_desc", page_with_cursor["order"])
+        self.assertIsNone(page_with_cursor["total_candidates"])
+
+        page_with_total = self.runtime.list_gray_rollout_batch_plan_cache_policy_history_page(limit=1, include_total=True)
+        self.assertGreaterEqual(int(page_with_total["total_candidates"]), 3)
+        with self.assertRaisesRegex(ValueError, "include_total must be a boolean"):
+            self.runtime.list_gray_rollout_batch_plan_cache_policy_history_page(limit=1, include_total="bad")
 
     def test_update_and_get_network_policy(self) -> None:
         updated = self.runtime.update_network_policy(

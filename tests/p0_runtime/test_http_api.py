@@ -1632,6 +1632,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIsNone(op_payload["data"]["before_id"])
         self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
         self.assertEqual("id_desc", op_payload["data"]["order"])
+        self.assertIsNone(op_payload["data"]["total_candidates"])
         if op_payload["data"]["has_more"]:
             self.assertIsNotNone(op_payload["data"]["next_before_id"])
         else:
@@ -1659,9 +1660,15 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(win_payload["success"])
         self.assertIsNone(win_payload["data"]["before_id"])
         self.assertEqual("id_desc", win_payload["data"]["order"])
+        self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
         self.assertIsNotNone(win_payload["data"]["next_before_id"])
         self.assertEqual(1, win_payload["data"]["returned_items"])
+
+        total_status, total_payload = self._get("/api/v1/audit/recent?limit=1&include_total=true", token=self.operator_token)
+        self.assertEqual(200, total_status)
+        self.assertTrue(total_payload["success"])
+        self.assertGreaterEqual(int(total_payload["data"]["total_candidates"]), 2)
 
         bad_before_id_status, bad_before_id_payload = self._get(
             "/api/v1/audit/recent?limit=5&before_id=bad",
@@ -1678,6 +1685,14 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(400, bad_limit_status)
         self.assertFalse(bad_limit_payload["success"])
         self.assertEqual("bad_request", bad_limit_payload["error"]["code"])
+
+        bad_total_status, bad_total_payload = self._get(
+            "/api/v1/audit/recent?limit=5&include_total=bad",
+            token=self.operator_token,
+        )
+        self.assertEqual(400, bad_total_status)
+        self.assertFalse(bad_total_payload["success"])
+        self.assertEqual("bad_request", bad_total_payload["error"]["code"])
 
     def test_audit_policy_endpoints(self) -> None:
         update_status, update_payload = self._post(
@@ -1774,6 +1789,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIsNone(op_payload["data"]["before_id"])
         self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
         self.assertEqual("id_desc", op_payload["data"]["order"])
+        self.assertIsNone(op_payload["data"]["total_candidates"])
         if op_payload["data"]["has_more"]:
             self.assertIsNotNone(op_payload["data"]["next_before_id"])
         else:
@@ -1805,9 +1821,18 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(win_payload["success"])
         self.assertIsNone(win_payload["data"]["before_id"])
         self.assertEqual("id_desc", win_payload["data"]["order"])
+        self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
         self.assertIsNotNone(win_payload["data"]["next_before_id"])
         self.assertEqual(1, win_payload["data"]["returned_items"])
+
+        total_status, total_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache/ops?limit=1&include_total=true",
+            token=self.operator_token,
+        )
+        self.assertEqual(200, total_status)
+        self.assertTrue(total_payload["success"])
+        self.assertGreaterEqual(int(total_payload["data"]["total_candidates"]), 3)
 
         bad_status, bad_payload = self._get(
             "/api/v1/gray-rollout/plan/batch/cache/ops?limit=bad",
@@ -1824,6 +1849,14 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(400, bad_before_id_status)
         self.assertFalse(bad_before_id_payload["success"])
         self.assertEqual("bad_request", bad_before_id_payload["error"]["code"])
+
+        bad_total_status, bad_total_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache/ops?limit=5&include_total=bad",
+            token=self.operator_token,
+        )
+        self.assertEqual(400, bad_total_status)
+        self.assertFalse(bad_total_payload["success"])
+        self.assertEqual("bad_request", bad_total_payload["error"]["code"])
 
     def test_gray_rollout_batch_cache_policy_endpoints(self) -> None:
         get_status, get_payload = self._get(
@@ -1956,6 +1989,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIsNone(op_payload["data"]["before_id"])
         self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
         self.assertEqual("id_desc", op_payload["data"]["order"])
+        self.assertIsNone(op_payload["data"]["total_candidates"])
         if op_payload["data"]["has_more"]:
             self.assertIsNotNone(op_payload["data"]["next_before_id"])
         else:
@@ -1987,9 +2021,18 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertTrue(win_payload["success"])
         self.assertIsNone(win_payload["data"]["before_id"])
         self.assertEqual("id_desc", win_payload["data"]["order"])
+        self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
         self.assertIsNotNone(win_payload["data"]["next_before_id"])
         self.assertEqual(1, win_payload["data"]["returned_items"])
+
+        total_status, total_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache/policy/history?limit=1&include_total=true",
+            token=self.operator_token,
+        )
+        self.assertEqual(200, total_status)
+        self.assertTrue(total_payload["success"])
+        self.assertGreaterEqual(int(total_payload["data"]["total_candidates"]), 2)
 
         bad_status, bad_payload = self._get(
             "/api/v1/gray-rollout/plan/batch/cache/policy/history?limit=bad",
@@ -2006,6 +2049,14 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(400, bad_before_id_status)
         self.assertFalse(bad_before_id_payload["success"])
         self.assertEqual("bad_request", bad_before_id_payload["error"]["code"])
+
+        bad_total_status, bad_total_payload = self._get(
+            "/api/v1/gray-rollout/plan/batch/cache/policy/history?limit=5&include_total=bad",
+            token=self.operator_token,
+        )
+        self.assertEqual(400, bad_total_status)
+        self.assertFalse(bad_total_payload["success"])
+        self.assertEqual("bad_request", bad_total_payload["error"]["code"])
 
     def test_network_policy_endpoints(self) -> None:
         update_status, update_payload = self._post(

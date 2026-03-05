@@ -971,6 +971,12 @@ paths:
           schema:
             type: integer
             minimum: 1
+        - name: include_total
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: Recent audit records
@@ -1252,6 +1258,12 @@ paths:
           schema:
             type: integer
             minimum: 1
+        - in: query
+          name: include_total
+          required: false
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: Cache policy update audit entries
@@ -1322,6 +1334,12 @@ paths:
           schema:
             type: integer
             minimum: 1
+        - in: query
+          name: include_total
+          required: false
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: Cache clear operation audit entries
@@ -2681,7 +2699,7 @@ components:
 
     AuditListData:
       type: object
-      required: [items, limit, before_id, returned_items, order, has_more, next_before_id]
+      required: [items, limit, before_id, returned_items, order, has_more, next_before_id, total_candidates]
       properties:
         items:
           type: array
@@ -2706,6 +2724,10 @@ components:
         next_before_id:
           type: integer
           minimum: 1
+          nullable: true
+        total_candidates:
+          type: integer
+          minimum: 0
           nullable: true
 
     AuditPolicyRequest:
