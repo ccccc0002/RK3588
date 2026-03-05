@@ -1,0 +1,17 @@
+﻿# Checkpoint 20260305-093050-P4-iteration-30-audit-cursor-next-query-validated
+
+- Time: 2026-03-05T09:30:50+08:00
+- Stage: P4-iteration-30-audit-cursor-next-query-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 7bf762189cbb33de7657b6a3a24b75b9949d1ad0
+- Tag: checkpoint/P4-iteration-30-audit-cursor-next-query-validated/20260305-093050
+- Summary: added next_query metadata to audit cursor page responses across runtime/http/fastapi with docs/openapi/test parity and local+remote validation
+- Next: continue post-P3 audit pagination client ergonomics hardening
+
+## Changed Files
+- docs/api/p0-openapi.yaml
+- docs/api/p0-runtime-endpoints.md
+- docs/workflow/agent-sync-log.md
+- src/p0_runtime/runtime.py
+- tests/p0_runtime/test_http_api.py
+- tests/p0_runtime/test_runtime.py

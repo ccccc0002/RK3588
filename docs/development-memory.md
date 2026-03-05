@@ -695,3 +695,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-29-audit-cursor-remaining-candidates-validated/20260305-092743
 - Summary: added remaining_candidates metadata to audit cursor page responses across runtime/http/fastapi docs/openapi and validated local+remote py3.8 gates
 - Next: continue post-P3 audit pagination contract hardening
+
+## [2026-03-05T09:30:50+08:00] P4-iteration-30-audit-cursor-next-query-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 7bf7621
+- Tag: checkpoint/P4-iteration-30-audit-cursor-next-query-validated/20260305-093050
+- Summary: added next_query metadata to audit cursor page responses across runtime/http/fastapi with docs/openapi/test parity and local+remote validation
+- Next: continue post-P3 audit pagination client ergonomics hardening
