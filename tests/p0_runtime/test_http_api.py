@@ -137,6 +137,7 @@ class P0HttpApiTests(unittest.TestCase):
             expected_p75 = round(float(sorted_gaps[p75_index]), 6)
             p25_index = max(0, int((len(sorted_gaps) * 25 + 99) // 100) - 1)
             expected_p25 = round(float(sorted_gaps[p25_index]), 6)
+            expected_iqr = round(max(0.0, float(sorted_gaps[p75_index]) - float(sorted_gaps[p25_index])), 6)
             p95_index = max(0, int((len(sorted_gaps) * 95 + 99) // 100) - 1)
             expected_p95 = round(float(sorted_gaps[p95_index]), 6)
             p99_index = max(0, int((len(sorted_gaps) * 99 + 99) // 100) - 1)
@@ -146,6 +147,7 @@ class P0HttpApiTests(unittest.TestCase):
             expected_p90 = 0.0
             expected_p75 = 0.0
             expected_p25 = 0.0
+            expected_iqr = 0.0
             expected_p95 = 0.0
             expected_p99 = 0.0
         expected_total = round(sum(gaps), 6) if gaps else 0.0
@@ -161,6 +163,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertAlmostEqual(expected_p90, float(data["window_time_gap_p90_seconds"]), places=6)
         self.assertAlmostEqual(expected_p75, float(data["window_time_gap_p75_seconds"]), places=6)
         self.assertAlmostEqual(expected_p25, float(data["window_time_gap_p25_seconds"]), places=6)
+        self.assertAlmostEqual(expected_iqr, float(data["window_time_gap_iqr_seconds"]), places=6)
         self.assertAlmostEqual(expected_p95, float(data["window_time_gap_p95_seconds"]), places=6)
         self.assertAlmostEqual(expected_p99, float(data["window_time_gap_p99_seconds"]), places=6)
         self.assertAlmostEqual(expected_total, float(data["window_time_gap_total_seconds"]), places=6)

@@ -1590,6 +1590,7 @@ class P0Runtime:
         window_time_gap_p90_seconds = None
         window_time_gap_p75_seconds = None
         window_time_gap_p25_seconds = None
+        window_time_gap_iqr_seconds = None
         window_time_gap_p95_seconds = None
         window_time_gap_p99_seconds = None
         window_time_gap_total_seconds = None
@@ -1650,6 +1651,7 @@ class P0Runtime:
                     window_time_gap_p90_seconds = 0.0
                     window_time_gap_p75_seconds = 0.0
                     window_time_gap_p25_seconds = 0.0
+                    window_time_gap_iqr_seconds = 0.0
                     window_time_gap_p95_seconds = 0.0
                     window_time_gap_p99_seconds = 0.0
                     window_time_gap_total_seconds = 0.0
@@ -1687,6 +1689,8 @@ class P0Runtime:
                     window_time_gap_p75_seconds = round(float(sorted_gaps[p75_index]), 6)
                     p25_index = max(0, int((len(sorted_gaps) * 25 + 99) // 100) - 1)
                     window_time_gap_p25_seconds = round(float(sorted_gaps[p25_index]), 6)
+                    iqr_gap = max(0.0, float(sorted_gaps[p75_index]) - float(sorted_gaps[p25_index]))
+                    window_time_gap_iqr_seconds = round(iqr_gap, 6)
                     p95_index = max(0, int((len(sorted_gaps) * 95 + 99) // 100) - 1)
                     window_time_gap_p95_seconds = round(float(sorted_gaps[p95_index]), 6)
                     p99_index = max(0, int((len(sorted_gaps) * 99 + 99) // 100) - 1)
@@ -1786,6 +1790,7 @@ class P0Runtime:
             "window_time_gap_p90_seconds": window_time_gap_p90_seconds,
             "window_time_gap_p75_seconds": window_time_gap_p75_seconds,
             "window_time_gap_p25_seconds": window_time_gap_p25_seconds,
+            "window_time_gap_iqr_seconds": window_time_gap_iqr_seconds,
             "window_time_gap_p95_seconds": window_time_gap_p95_seconds,
             "window_time_gap_p99_seconds": window_time_gap_p99_seconds,
             "window_time_gap_total_seconds": window_time_gap_total_seconds,
