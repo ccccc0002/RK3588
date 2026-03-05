@@ -124,6 +124,15 @@ class P0HttpApiTests(unittest.TestCase):
         expected_nonzero_ratio = (
             round(float(expected_nonzero_count) / float(len(gaps)), 6) if gaps else 0.0
         )
+        if gaps:
+            sorted_gaps = sorted(gaps)
+            mid = len(sorted_gaps) // 2
+            if len(sorted_gaps) % 2 == 1:
+                expected_median = round(float(sorted_gaps[mid]), 6)
+            else:
+                expected_median = round(float(sorted_gaps[mid - 1] + sorted_gaps[mid]) / 2.0, 6)
+        else:
+            expected_median = 0.0
         expected_total = round(sum(gaps), 6) if gaps else 0.0
         expected_avg = round(sum(gaps) / float(len(gaps)), 6) if gaps else 0.0
         self.assertEqual(expected_min, int(data["window_time_gap_min_seconds"]))
@@ -133,6 +142,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(expected_nonzero_count, int(data["window_time_gap_nonzero_count"]))
         self.assertAlmostEqual(expected_zero_ratio, float(data["window_time_gap_zero_ratio"]), places=6)
         self.assertAlmostEqual(expected_nonzero_ratio, float(data["window_time_gap_nonzero_ratio"]), places=6)
+        self.assertAlmostEqual(expected_median, float(data["window_time_gap_median_seconds"]), places=6)
         self.assertAlmostEqual(expected_total, float(data["window_time_gap_total_seconds"]), places=6)
         self.assertAlmostEqual(expected_avg, float(data["window_time_gap_avg_seconds"]), places=6)
 

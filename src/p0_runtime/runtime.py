@@ -1586,6 +1586,7 @@ class P0Runtime:
         window_time_gap_nonzero_count = None
         window_time_gap_zero_ratio = None
         window_time_gap_nonzero_ratio = None
+        window_time_gap_median_seconds = None
         window_time_gap_total_seconds = None
         window_time_gap_avg_seconds = None
         if items:
@@ -1640,6 +1641,7 @@ class P0Runtime:
                     window_time_gap_nonzero_count = 0
                     window_time_gap_zero_ratio = 0.0
                     window_time_gap_nonzero_ratio = 0.0
+                    window_time_gap_median_seconds = 0.0
                     window_time_gap_total_seconds = 0.0
                     window_time_gap_avg_seconds = 0.0
                 else:
@@ -1662,6 +1664,13 @@ class P0Runtime:
                         float(window_time_gap_nonzero_count) / float(len(gaps)),
                         6,
                     )
+                    sorted_gaps = sorted(gaps)
+                    mid = len(sorted_gaps) // 2
+                    if len(sorted_gaps) % 2 == 1:
+                        median_gap = float(sorted_gaps[mid])
+                    else:
+                        median_gap = float(sorted_gaps[mid - 1] + sorted_gaps[mid]) / 2.0
+                    window_time_gap_median_seconds = round(median_gap, 6)
                     window_time_gap_total_seconds = round(float(sum(gaps)), 6)
                     window_time_gap_avg_seconds = round(
                         float(sum(gaps)) / float(len(gaps)),
@@ -1753,6 +1762,7 @@ class P0Runtime:
             "window_time_gap_nonzero_count": window_time_gap_nonzero_count,
             "window_time_gap_zero_ratio": window_time_gap_zero_ratio,
             "window_time_gap_nonzero_ratio": window_time_gap_nonzero_ratio,
+            "window_time_gap_median_seconds": window_time_gap_median_seconds,
             "window_time_gap_total_seconds": window_time_gap_total_seconds,
             "window_time_gap_avg_seconds": window_time_gap_avg_seconds,
             "snapshot_at": snapshot_at,
