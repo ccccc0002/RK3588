@@ -723,3 +723,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-33-audit-cursor-window-boundary-validated/20260305-112709
 - Summary: added window_max_id/window_min_id to audit cursor page responses with runtime/docs/openapi/test parity and local+remote validation
 - Next: continue post-P3 audit pagination observability and client ergonomics hardening
+
+## [2026-03-05T11:30:57+08:00] P4-iteration-34-audit-cursor-query-string-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: f43d246
+- Tag: checkpoint/P4-iteration-34-audit-cursor-query-string-validated/20260305-113057
+- Summary: added normalized query_string echo for audit cursor pages with runtime/docs/openapi/test parity and local+remote validation
+- Next: continue post-P3 audit cursor ergonomics and client interop hardening
