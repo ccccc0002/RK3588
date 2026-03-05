@@ -2113,6 +2113,8 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIn("snapshot_at", page)
         datetime.fromisoformat(str(page["snapshot_at"]))
         self.assertEqual(1, page["returned_items"])
+        self.assertEqual(int(page["items"][0]["id"]), int(page["window_max_id"]))
+        self.assertEqual(int(page["items"][-1]["id"]), int(page["window_min_id"]))
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
         self.assertIsNone(page["remaining_candidates"])
@@ -2130,6 +2132,12 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual("id_desc", page_with_cursor["order"])
         self.assertIsNone(page_with_cursor["total_candidates"])
         self.assertIsNone(page_with_cursor["remaining_candidates"])
+        if page_with_cursor["items"]:
+            self.assertEqual(int(page_with_cursor["items"][0]["id"]), int(page_with_cursor["window_max_id"]))
+            self.assertEqual(int(page_with_cursor["items"][-1]["id"]), int(page_with_cursor["window_min_id"]))
+        else:
+            self.assertIsNone(page_with_cursor["window_max_id"])
+            self.assertIsNone(page_with_cursor["window_min_id"])
         if page_with_cursor["has_more"]:
             self.assertIsNotNone(page_with_cursor["next_query_string"])
         else:
@@ -2141,6 +2149,8 @@ class P0RuntimeTests(unittest.TestCase):
             int(page_with_total["total_candidates"]) - int(page_with_total["returned_items"]),
             int(page_with_total["remaining_candidates"]),
         )
+        self.assertEqual(int(page_with_total["items"][0]["id"]), int(page_with_total["window_max_id"]))
+        self.assertEqual(int(page_with_total["items"][-1]["id"]), int(page_with_total["window_min_id"]))
         self.assertIsNotNone(page_with_total["next_query"])
         self.assertIsNotNone(page_with_total["next_query_string"])
         self.assertIn("include_total=true", page_with_total["next_query_string"])
@@ -2221,6 +2231,8 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIn("snapshot_at", page)
         datetime.fromisoformat(str(page["snapshot_at"]))
         self.assertEqual(1, page["returned_items"])
+        self.assertEqual(int(page["items"][0]["id"]), int(page["window_max_id"]))
+        self.assertEqual(int(page["items"][-1]["id"]), int(page["window_min_id"]))
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
         self.assertIsNone(page["remaining_candidates"])
@@ -2238,6 +2250,12 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual("id_desc", page_with_cursor["order"])
         self.assertIsNone(page_with_cursor["total_candidates"])
         self.assertIsNone(page_with_cursor["remaining_candidates"])
+        if page_with_cursor["items"]:
+            self.assertEqual(int(page_with_cursor["items"][0]["id"]), int(page_with_cursor["window_max_id"]))
+            self.assertEqual(int(page_with_cursor["items"][-1]["id"]), int(page_with_cursor["window_min_id"]))
+        else:
+            self.assertIsNone(page_with_cursor["window_max_id"])
+            self.assertIsNone(page_with_cursor["window_min_id"])
         if page_with_cursor["has_more"]:
             self.assertIsNotNone(page_with_cursor["next_query_string"])
         else:
@@ -2249,6 +2267,8 @@ class P0RuntimeTests(unittest.TestCase):
             int(page_with_total["total_candidates"]) - int(page_with_total["returned_items"]),
             int(page_with_total["remaining_candidates"]),
         )
+        self.assertEqual(int(page_with_total["items"][0]["id"]), int(page_with_total["window_max_id"]))
+        self.assertEqual(int(page_with_total["items"][-1]["id"]), int(page_with_total["window_min_id"]))
         self.assertIsNotNone(page_with_total["next_query"])
         self.assertIsNotNone(page_with_total["next_query_string"])
         self.assertIn("include_total=true", page_with_total["next_query_string"])
@@ -2357,6 +2377,8 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertIn("snapshot_at", page)
         datetime.fromisoformat(str(page["snapshot_at"]))
         self.assertEqual(1, page["returned_items"])
+        self.assertEqual(int(page["items"][0]["id"]), int(page["window_max_id"]))
+        self.assertEqual(int(page["items"][-1]["id"]), int(page["window_min_id"]))
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
         self.assertIsNone(page["remaining_candidates"])
@@ -2377,6 +2399,12 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual("id_desc", page_with_cursor["order"])
         self.assertIsNone(page_with_cursor["total_candidates"])
         self.assertIsNone(page_with_cursor["remaining_candidates"])
+        if page_with_cursor["items"]:
+            self.assertEqual(int(page_with_cursor["items"][0]["id"]), int(page_with_cursor["window_max_id"]))
+            self.assertEqual(int(page_with_cursor["items"][-1]["id"]), int(page_with_cursor["window_min_id"]))
+        else:
+            self.assertIsNone(page_with_cursor["window_max_id"])
+            self.assertIsNone(page_with_cursor["window_min_id"])
         if page_with_cursor["has_more"]:
             self.assertIsNotNone(page_with_cursor["next_query_string"])
         else:
@@ -2388,6 +2416,8 @@ class P0RuntimeTests(unittest.TestCase):
             int(page_with_total["total_candidates"]) - int(page_with_total["returned_items"]),
             int(page_with_total["remaining_candidates"]),
         )
+        self.assertEqual(int(page_with_total["items"][0]["id"]), int(page_with_total["window_max_id"]))
+        self.assertEqual(int(page_with_total["items"][-1]["id"]), int(page_with_total["window_min_id"]))
         self.assertIsNotNone(page_with_total["next_query"])
         self.assertIsNotNone(page_with_total["next_query_string"])
         self.assertIn("include_total=true", page_with_total["next_query_string"])

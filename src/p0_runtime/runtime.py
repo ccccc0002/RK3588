@@ -1560,6 +1560,17 @@ class P0Runtime:
         items = list_fn(limit=capped, before_id=normalized_before_id)
         returned_items = len(items)
         total_candidates = count_fn(normalized_before_id) if include_total_normalized else None
+        window_max_id = None
+        window_min_id = None
+        if items:
+            try:
+                window_max_id = int(items[0].get("id"))
+            except (TypeError, ValueError):
+                window_max_id = None
+            try:
+                window_min_id = int(items[-1].get("id"))
+            except (TypeError, ValueError):
+                window_min_id = None
         has_more = False
         next_before_id: int | None = None
         if items:
@@ -1593,6 +1604,8 @@ class P0Runtime:
             "limit": capped,
             "before_id": normalized_before_id,
             "returned_items": returned_items,
+            "window_max_id": window_max_id,
+            "window_min_id": window_min_id,
             "snapshot_at": snapshot_at,
             "order": "id_desc",
             "has_more": has_more,

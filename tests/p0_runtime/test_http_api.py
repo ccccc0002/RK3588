@@ -1633,6 +1633,8 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIn("snapshot_at", op_payload["data"])
         datetime.fromisoformat(str(op_payload["data"]["snapshot_at"]))
         self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
+        self.assertEqual(int(op_payload["data"]["items"][0]["id"]), int(op_payload["data"]["window_max_id"]))
+        self.assertEqual(int(op_payload["data"]["items"][-1]["id"]), int(op_payload["data"]["window_min_id"]))
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -1674,6 +1676,8 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIn("snapshot_at", win_payload["data"])
         datetime.fromisoformat(str(win_payload["data"]["snapshot_at"]))
         self.assertEqual("id_desc", win_payload["data"]["order"])
+        self.assertEqual(int(win_payload["data"]["items"][0]["id"]), int(win_payload["data"]["window_max_id"]))
+        self.assertEqual(int(win_payload["data"]["items"][-1]["id"]), int(win_payload["data"]["window_min_id"]))
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -1691,6 +1695,8 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIn("snapshot_at", total_payload["data"])
         datetime.fromisoformat(str(total_payload["data"]["snapshot_at"]))
         self.assertGreaterEqual(int(total_payload["data"]["total_candidates"]), 2)
+        self.assertEqual(int(total_payload["data"]["items"][0]["id"]), int(total_payload["data"]["window_max_id"]))
+        self.assertEqual(int(total_payload["data"]["items"][-1]["id"]), int(total_payload["data"]["window_min_id"]))
         self.assertEqual(
             int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
             int(total_payload["data"]["remaining_candidates"]),
@@ -1820,6 +1826,8 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIn("snapshot_at", op_payload["data"])
         datetime.fromisoformat(str(op_payload["data"]["snapshot_at"]))
         self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
+        self.assertEqual(int(op_payload["data"]["items"][0]["id"]), int(op_payload["data"]["window_max_id"]))
+        self.assertEqual(int(op_payload["data"]["items"][-1]["id"]), int(op_payload["data"]["window_min_id"]))
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -1865,6 +1873,8 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIn("snapshot_at", win_payload["data"])
         datetime.fromisoformat(str(win_payload["data"]["snapshot_at"]))
         self.assertEqual("id_desc", win_payload["data"]["order"])
+        self.assertEqual(int(win_payload["data"]["items"][0]["id"]), int(win_payload["data"]["window_max_id"]))
+        self.assertEqual(int(win_payload["data"]["items"][-1]["id"]), int(win_payload["data"]["window_min_id"]))
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -1885,6 +1895,8 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIn("snapshot_at", total_payload["data"])
         datetime.fromisoformat(str(total_payload["data"]["snapshot_at"]))
         self.assertGreaterEqual(int(total_payload["data"]["total_candidates"]), 3)
+        self.assertEqual(int(total_payload["data"]["items"][0]["id"]), int(total_payload["data"]["window_max_id"]))
+        self.assertEqual(int(total_payload["data"]["items"][-1]["id"]), int(total_payload["data"]["window_min_id"]))
         self.assertEqual(
             int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
             int(total_payload["data"]["remaining_candidates"]),
@@ -2050,6 +2062,8 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIn("snapshot_at", op_payload["data"])
         datetime.fromisoformat(str(op_payload["data"]["snapshot_at"]))
         self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
+        self.assertEqual(int(op_payload["data"]["items"][0]["id"]), int(op_payload["data"]["window_max_id"]))
+        self.assertEqual(int(op_payload["data"]["items"][-1]["id"]), int(op_payload["data"]["window_min_id"]))
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -2095,6 +2109,8 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIn("snapshot_at", win_payload["data"])
         datetime.fromisoformat(str(win_payload["data"]["snapshot_at"]))
         self.assertEqual("id_desc", win_payload["data"]["order"])
+        self.assertEqual(int(win_payload["data"]["items"][0]["id"]), int(win_payload["data"]["window_max_id"]))
+        self.assertEqual(int(win_payload["data"]["items"][-1]["id"]), int(win_payload["data"]["window_min_id"]))
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -2115,6 +2131,8 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIn("snapshot_at", total_payload["data"])
         datetime.fromisoformat(str(total_payload["data"]["snapshot_at"]))
         self.assertGreaterEqual(int(total_payload["data"]["total_candidates"]), 2)
+        self.assertEqual(int(total_payload["data"]["items"][0]["id"]), int(total_payload["data"]["window_max_id"]))
+        self.assertEqual(int(total_payload["data"]["items"][-1]["id"]), int(total_payload["data"]["window_min_id"]))
         self.assertEqual(
             int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
             int(total_payload["data"]["remaining_candidates"]),
