@@ -737,3 +737,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-35-audit-cursor-window-span-density-validated/20260305-114144
 - Summary: added window_span/dense_window audit cursor metadata with runtime/http/docs/openapi parity and local+remote py3.8 validation
 - Next: continue post-P3 audit cursor ergonomics and client interop hardening
+
+## [2026-03-05T11:47:09+08:00] P4-iteration-36-audit-cursor-id-gap-count-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: a12daf5
+- Tag: checkpoint/P4-iteration-36-audit-cursor-id-gap-count-validated/20260305-114709
+- Summary: added id_gap_count audit cursor metadata with runtime/http/docs/openapi parity and local+remote py3.8 validation
+- Next: continue post-P3 audit cursor ergonomics and client interop hardening
