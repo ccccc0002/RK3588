@@ -650,13 +650,14 @@ GB28181 example:
   - 200 envelope:
     - `items[]` audit records
     - `limit`, `before_id` (request cursor echo, nullable), `query_string` (normalized current-page query string)
-    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_count`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `snapshot_at`, `order` (`id_desc`)
+    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_unparseable_count`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_count`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `snapshot_at`, `order` (`id_desc`)
     - `window_span` = `window_max_id - window_min_id + 1` when page has items; otherwise `null`
     - `dense_window` = whether `window_span == returned_items` when page has items; otherwise `null`
     - `id_gap_count` = `window_span - returned_items` (non-negative) when page has items; otherwise `null`
     - `window_density` = `returned_items / window_span` (rounded to 6 decimals) when page has items; otherwise `null`
     - `window_newest_at`/`window_oldest_at` = current page first/last record `at` timestamps; `null` when page is empty
     - `window_time_parseable` = whether all current page `at` timestamps are parseable; `null` when page is empty
+    - `window_time_unparseable_count` = number of current page records whose `at` is missing or not parseable; `null` when page is empty
     - `window_time_span_seconds` = `max(0, window_newest_at - window_oldest_at)` in seconds when timestamps are parseable; otherwise `null`
     - `window_time_desc_order` = whether current page `at` timestamps are non-increasing (desc/equal) when parseable; otherwise `null`
     - `window_time_gap_max_seconds` = max absolute adjacent `at` delta in seconds when timestamps are parseable; otherwise `null`
@@ -911,13 +912,14 @@ GB28181 example:
     - `items[]` from audit records filtered by action:
       - `gray_rollout.plan_batch.cache.policy.update`
     - `limit`, `before_id` (request cursor echo, nullable), `query_string` (normalized current-page query string)
-    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_count`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `snapshot_at`, `order` (`id_desc`)
+    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_unparseable_count`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_count`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `snapshot_at`, `order` (`id_desc`)
     - `window_span` = `window_max_id - window_min_id + 1` when page has items; otherwise `null`
     - `dense_window` = whether `window_span == returned_items` when page has items; otherwise `null`
     - `id_gap_count` = `window_span - returned_items` (non-negative) when page has items; otherwise `null`
     - `window_density` = `returned_items / window_span` (rounded to 6 decimals) when page has items; otherwise `null`
     - `window_newest_at`/`window_oldest_at` = current page first/last record `at` timestamps; `null` when page is empty
     - `window_time_parseable` = whether all current page `at` timestamps are parseable; `null` when page is empty
+    - `window_time_unparseable_count` = number of current page records whose `at` is missing or not parseable; `null` when page is empty
     - `window_time_span_seconds` = `max(0, window_newest_at - window_oldest_at)` in seconds when timestamps are parseable; otherwise `null`
     - `window_time_desc_order` = whether current page `at` timestamps are non-increasing (desc/equal) when parseable; otherwise `null`
     - `window_time_gap_max_seconds` = max absolute adjacent `at` delta in seconds when timestamps are parseable; otherwise `null`
@@ -965,13 +967,14 @@ GB28181 example:
       - `gray_rollout.plan_batch.cache.clear.blocked`
       - `gray_rollout.plan_batch.cache.clear`
     - `limit`, `before_id` (request cursor echo, nullable), `query_string` (normalized current-page query string)
-    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_count`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `snapshot_at`, `order` (`id_desc`)
+    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_unparseable_count`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_count`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `snapshot_at`, `order` (`id_desc`)
     - `window_span` = `window_max_id - window_min_id + 1` when page has items; otherwise `null`
     - `dense_window` = whether `window_span == returned_items` when page has items; otherwise `null`
     - `id_gap_count` = `window_span - returned_items` (non-negative) when page has items; otherwise `null`
     - `window_density` = `returned_items / window_span` (rounded to 6 decimals) when page has items; otherwise `null`
     - `window_newest_at`/`window_oldest_at` = current page first/last record `at` timestamps; `null` when page is empty
     - `window_time_parseable` = whether all current page `at` timestamps are parseable; `null` when page is empty
+    - `window_time_unparseable_count` = number of current page records whose `at` is missing or not parseable; `null` when page is empty
     - `window_time_span_seconds` = `max(0, window_newest_at - window_oldest_at)` in seconds when timestamps are parseable; otherwise `null`
     - `window_time_desc_order` = whether current page `at` timestamps are non-increasing (desc/equal) when parseable; otherwise `null`
     - `window_time_gap_max_seconds` = max absolute adjacent `at` delta in seconds when timestamps are parseable; otherwise `null`

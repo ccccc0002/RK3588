@@ -1569,6 +1569,7 @@ class P0Runtime:
         window_newest_at = None
         window_oldest_at = None
         window_time_parseable = None
+        window_time_unparseable_count = None
         window_time_span_seconds = None
         window_time_desc_order = None
         window_time_gap_max_seconds = None
@@ -1582,19 +1583,19 @@ class P0Runtime:
             window_newest_at = str(newest_at) if newest_at is not None else None
             window_oldest_at = str(oldest_at) if oldest_at is not None else None
             parsed_times: list[datetime] = []
-            parse_failed = False
+            unparseable_count = 0
             for item in items:
                 at_raw = item.get("at")
                 if at_raw is None:
-                    parse_failed = True
-                    break
+                    unparseable_count += 1
+                    continue
                 try:
                     parsed_times.append(datetime.fromisoformat(str(at_raw)))
                 except (TypeError, ValueError):
-                    parse_failed = True
-                    break
-            window_time_parseable = not parse_failed
-            if not parse_failed and parsed_times:
+                    unparseable_count += 1
+            window_time_unparseable_count = unparseable_count
+            window_time_parseable = unparseable_count == 0
+            if window_time_parseable and parsed_times:
                 window_time_desc_order = all(
                     parsed_times[i] >= parsed_times[i + 1] for i in range(len(parsed_times) - 1)
                 )
@@ -1688,6 +1689,7 @@ class P0Runtime:
             "window_newest_at": window_newest_at,
             "window_oldest_at": window_oldest_at,
             "window_time_parseable": window_time_parseable,
+            "window_time_unparseable_count": window_time_unparseable_count,
             "window_time_span_seconds": window_time_span_seconds,
             "window_time_desc_order": window_time_desc_order,
             "window_time_gap_max_seconds": window_time_gap_max_seconds,
