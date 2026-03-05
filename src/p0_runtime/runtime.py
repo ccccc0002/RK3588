@@ -1571,6 +1571,9 @@ class P0Runtime:
                     if has_more:
                         next_before_id = candidate_next
         total_candidates = count_fn(normalized_before_id) if include_total_normalized else None
+        remaining_candidates = None
+        if total_candidates is not None:
+            remaining_candidates = max(0, int(total_candidates) - len(items))
         return {
             "items": items,
             "limit": capped,
@@ -1580,6 +1583,7 @@ class P0Runtime:
             "has_more": has_more,
             "next_before_id": next_before_id,
             "total_candidates": total_candidates,
+            "remaining_candidates": remaining_candidates,
         }
 
     def list_audit_records_page(self, limit: object = 20, before_id: object = None, include_total: object = False) -> dict:

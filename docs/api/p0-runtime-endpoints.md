@@ -653,6 +653,7 @@ GB28181 example:
     - `returned_items`, `order` (`id_desc`)
     - `has_more`, `next_before_id` (`null` when no next page)
     - `total_candidates` (`null` when `include_total=false`)
+    - `remaining_candidates` (`total_candidates-returned_items`; `null` when `include_total=false`)
   - validation:
     - `limit` must be integer within `[1, 200]`
     - `before_id` must be a positive integer when provided
@@ -898,6 +899,7 @@ GB28181 example:
     - `returned_items`, `order` (`id_desc`)
     - `has_more`, `next_before_id` (`null` when no next page)
     - `total_candidates` (`null` when `include_total=false`)
+    - `remaining_candidates` (`total_candidates-returned_items`; `null` when `include_total=false`)
   - validation:
     - `limit` must be integer within `[1, 200]`
     - `before_id` must be a positive integer when provided
@@ -936,6 +938,7 @@ GB28181 example:
     - `returned_items`, `order` (`id_desc`)
     - `has_more`, `next_before_id` (`null` when no next page)
     - `total_candidates` (`null` when `include_total=false`)
+    - `remaining_candidates` (`total_candidates-returned_items`; `null` when `include_total=false`)
   - validation:
     - `limit` must be integer within `[1, 200]`
     - `before_id` must be a positive integer when provided

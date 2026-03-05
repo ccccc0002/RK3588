@@ -2113,6 +2113,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(1, page["returned_items"])
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
+        self.assertIsNone(page["remaining_candidates"])
         self.assertTrue(page["has_more"])
         self.assertIsNotNone(page["next_before_id"])
         self.assertEqual(1, len(page["items"]))
@@ -2121,9 +2122,14 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(anchor_id, page_with_cursor["before_id"])
         self.assertEqual("id_desc", page_with_cursor["order"])
         self.assertIsNone(page_with_cursor["total_candidates"])
+        self.assertIsNone(page_with_cursor["remaining_candidates"])
 
         page_with_total = self.runtime.list_audit_records_page(limit=1, include_total=True)
         self.assertGreaterEqual(int(page_with_total["total_candidates"]), 3)
+        self.assertEqual(
+            int(page_with_total["total_candidates"]) - int(page_with_total["returned_items"]),
+            int(page_with_total["remaining_candidates"]),
+        )
         with self.assertRaisesRegex(ValueError, "include_total must be a boolean"):
             self.runtime.list_audit_records_page(limit=1, include_total="bad")
 
@@ -2200,6 +2206,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(1, page["returned_items"])
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
+        self.assertIsNone(page["remaining_candidates"])
         self.assertTrue(page["has_more"])
         self.assertIsNotNone(page["next_before_id"])
         self.assertEqual(1, len(page["items"]))
@@ -2208,9 +2215,14 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(anchor_id, page_with_cursor["before_id"])
         self.assertEqual("id_desc", page_with_cursor["order"])
         self.assertIsNone(page_with_cursor["total_candidates"])
+        self.assertIsNone(page_with_cursor["remaining_candidates"])
 
         page_with_total = self.runtime.list_gray_rollout_batch_plan_cache_operations_page(limit=1, include_total=True)
         self.assertGreaterEqual(int(page_with_total["total_candidates"]), 3)
+        self.assertEqual(
+            int(page_with_total["total_candidates"]) - int(page_with_total["returned_items"]),
+            int(page_with_total["remaining_candidates"]),
+        )
         with self.assertRaisesRegex(ValueError, "include_total must be a boolean"):
             self.runtime.list_gray_rollout_batch_plan_cache_operations_page(limit=1, include_total="bad")
 
@@ -2315,6 +2327,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(1, page["returned_items"])
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
+        self.assertIsNone(page["remaining_candidates"])
         self.assertTrue(page["has_more"])
         self.assertIsNotNone(page["next_before_id"])
         self.assertEqual(1, len(page["items"]))
@@ -2326,9 +2339,14 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual(anchor_id, page_with_cursor["before_id"])
         self.assertEqual("id_desc", page_with_cursor["order"])
         self.assertIsNone(page_with_cursor["total_candidates"])
+        self.assertIsNone(page_with_cursor["remaining_candidates"])
 
         page_with_total = self.runtime.list_gray_rollout_batch_plan_cache_policy_history_page(limit=1, include_total=True)
         self.assertGreaterEqual(int(page_with_total["total_candidates"]), 3)
+        self.assertEqual(
+            int(page_with_total["total_candidates"]) - int(page_with_total["returned_items"]),
+            int(page_with_total["remaining_candidates"]),
+        )
         with self.assertRaisesRegex(ValueError, "include_total must be a boolean"):
             self.runtime.list_gray_rollout_batch_plan_cache_policy_history_page(limit=1, include_total="bad")
 

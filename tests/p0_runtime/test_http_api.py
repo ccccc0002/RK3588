@@ -1633,6 +1633,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
+        self.assertIsNone(op_payload["data"]["remaining_candidates"])
         if op_payload["data"]["has_more"]:
             self.assertIsNotNone(op_payload["data"]["next_before_id"])
         else:
@@ -1661,6 +1662,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIsNone(win_payload["data"]["before_id"])
         self.assertEqual("id_desc", win_payload["data"]["order"])
         self.assertIsNone(win_payload["data"]["total_candidates"])
+        self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
         self.assertIsNotNone(win_payload["data"]["next_before_id"])
         self.assertEqual(1, win_payload["data"]["returned_items"])
@@ -1669,6 +1671,10 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(200, total_status)
         self.assertTrue(total_payload["success"])
         self.assertGreaterEqual(int(total_payload["data"]["total_candidates"]), 2)
+        self.assertEqual(
+            int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
+            int(total_payload["data"]["remaining_candidates"]),
+        )
 
         bad_before_id_status, bad_before_id_payload = self._get(
             "/api/v1/audit/recent?limit=5&before_id=bad",
@@ -1790,6 +1796,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
+        self.assertIsNone(op_payload["data"]["remaining_candidates"])
         if op_payload["data"]["has_more"]:
             self.assertIsNotNone(op_payload["data"]["next_before_id"])
         else:
@@ -1822,6 +1829,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIsNone(win_payload["data"]["before_id"])
         self.assertEqual("id_desc", win_payload["data"]["order"])
         self.assertIsNone(win_payload["data"]["total_candidates"])
+        self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
         self.assertIsNotNone(win_payload["data"]["next_before_id"])
         self.assertEqual(1, win_payload["data"]["returned_items"])
@@ -1833,6 +1841,10 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(200, total_status)
         self.assertTrue(total_payload["success"])
         self.assertGreaterEqual(int(total_payload["data"]["total_candidates"]), 3)
+        self.assertEqual(
+            int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
+            int(total_payload["data"]["remaining_candidates"]),
+        )
 
         bad_status, bad_payload = self._get(
             "/api/v1/gray-rollout/plan/batch/cache/ops?limit=bad",
@@ -1990,6 +2002,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(len(op_payload["data"]["items"]), op_payload["data"]["returned_items"])
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
+        self.assertIsNone(op_payload["data"]["remaining_candidates"])
         if op_payload["data"]["has_more"]:
             self.assertIsNotNone(op_payload["data"]["next_before_id"])
         else:
@@ -2022,6 +2035,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertIsNone(win_payload["data"]["before_id"])
         self.assertEqual("id_desc", win_payload["data"]["order"])
         self.assertIsNone(win_payload["data"]["total_candidates"])
+        self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
         self.assertIsNotNone(win_payload["data"]["next_before_id"])
         self.assertEqual(1, win_payload["data"]["returned_items"])
@@ -2033,6 +2047,10 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(200, total_status)
         self.assertTrue(total_payload["success"])
         self.assertGreaterEqual(int(total_payload["data"]["total_candidates"]), 2)
+        self.assertEqual(
+            int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
+            int(total_payload["data"]["remaining_candidates"]),
+        )
 
         bad_status, bad_payload = self._get(
             "/api/v1/gray-rollout/plan/batch/cache/policy/history?limit=bad",
