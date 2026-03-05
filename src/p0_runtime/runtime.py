@@ -1599,6 +1599,7 @@ class P0Runtime:
         window_time_gap_stddev_seconds = None
         window_time_gap_cv_ratio = None
         window_time_gap_mad_seconds = None
+        window_time_gap_mad_ratio = None
         if items:
             newest_at = items[0].get("at")
             oldest_at = items[-1].get("at")
@@ -1664,6 +1665,7 @@ class P0Runtime:
                     window_time_gap_stddev_seconds = 0.0
                     window_time_gap_cv_ratio = 0.0
                     window_time_gap_mad_seconds = 0.0
+                    window_time_gap_mad_ratio = 0.0
                 else:
                     gaps = [
                         abs((parsed_times[i] - parsed_times[i + 1]).total_seconds())
@@ -1699,6 +1701,10 @@ class P0Runtime:
                     else:
                         mad_gap = float(deviations[deviations_mid - 1] + deviations[deviations_mid]) / 2.0
                     window_time_gap_mad_seconds = round(mad_gap, 6)
+                    if median_gap > 0.0:
+                        window_time_gap_mad_ratio = round(float(mad_gap) / float(median_gap), 6)
+                    else:
+                        window_time_gap_mad_ratio = 0.0
                     p90_index = max(0, int((len(sorted_gaps) * 9 + 9) // 10) - 1)
                     window_time_gap_p90_seconds = round(float(sorted_gaps[p90_index]), 6)
                     p75_index = max(0, int((len(sorted_gaps) * 3 + 3) // 4) - 1)
@@ -1825,6 +1831,7 @@ class P0Runtime:
             "window_time_gap_stddev_seconds": window_time_gap_stddev_seconds,
             "window_time_gap_cv_ratio": window_time_gap_cv_ratio,
             "window_time_gap_mad_seconds": window_time_gap_mad_seconds,
+            "window_time_gap_mad_ratio": window_time_gap_mad_ratio,
             "snapshot_at": snapshot_at,
             "order": "id_desc",
             "has_more": has_more,

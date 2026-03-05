@@ -136,9 +136,11 @@ class P0HttpApiTests(unittest.TestCase):
             deviations = sorted(abs(float(gap) - float(median_raw)) for gap in gaps)
             deviations_mid = len(deviations) // 2
             if len(deviations) % 2 == 1:
-                expected_mad = round(float(deviations[deviations_mid]), 6)
+                mad_raw = float(deviations[deviations_mid])
             else:
-                expected_mad = round(float(deviations[deviations_mid - 1] + deviations[deviations_mid]) / 2.0, 6)
+                mad_raw = float(deviations[deviations_mid - 1] + deviations[deviations_mid]) / 2.0
+            expected_mad = round(mad_raw, 6)
+            expected_mad_ratio = round(float(mad_raw) / float(median_raw), 6) if median_raw > 0.0 else 0.0
             p90_index = max(0, int((len(sorted_gaps) * 9 + 9) // 10) - 1)
             expected_p90 = round(float(sorted_gaps[p90_index]), 6)
             p75_index = max(0, int((len(sorted_gaps) * 3 + 3) // 4) - 1)
@@ -159,6 +161,7 @@ class P0HttpApiTests(unittest.TestCase):
             expected_p95 = 0.0
             expected_p99 = 0.0
             expected_mad = 0.0
+            expected_mad_ratio = 0.0
         if gaps:
             expected_total_raw = float(sum(gaps))
             expected_avg_raw = expected_total_raw / float(len(gaps))
@@ -194,6 +197,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertAlmostEqual(expected_stddev, float(data["window_time_gap_stddev_seconds"]), places=6)
         self.assertAlmostEqual(expected_cv, float(data["window_time_gap_cv_ratio"]), places=6)
         self.assertAlmostEqual(expected_mad, float(data["window_time_gap_mad_seconds"]), places=6)
+        self.assertAlmostEqual(expected_mad_ratio, float(data["window_time_gap_mad_ratio"]), places=6)
 
     def test_issue_token_endpoint(self) -> None:
         status, payload = self._post("/api/v1/auth/token", {"user_id": "u1", "role": "operator"})
