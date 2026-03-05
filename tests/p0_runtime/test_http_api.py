@@ -1652,6 +1652,11 @@ class P0HttpApiTests(unittest.TestCase):
             bool(int(op_payload["data"]["id_gap_count"]) == 0),
             bool(op_payload["data"]["dense_window"]),
         )
+        self.assertAlmostEqual(
+            float(op_payload["data"]["returned_items"]) / float(op_payload["data"]["window_span"]),
+            float(op_payload["data"]["window_density"]),
+            places=6,
+        )
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -1716,6 +1721,11 @@ class P0HttpApiTests(unittest.TestCase):
             bool(int(win_payload["data"]["id_gap_count"]) == 0),
             bool(win_payload["data"]["dense_window"]),
         )
+        self.assertAlmostEqual(
+            float(win_payload["data"]["returned_items"]) / float(win_payload["data"]["window_span"]),
+            float(win_payload["data"]["window_density"]),
+            places=6,
+        )
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -1751,6 +1761,11 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(
             bool(int(total_payload["data"]["id_gap_count"]) == 0),
             bool(total_payload["data"]["dense_window"]),
+        )
+        self.assertAlmostEqual(
+            float(total_payload["data"]["returned_items"]) / float(total_payload["data"]["window_span"]),
+            float(total_payload["data"]["window_density"]),
+            places=6,
         )
         self.assertEqual(
             int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
@@ -1900,6 +1915,11 @@ class P0HttpApiTests(unittest.TestCase):
             bool(int(op_payload["data"]["id_gap_count"]) == 0),
             bool(op_payload["data"]["dense_window"]),
         )
+        self.assertAlmostEqual(
+            float(op_payload["data"]["returned_items"]) / float(op_payload["data"]["window_span"]),
+            float(op_payload["data"]["window_density"]),
+            places=6,
+        )
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -1968,6 +1988,11 @@ class P0HttpApiTests(unittest.TestCase):
             bool(int(win_payload["data"]["id_gap_count"]) == 0),
             bool(win_payload["data"]["dense_window"]),
         )
+        self.assertAlmostEqual(
+            float(win_payload["data"]["returned_items"]) / float(win_payload["data"]["window_span"]),
+            float(win_payload["data"]["window_density"]),
+            places=6,
+        )
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -2006,6 +2031,11 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(
             bool(int(total_payload["data"]["id_gap_count"]) == 0),
             bool(total_payload["data"]["dense_window"]),
+        )
+        self.assertAlmostEqual(
+            float(total_payload["data"]["returned_items"]) / float(total_payload["data"]["window_span"]),
+            float(total_payload["data"]["window_density"]),
+            places=6,
         )
         self.assertEqual(
             int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
@@ -2191,6 +2221,11 @@ class P0HttpApiTests(unittest.TestCase):
             bool(int(op_payload["data"]["id_gap_count"]) == 0),
             bool(op_payload["data"]["dense_window"]),
         )
+        self.assertAlmostEqual(
+            float(op_payload["data"]["returned_items"]) / float(op_payload["data"]["window_span"]),
+            float(op_payload["data"]["window_density"]),
+            places=6,
+        )
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -2259,6 +2294,11 @@ class P0HttpApiTests(unittest.TestCase):
             bool(int(win_payload["data"]["id_gap_count"]) == 0),
             bool(win_payload["data"]["dense_window"]),
         )
+        self.assertAlmostEqual(
+            float(win_payload["data"]["returned_items"]) / float(win_payload["data"]["window_span"]),
+            float(win_payload["data"]["window_density"]),
+            places=6,
+        )
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -2297,6 +2337,11 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(
             bool(int(total_payload["data"]["id_gap_count"]) == 0),
             bool(total_payload["data"]["dense_window"]),
+        )
+        self.assertAlmostEqual(
+            float(total_payload["data"]["returned_items"]) / float(total_payload["data"]["window_span"]),
+            float(total_payload["data"]["window_density"]),
+            places=6,
         )
         self.assertEqual(
             int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
