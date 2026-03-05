@@ -1657,6 +1657,8 @@ class P0HttpApiTests(unittest.TestCase):
             float(op_payload["data"]["window_density"]),
             places=6,
         )
+        self.assertEqual(str(op_payload["data"]["items"][0]["at"]), op_payload["data"]["window_newest_at"])
+        self.assertEqual(str(op_payload["data"]["items"][-1]["at"]), op_payload["data"]["window_oldest_at"])
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -1726,6 +1728,8 @@ class P0HttpApiTests(unittest.TestCase):
             float(win_payload["data"]["window_density"]),
             places=6,
         )
+        self.assertEqual(str(win_payload["data"]["items"][0]["at"]), win_payload["data"]["window_newest_at"])
+        self.assertEqual(str(win_payload["data"]["items"][-1]["at"]), win_payload["data"]["window_oldest_at"])
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -1767,6 +1771,8 @@ class P0HttpApiTests(unittest.TestCase):
             float(total_payload["data"]["window_density"]),
             places=6,
         )
+        self.assertEqual(str(total_payload["data"]["items"][0]["at"]), total_payload["data"]["window_newest_at"])
+        self.assertEqual(str(total_payload["data"]["items"][-1]["at"]), total_payload["data"]["window_oldest_at"])
         self.assertEqual(
             int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
             int(total_payload["data"]["remaining_candidates"]),
@@ -1920,6 +1926,8 @@ class P0HttpApiTests(unittest.TestCase):
             float(op_payload["data"]["window_density"]),
             places=6,
         )
+        self.assertEqual(str(op_payload["data"]["items"][0]["at"]), op_payload["data"]["window_newest_at"])
+        self.assertEqual(str(op_payload["data"]["items"][-1]["at"]), op_payload["data"]["window_oldest_at"])
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -1993,6 +2001,8 @@ class P0HttpApiTests(unittest.TestCase):
             float(win_payload["data"]["window_density"]),
             places=6,
         )
+        self.assertEqual(str(win_payload["data"]["items"][0]["at"]), win_payload["data"]["window_newest_at"])
+        self.assertEqual(str(win_payload["data"]["items"][-1]["at"]), win_payload["data"]["window_oldest_at"])
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -2037,6 +2047,8 @@ class P0HttpApiTests(unittest.TestCase):
             float(total_payload["data"]["window_density"]),
             places=6,
         )
+        self.assertEqual(str(total_payload["data"]["items"][0]["at"]), total_payload["data"]["window_newest_at"])
+        self.assertEqual(str(total_payload["data"]["items"][-1]["at"]), total_payload["data"]["window_oldest_at"])
         self.assertEqual(
             int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
             int(total_payload["data"]["remaining_candidates"]),
@@ -2226,6 +2238,8 @@ class P0HttpApiTests(unittest.TestCase):
             float(op_payload["data"]["window_density"]),
             places=6,
         )
+        self.assertEqual(str(op_payload["data"]["items"][0]["at"]), op_payload["data"]["window_newest_at"])
+        self.assertEqual(str(op_payload["data"]["items"][-1]["at"]), op_payload["data"]["window_oldest_at"])
         self.assertEqual("id_desc", op_payload["data"]["order"])
         self.assertIsNone(op_payload["data"]["total_candidates"])
         self.assertIsNone(op_payload["data"]["remaining_candidates"])
@@ -2299,6 +2313,8 @@ class P0HttpApiTests(unittest.TestCase):
             float(win_payload["data"]["window_density"]),
             places=6,
         )
+        self.assertEqual(str(win_payload["data"]["items"][0]["at"]), win_payload["data"]["window_newest_at"])
+        self.assertEqual(str(win_payload["data"]["items"][-1]["at"]), win_payload["data"]["window_oldest_at"])
         self.assertIsNone(win_payload["data"]["total_candidates"])
         self.assertIsNone(win_payload["data"]["remaining_candidates"])
         self.assertTrue(win_payload["data"]["has_more"])
@@ -2343,6 +2359,8 @@ class P0HttpApiTests(unittest.TestCase):
             float(total_payload["data"]["window_density"]),
             places=6,
         )
+        self.assertEqual(str(total_payload["data"]["items"][0]["at"]), total_payload["data"]["window_newest_at"])
+        self.assertEqual(str(total_payload["data"]["items"][-1]["at"]), total_payload["data"]["window_oldest_at"])
         self.assertEqual(
             int(total_payload["data"]["total_candidates"]) - int(total_payload["data"]["returned_items"]),
             int(total_payload["data"]["remaining_candidates"]),

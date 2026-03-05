@@ -1566,7 +1566,13 @@ class P0Runtime:
         dense_window = None
         id_gap_count = None
         window_density = None
+        window_newest_at = None
+        window_oldest_at = None
         if items:
+            newest_at = items[0].get("at")
+            oldest_at = items[-1].get("at")
+            window_newest_at = str(newest_at) if newest_at is not None else None
+            window_oldest_at = str(oldest_at) if oldest_at is not None else None
             try:
                 window_max_id = int(items[0].get("id"))
             except (TypeError, ValueError):
@@ -1626,6 +1632,8 @@ class P0Runtime:
             "dense_window": dense_window,
             "id_gap_count": id_gap_count,
             "window_density": window_density,
+            "window_newest_at": window_newest_at,
+            "window_oldest_at": window_oldest_at,
             "snapshot_at": snapshot_at,
             "order": "id_desc",
             "has_more": has_more,
