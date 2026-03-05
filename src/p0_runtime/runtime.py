@@ -1571,6 +1571,8 @@ class P0Runtime:
         window_time_parseable = None
         window_time_unparseable_count = None
         window_time_parseable_count = None
+        window_time_missing_at_count = None
+        window_time_invalid_at_count = None
         window_time_unparseable_ratio = None
         window_time_parseable_ratio = None
         window_time_span_seconds = None
@@ -1586,16 +1588,20 @@ class P0Runtime:
             window_newest_at = str(newest_at) if newest_at is not None else None
             window_oldest_at = str(oldest_at) if oldest_at is not None else None
             parsed_times: list[datetime] = []
-            unparseable_count = 0
+            missing_at_count = 0
+            invalid_at_count = 0
             for item in items:
                 at_raw = item.get("at")
                 if at_raw is None:
-                    unparseable_count += 1
+                    missing_at_count += 1
                     continue
                 try:
                     parsed_times.append(datetime.fromisoformat(str(at_raw)))
                 except (TypeError, ValueError):
-                    unparseable_count += 1
+                    invalid_at_count += 1
+            window_time_missing_at_count = missing_at_count
+            window_time_invalid_at_count = invalid_at_count
+            unparseable_count = int(missing_at_count) + int(invalid_at_count)
             window_time_unparseable_count = unparseable_count
             window_time_parseable = unparseable_count == 0
             parseable_count = max(0, int(returned_items) - int(unparseable_count))
@@ -1704,6 +1710,8 @@ class P0Runtime:
             "window_time_parseable": window_time_parseable,
             "window_time_unparseable_count": window_time_unparseable_count,
             "window_time_parseable_count": window_time_parseable_count,
+            "window_time_missing_at_count": window_time_missing_at_count,
+            "window_time_invalid_at_count": window_time_invalid_at_count,
             "window_time_unparseable_ratio": window_time_unparseable_ratio,
             "window_time_parseable_ratio": window_time_parseable_ratio,
             "window_time_span_seconds": window_time_span_seconds,

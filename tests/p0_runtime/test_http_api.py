@@ -71,12 +71,17 @@ class P0HttpApiTests(unittest.TestCase):
     def _assert_window_time_gap_metrics(self, payload: dict) -> None:
         data = payload["data"]
         items = data["items"]
-        expected_unparseable_count = 0
+        expected_missing_at_count = 0
+        expected_invalid_at_count = 0
         for item in items:
+            if ("at" not in item) or (item["at"] is None):
+                expected_missing_at_count += 1
+                continue
             try:
                 datetime.fromisoformat(str(item["at"]))
-            except (KeyError, TypeError, ValueError):
-                expected_unparseable_count += 1
+            except (TypeError, ValueError):
+                expected_invalid_at_count += 1
+        expected_unparseable_count = expected_missing_at_count + expected_invalid_at_count
         expected_unparseable_ratio = (
             round(float(expected_unparseable_count) / float(len(items)), 6) if items else 0.0
         )
@@ -84,6 +89,8 @@ class P0HttpApiTests(unittest.TestCase):
             round(float(len(items) - expected_unparseable_count) / float(len(items)), 6) if items else 0.0
         )
         expected_parseable_count = len(items) - expected_unparseable_count
+        self.assertEqual(expected_missing_at_count, int(data["window_time_missing_at_count"]))
+        self.assertEqual(expected_invalid_at_count, int(data["window_time_invalid_at_count"]))
         self.assertEqual(expected_unparseable_count, int(data["window_time_unparseable_count"]))
         self.assertEqual(expected_parseable_count, int(data["window_time_parseable_count"]))
         self.assertAlmostEqual(expected_unparseable_ratio, float(data["window_time_unparseable_ratio"]), places=6)
