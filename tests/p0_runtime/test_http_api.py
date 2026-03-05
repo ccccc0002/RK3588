@@ -160,10 +160,12 @@ class P0HttpApiTests(unittest.TestCase):
             expected_total = round(expected_total_raw, 6)
             expected_avg = round(expected_avg_raw, 6)
             expected_stddev = round(expected_stddev_raw, 6)
+            expected_cv = round(expected_stddev_raw / float(expected_avg_raw), 6) if expected_avg_raw > 0.0 else 0.0
         else:
             expected_total = 0.0
             expected_avg = 0.0
             expected_stddev = 0.0
+            expected_cv = 0.0
         self.assertEqual(expected_min, int(data["window_time_gap_min_seconds"]))
         self.assertEqual(expected_max, int(data["window_time_gap_max_seconds"]))
         self.assertAlmostEqual(expected_range, float(data["window_time_gap_range_seconds"]), places=6)
@@ -182,6 +184,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertAlmostEqual(expected_total, float(data["window_time_gap_total_seconds"]), places=6)
         self.assertAlmostEqual(expected_avg, float(data["window_time_gap_avg_seconds"]), places=6)
         self.assertAlmostEqual(expected_stddev, float(data["window_time_gap_stddev_seconds"]), places=6)
+        self.assertAlmostEqual(expected_cv, float(data["window_time_gap_cv_ratio"]), places=6)
 
     def test_issue_token_endpoint(self) -> None:
         status, payload = self._post("/api/v1/auth/token", {"user_id": "u1", "role": "operator"})
