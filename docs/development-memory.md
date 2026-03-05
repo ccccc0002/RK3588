@@ -800,3 +800,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-44-audit-cursor-window-time-gap-min-seconds-validated/20260305-132209
 - Summary: add audit cursor window_time_gap_min_seconds metadata and stabilize HTTP gap assertions with runtime-aligned rounding checks
 - Next: continue P4 hardening backlog
+
+## [2026-03-05T13:29:10+08:00] P4-iteration-45-audit-cursor-window-time-gap-count-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 1c50f0e
+- Tag: checkpoint/P4-iteration-45-audit-cursor-window-time-gap-count-validated/20260305-132910
+- Summary: add audit cursor window_time_gap_count metadata with runtime/http/docs/openapi parity and local+remote py3.8 validation
+- Next: continue P4 hardening backlog
