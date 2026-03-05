@@ -1596,6 +1596,7 @@ class P0Runtime:
         window_time_gap_p99_seconds = None
         window_time_gap_total_seconds = None
         window_time_gap_avg_seconds = None
+        window_time_gap_stddev_seconds = None
         if items:
             newest_at = items[0].get("at")
             oldest_at = items[-1].get("at")
@@ -1658,6 +1659,7 @@ class P0Runtime:
                     window_time_gap_p99_seconds = 0.0
                     window_time_gap_total_seconds = 0.0
                     window_time_gap_avg_seconds = 0.0
+                    window_time_gap_stddev_seconds = 0.0
                 else:
                     gaps = [
                         abs((parsed_times[i] - parsed_times[i + 1]).total_seconds())
@@ -1698,11 +1700,14 @@ class P0Runtime:
                     window_time_gap_p95_seconds = round(float(sorted_gaps[p95_index]), 6)
                     p99_index = max(0, int((len(sorted_gaps) * 99 + 99) // 100) - 1)
                     window_time_gap_p99_seconds = round(float(sorted_gaps[p99_index]), 6)
-                    window_time_gap_total_seconds = round(float(sum(gaps)), 6)
-                    window_time_gap_avg_seconds = round(
-                        float(sum(gaps)) / float(len(gaps)),
-                        6,
-                    )
+                    gap_total_seconds = float(sum(gaps))
+                    gap_avg_seconds = gap_total_seconds / float(len(gaps))
+                    gap_variance_seconds = sum(
+                        (float(gap) - float(gap_avg_seconds)) ** 2 for gap in gaps
+                    ) / float(len(gaps))
+                    window_time_gap_total_seconds = round(gap_total_seconds, 6)
+                    window_time_gap_avg_seconds = round(gap_avg_seconds, 6)
+                    window_time_gap_stddev_seconds = round(max(0.0, gap_variance_seconds) ** 0.5, 6)
             if window_newest_at is not None and window_oldest_at is not None:
                 try:
                     newest_dt = datetime.fromisoformat(window_newest_at)
@@ -1799,6 +1804,7 @@ class P0Runtime:
             "window_time_gap_p99_seconds": window_time_gap_p99_seconds,
             "window_time_gap_total_seconds": window_time_gap_total_seconds,
             "window_time_gap_avg_seconds": window_time_gap_avg_seconds,
+            "window_time_gap_stddev_seconds": window_time_gap_stddev_seconds,
             "snapshot_at": snapshot_at,
             "order": "id_desc",
             "has_more": has_more,

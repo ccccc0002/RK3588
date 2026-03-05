@@ -151,8 +151,19 @@ class P0HttpApiTests(unittest.TestCase):
             expected_iqr = 0.0
             expected_p95 = 0.0
             expected_p99 = 0.0
-        expected_total = round(sum(gaps), 6) if gaps else 0.0
-        expected_avg = round(sum(gaps) / float(len(gaps)), 6) if gaps else 0.0
+        if gaps:
+            expected_total_raw = float(sum(gaps))
+            expected_avg_raw = expected_total_raw / float(len(gaps))
+            expected_stddev_raw = (
+                sum((float(gap) - float(expected_avg_raw)) ** 2 for gap in gaps) / float(len(gaps))
+            ) ** 0.5
+            expected_total = round(expected_total_raw, 6)
+            expected_avg = round(expected_avg_raw, 6)
+            expected_stddev = round(expected_stddev_raw, 6)
+        else:
+            expected_total = 0.0
+            expected_avg = 0.0
+            expected_stddev = 0.0
         self.assertEqual(expected_min, int(data["window_time_gap_min_seconds"]))
         self.assertEqual(expected_max, int(data["window_time_gap_max_seconds"]))
         self.assertAlmostEqual(expected_range, float(data["window_time_gap_range_seconds"]), places=6)
@@ -170,6 +181,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertAlmostEqual(expected_p99, float(data["window_time_gap_p99_seconds"]), places=6)
         self.assertAlmostEqual(expected_total, float(data["window_time_gap_total_seconds"]), places=6)
         self.assertAlmostEqual(expected_avg, float(data["window_time_gap_avg_seconds"]), places=6)
+        self.assertAlmostEqual(expected_stddev, float(data["window_time_gap_stddev_seconds"]), places=6)
 
     def test_issue_token_endpoint(self) -> None:
         status, payload = self._post("/api/v1/auth/token", {"user_id": "u1", "role": "operator"})

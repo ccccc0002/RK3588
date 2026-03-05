@@ -650,7 +650,7 @@ GB28181 example:
   - 200 envelope:
     - `items[]` audit records
     - `limit`, `before_id` (request cursor echo, nullable), `query_string` (normalized current-page query string)
-    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_unparseable_count`, `window_time_parseable_count`, `window_time_missing_at_count`, `window_time_invalid_at_count`, `window_time_missing_at_ratio`, `window_time_invalid_at_ratio`, `window_time_unparseable_ratio`, `window_time_parseable_ratio`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_range_seconds`, `window_time_gap_count`, `window_time_gap_zero_count`, `window_time_gap_nonzero_count`, `window_time_gap_zero_ratio`, `window_time_gap_nonzero_ratio`, `window_time_gap_median_seconds`, `window_time_gap_p90_seconds`, `window_time_gap_p75_seconds`, `window_time_gap_p25_seconds`, `window_time_gap_iqr_seconds`, `window_time_gap_p95_seconds`, `window_time_gap_p99_seconds`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `snapshot_at`, `order` (`id_desc`)
+    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_unparseable_count`, `window_time_parseable_count`, `window_time_missing_at_count`, `window_time_invalid_at_count`, `window_time_missing_at_ratio`, `window_time_invalid_at_ratio`, `window_time_unparseable_ratio`, `window_time_parseable_ratio`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_range_seconds`, `window_time_gap_count`, `window_time_gap_zero_count`, `window_time_gap_nonzero_count`, `window_time_gap_zero_ratio`, `window_time_gap_nonzero_ratio`, `window_time_gap_median_seconds`, `window_time_gap_p90_seconds`, `window_time_gap_p75_seconds`, `window_time_gap_p25_seconds`, `window_time_gap_iqr_seconds`, `window_time_gap_p95_seconds`, `window_time_gap_p99_seconds`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `window_time_gap_stddev_seconds`, `snapshot_at`, `order` (`id_desc`)
     - `window_span` = `window_max_id - window_min_id + 1` when page has items; otherwise `null`
     - `dense_window` = whether `window_span == returned_items` when page has items; otherwise `null`
     - `id_gap_count` = `window_span - returned_items` (non-negative) when page has items; otherwise `null`
@@ -684,6 +684,7 @@ GB28181 example:
     - `window_time_gap_p99_seconds` = p99 absolute adjacent `at` delta in seconds (6-decimal precision, nearest-rank) when timestamps are parseable; otherwise `null`
     - `window_time_gap_total_seconds` = total absolute adjacent `at` delta seconds (6-decimal precision) when timestamps are parseable; otherwise `null`
     - `window_time_gap_avg_seconds` = average absolute adjacent `at` delta in seconds (6-decimal precision) when timestamps are parseable; otherwise `null`
+    - `window_time_gap_stddev_seconds` = population standard deviation of absolute adjacent `at` deltas in seconds (6-decimal precision) when timestamps are parseable; otherwise `null`
     - `has_more`, `next_before_id` (`null` when no next page)
     - `next_query` (`null` when no next page; otherwise `{limit,before_id,include_total}`)
     - `next_query_string` (`null` when no next page; otherwise `limit=...&before_id=...&include_total=...`)
@@ -931,7 +932,7 @@ GB28181 example:
     - `items[]` from audit records filtered by action:
       - `gray_rollout.plan_batch.cache.policy.update`
     - `limit`, `before_id` (request cursor echo, nullable), `query_string` (normalized current-page query string)
-    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_unparseable_count`, `window_time_parseable_count`, `window_time_missing_at_count`, `window_time_invalid_at_count`, `window_time_missing_at_ratio`, `window_time_invalid_at_ratio`, `window_time_unparseable_ratio`, `window_time_parseable_ratio`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_range_seconds`, `window_time_gap_count`, `window_time_gap_zero_count`, `window_time_gap_nonzero_count`, `window_time_gap_zero_ratio`, `window_time_gap_nonzero_ratio`, `window_time_gap_median_seconds`, `window_time_gap_p90_seconds`, `window_time_gap_p75_seconds`, `window_time_gap_p25_seconds`, `window_time_gap_iqr_seconds`, `window_time_gap_p95_seconds`, `window_time_gap_p99_seconds`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `snapshot_at`, `order` (`id_desc`)
+    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_unparseable_count`, `window_time_parseable_count`, `window_time_missing_at_count`, `window_time_invalid_at_count`, `window_time_missing_at_ratio`, `window_time_invalid_at_ratio`, `window_time_unparseable_ratio`, `window_time_parseable_ratio`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_range_seconds`, `window_time_gap_count`, `window_time_gap_zero_count`, `window_time_gap_nonzero_count`, `window_time_gap_zero_ratio`, `window_time_gap_nonzero_ratio`, `window_time_gap_median_seconds`, `window_time_gap_p90_seconds`, `window_time_gap_p75_seconds`, `window_time_gap_p25_seconds`, `window_time_gap_iqr_seconds`, `window_time_gap_p95_seconds`, `window_time_gap_p99_seconds`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `window_time_gap_stddev_seconds`, `snapshot_at`, `order` (`id_desc`)
     - `window_span` = `window_max_id - window_min_id + 1` when page has items; otherwise `null`
     - `dense_window` = whether `window_span == returned_items` when page has items; otherwise `null`
     - `id_gap_count` = `window_span - returned_items` (non-negative) when page has items; otherwise `null`
@@ -965,6 +966,7 @@ GB28181 example:
     - `window_time_gap_p99_seconds` = p99 absolute adjacent `at` delta in seconds (6-decimal precision, nearest-rank) when timestamps are parseable; otherwise `null`
     - `window_time_gap_total_seconds` = total absolute adjacent `at` delta seconds (6-decimal precision) when timestamps are parseable; otherwise `null`
     - `window_time_gap_avg_seconds` = average absolute adjacent `at` delta in seconds (6-decimal precision) when timestamps are parseable; otherwise `null`
+    - `window_time_gap_stddev_seconds` = population standard deviation of absolute adjacent `at` deltas in seconds (6-decimal precision) when timestamps are parseable; otherwise `null`
     - `has_more`, `next_before_id` (`null` when no next page)
     - `next_query` (`null` when no next page; otherwise `{limit,before_id,include_total}`)
     - `next_query_string` (`null` when no next page; otherwise `limit=...&before_id=...&include_total=...`)
@@ -1005,7 +1007,7 @@ GB28181 example:
       - `gray_rollout.plan_batch.cache.clear.blocked`
       - `gray_rollout.plan_batch.cache.clear`
     - `limit`, `before_id` (request cursor echo, nullable), `query_string` (normalized current-page query string)
-    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_unparseable_count`, `window_time_parseable_count`, `window_time_missing_at_count`, `window_time_invalid_at_count`, `window_time_missing_at_ratio`, `window_time_invalid_at_ratio`, `window_time_unparseable_ratio`, `window_time_parseable_ratio`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_range_seconds`, `window_time_gap_count`, `window_time_gap_zero_count`, `window_time_gap_nonzero_count`, `window_time_gap_zero_ratio`, `window_time_gap_nonzero_ratio`, `window_time_gap_median_seconds`, `window_time_gap_p90_seconds`, `window_time_gap_p75_seconds`, `window_time_gap_p25_seconds`, `window_time_gap_iqr_seconds`, `window_time_gap_p95_seconds`, `window_time_gap_p99_seconds`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `snapshot_at`, `order` (`id_desc`)
+    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_unparseable_count`, `window_time_parseable_count`, `window_time_missing_at_count`, `window_time_invalid_at_count`, `window_time_missing_at_ratio`, `window_time_invalid_at_ratio`, `window_time_unparseable_ratio`, `window_time_parseable_ratio`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_range_seconds`, `window_time_gap_count`, `window_time_gap_zero_count`, `window_time_gap_nonzero_count`, `window_time_gap_zero_ratio`, `window_time_gap_nonzero_ratio`, `window_time_gap_median_seconds`, `window_time_gap_p90_seconds`, `window_time_gap_p75_seconds`, `window_time_gap_p25_seconds`, `window_time_gap_iqr_seconds`, `window_time_gap_p95_seconds`, `window_time_gap_p99_seconds`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `window_time_gap_stddev_seconds`, `snapshot_at`, `order` (`id_desc`)
     - `window_span` = `window_max_id - window_min_id + 1` when page has items; otherwise `null`
     - `dense_window` = whether `window_span == returned_items` when page has items; otherwise `null`
     - `id_gap_count` = `window_span - returned_items` (non-negative) when page has items; otherwise `null`
@@ -1039,6 +1041,7 @@ GB28181 example:
     - `window_time_gap_p99_seconds` = p99 absolute adjacent `at` delta in seconds (6-decimal precision, nearest-rank) when timestamps are parseable; otherwise `null`
     - `window_time_gap_total_seconds` = total absolute adjacent `at` delta seconds (6-decimal precision) when timestamps are parseable; otherwise `null`
     - `window_time_gap_avg_seconds` = average absolute adjacent `at` delta in seconds (6-decimal precision) when timestamps are parseable; otherwise `null`
+    - `window_time_gap_stddev_seconds` = population standard deviation of absolute adjacent `at` deltas in seconds (6-decimal precision) when timestamps are parseable; otherwise `null`
     - `has_more`, `next_before_id` (`null` when no next page)
     - `next_query` (`null` when no next page; otherwise `{limit,before_id,include_total}`)
     - `next_query_string` (`null` when no next page; otherwise `limit=...&before_id=...&include_total=...`)
@@ -1066,5 +1069,3 @@ File: `src/p0_runtime/fastapi_adapter.py`
 ```powershell
 python -m unittest discover -s tests -p 'test_*.py'
 ```
-
-
