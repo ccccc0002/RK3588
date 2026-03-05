@@ -786,3 +786,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-42-audit-cursor-window-time-gap-max-seconds-validated/20260305-125820
 - Summary: added window_time_gap_max_seconds audit cursor metadata with runtime/http/docs/openapi parity and local+remote py3.8 validation
 - Next: continue post-P3 audit cursor ergonomics and client interop hardening
+
+## [2026-03-05T13:03:27+08:00] P4-iteration-43-audit-cursor-window-time-gap-avg-seconds-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: b6bc807
+- Tag: checkpoint/P4-iteration-43-audit-cursor-window-time-gap-avg-seconds-validated/20260305-130327
+- Summary: added window_time_gap_avg_seconds audit cursor metadata with runtime/http/docs/openapi parity and local+remote py3.8 validation
+- Next: continue post-P3 audit cursor ergonomics and client interop hardening
