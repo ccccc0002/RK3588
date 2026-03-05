@@ -961,3 +961,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-67-audit-cursor-window-time-gap-stddev-seconds-validated/20260305-152420
 - Summary: validated window_time_gap_stddev_seconds metadata with local and remote py3.8 gates
 - Next: continue next audit cursor metadata iteration
+
+## [2026-03-05T15:32:10+08:00] P4-iteration-68-audit-cursor-window-time-gap-cv-ratio-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: deade06
+- Tag: checkpoint/P4-iteration-68-audit-cursor-window-time-gap-cv-ratio-validated/20260305-153210
+- Summary: validated window_time_gap_cv_ratio metadata with local and remote py3.8 gates
+- Next: continue next audit cursor metadata iteration
