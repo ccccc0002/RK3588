@@ -1,0 +1,246 @@
+diff --git a/docs/api/p0-openapi.yaml b/docs/api/p0-openapi.yaml
+index 8ae0516..1c8db4c 100644
+--- a/docs/api/p0-openapi.yaml
++++ b/docs/api/p0-openapi.yaml
+@@ -2699,7 +2699,7 @@ components:
+ 
+     AuditListData:
+       type: object
+-      required: [items, limit, before_id, query_string, returned_items, window_max_id, window_min_id, window_span, dense_window, id_gap_count, window_density, window_newest_at, window_oldest_at, window_time_parseable, window_time_unparseable_count, window_time_parseable_count, window_time_missing_at_count, window_time_invalid_at_count, window_time_missing_at_ratio, window_time_invalid_at_ratio, window_time_unparseable_ratio, window_time_parseable_ratio, window_time_span_seconds, window_time_desc_order, window_time_gap_max_seconds, window_time_gap_min_seconds, window_time_gap_range_seconds, window_time_gap_count, window_time_gap_zero_count, window_time_gap_nonzero_count, window_time_gap_zero_ratio, window_time_gap_nonzero_ratio, window_time_gap_median_seconds, window_time_gap_p90_seconds, window_time_gap_p75_seconds, window_time_gap_p25_seconds, window_time_gap_iqr_seconds, window_time_gap_p95_seconds, window_time_gap_p99_seconds, window_time_gap_total_seconds, window_time_gap_avg_seconds, window_time_gap_stddev_seconds, window_time_gap_cv_ratio, window_time_gap_mad_seconds, window_time_gap_mad_ratio, window_time_gap_outlier_count, window_time_gap_outlier_lower_seconds, window_time_gap_outlier_upper_seconds, window_time_gap_outlier_fence_span_seconds, window_time_gap_outlier_fence_midpoint_seconds, window_time_gap_outlier_effective_lower_seconds, window_time_gap_outlier_effective_span_seconds, window_time_gap_outlier_effective_midpoint_seconds, window_time_gap_outlier_effective_coverage_ratio, window_time_gap_outlier_lower_truncation_seconds, window_time_gap_outlier_lower_truncation_ratio, window_time_gap_outlier_lower_clipped, window_time_gap_outlier_ratio, window_time_gap_inlier_count, window_time_gap_inlier_ratio, snapshot_at, order, has_more, next_before_id, next_query, next_query_string, total_candidates, remaining_candidates]
++      required: [items, limit, before_id, query_string, returned_items, window_max_id, window_min_id, window_span, dense_window, id_gap_count, window_density, window_newest_at, window_oldest_at, window_time_parseable, window_time_unparseable_count, window_time_parseable_count, window_time_missing_at_count, window_time_invalid_at_count, window_time_missing_at_ratio, window_time_invalid_at_ratio, window_time_unparseable_ratio, window_time_parseable_ratio, window_time_span_seconds, window_time_desc_order, window_time_gap_max_seconds, window_time_gap_min_seconds, window_time_gap_range_seconds, window_time_gap_count, window_time_gap_zero_count, window_time_gap_nonzero_count, window_time_gap_zero_ratio, window_time_gap_nonzero_ratio, window_time_gap_median_seconds, window_time_gap_p90_seconds, window_time_gap_p75_seconds, window_time_gap_p25_seconds, window_time_gap_iqr_seconds, window_time_gap_p95_seconds, window_time_gap_p99_seconds, window_time_gap_total_seconds, window_time_gap_avg_seconds, window_time_gap_stddev_seconds, window_time_gap_cv_ratio, window_time_gap_mad_seconds, window_time_gap_mad_ratio, window_time_gap_outlier_count, window_time_gap_outlier_lower_seconds, window_time_gap_outlier_upper_seconds, window_time_gap_outlier_fence_span_seconds, window_time_gap_outlier_fence_midpoint_seconds, window_time_gap_outlier_effective_lower_seconds, window_time_gap_outlier_effective_span_seconds, window_time_gap_outlier_effective_midpoint_seconds, window_time_gap_outlier_effective_coverage_ratio, window_time_gap_outlier_lower_truncation_seconds, window_time_gap_outlier_lower_truncation_ratio, window_time_gap_outlier_lower_clipped, window_time_gap_outlier_lower_clipped_ratio, window_time_gap_outlier_ratio, window_time_gap_inlier_count, window_time_gap_inlier_ratio, snapshot_at, order, has_more, next_before_id, next_query, next_query_string, total_candidates, remaining_candidates]
+       properties:
+         items:
+           type: array
+@@ -2930,6 +2930,11 @@ components:
+         window_time_gap_outlier_lower_clipped:
+           type: boolean
+           nullable: true
++        window_time_gap_outlier_lower_clipped_ratio:
++          type: number
++          minimum: 0
++          maximum: 1
++          nullable: true
+         window_time_gap_outlier_ratio:
+           type: number
+           minimum: 0
+diff --git a/docs/api/p0-runtime-endpoints.md b/docs/api/p0-runtime-endpoints.md
+index accabc0..04b05ec 100644
+--- a/docs/api/p0-runtime-endpoints.md
++++ b/docs/api/p0-runtime-endpoints.md
+@@ -650,7 +650,7 @@ GB28181 example:
+   - 200 envelope:
+     - `items[]` audit records
+     - `limit`, `before_id` (request cursor echo, nullable), `query_string` (normalized current-page query string)
+-    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_unparseable_count`, `window_time_parseable_count`, `window_time_missing_at_count`, `window_time_invalid_at_count`, `window_time_missing_at_ratio`, `window_time_invalid_at_ratio`, `window_time_unparseable_ratio`, `window_time_parseable_ratio`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_range_seconds`, `window_time_gap_count`, `window_time_gap_zero_count`, `window_time_gap_nonzero_count`, `window_time_gap_zero_ratio`, `window_time_gap_nonzero_ratio`, `window_time_gap_median_seconds`, `window_time_gap_p90_seconds`, `window_time_gap_p75_seconds`, `window_time_gap_p25_seconds`, `window_time_gap_iqr_seconds`, `window_time_gap_p95_seconds`, `window_time_gap_p99_seconds`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `window_time_gap_stddev_seconds`, `window_time_gap_cv_ratio`, `window_time_gap_mad_seconds`, `window_time_gap_mad_ratio`, `window_time_gap_outlier_count`, `window_time_gap_outlier_lower_seconds`, `window_time_gap_outlier_upper_seconds`, `window_time_gap_outlier_fence_span_seconds`, `window_time_gap_outlier_fence_midpoint_seconds`, `window_time_gap_outlier_effective_lower_seconds`, `window_time_gap_outlier_effective_span_seconds`, `window_time_gap_outlier_effective_midpoint_seconds`, `window_time_gap_outlier_effective_coverage_ratio`, `window_time_gap_outlier_lower_truncation_seconds`, `window_time_gap_outlier_lower_truncation_ratio`, `window_time_gap_outlier_lower_clipped`, `window_time_gap_outlier_ratio`, `window_time_gap_inlier_count`, `window_time_gap_inlier_ratio`, `snapshot_at`, `order` (`id_desc`)
++    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_unparseable_count`, `window_time_parseable_count`, `window_time_missing_at_count`, `window_time_invalid_at_count`, `window_time_missing_at_ratio`, `window_time_invalid_at_ratio`, `window_time_unparseable_ratio`, `window_time_parseable_ratio`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_range_seconds`, `window_time_gap_count`, `window_time_gap_zero_count`, `window_time_gap_nonzero_count`, `window_time_gap_zero_ratio`, `window_time_gap_nonzero_ratio`, `window_time_gap_median_seconds`, `window_time_gap_p90_seconds`, `window_time_gap_p75_seconds`, `window_time_gap_p25_seconds`, `window_time_gap_iqr_seconds`, `window_time_gap_p95_seconds`, `window_time_gap_p99_seconds`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `window_time_gap_stddev_seconds`, `window_time_gap_cv_ratio`, `window_time_gap_mad_seconds`, `window_time_gap_mad_ratio`, `window_time_gap_outlier_count`, `window_time_gap_outlier_lower_seconds`, `window_time_gap_outlier_upper_seconds`, `window_time_gap_outlier_fence_span_seconds`, `window_time_gap_outlier_fence_midpoint_seconds`, `window_time_gap_outlier_effective_lower_seconds`, `window_time_gap_outlier_effective_span_seconds`, `window_time_gap_outlier_effective_midpoint_seconds`, `window_time_gap_outlier_effective_coverage_ratio`, `window_time_gap_outlier_lower_truncation_seconds`, `window_time_gap_outlier_lower_truncation_ratio`, `window_time_gap_outlier_lower_clipped`, `window_time_gap_outlier_lower_clipped_ratio`, `window_time_gap_outlier_ratio`, `window_time_gap_inlier_count`, `window_time_gap_inlier_ratio`, `snapshot_at`, `order` (`id_desc`)
+     - `window_span` = `window_max_id - window_min_id + 1` when page has items; otherwise `null`
+     - `dense_window` = whether `window_span == returned_items` when page has items; otherwise `null`
+     - `id_gap_count` = `window_span - returned_items` (non-negative) when page has items; otherwise `null`
+@@ -700,6 +700,7 @@ GB28181 example:
+     - `window_time_gap_outlier_lower_truncation_seconds` = lower-bound truncation seconds (`max(0, -window_time_gap_outlier_lower_seconds)`) with 6-decimal precision when timestamps are parseable; otherwise `null`
+     - `window_time_gap_outlier_lower_truncation_ratio` = lower truncation ratio (`window_time_gap_outlier_lower_truncation_seconds/window_time_gap_outlier_fence_span_seconds`) with 6-decimal precision when timestamps are parseable; returns `0.0` when fence span is zero; otherwise `null`
+     - `window_time_gap_outlier_lower_clipped` = whether Tukey lower fence is below zero (`window_time_gap_outlier_lower_seconds < 0`) when timestamps are parseable; otherwise `null`
++    - `window_time_gap_outlier_lower_clipped_ratio` = `1.0` when `window_time_gap_outlier_lower_clipped=true` else `0.0` when timestamps are parseable; otherwise `null`
+     - `window_time_gap_outlier_ratio` = `window_time_gap_outlier_count/window_time_gap_count` (6-decimal precision) when timestamps are parseable; otherwise `null`
+     - `window_time_gap_inlier_count` = number of adjacent `at` deltas inside Tukey fences (`window_time_gap_count-window_time_gap_outlier_count`) when timestamps are parseable; otherwise `null`
+     - `window_time_gap_inlier_ratio` = `window_time_gap_inlier_count/window_time_gap_count` (6-decimal precision) when timestamps are parseable; otherwise `null`
+@@ -950,7 +951,7 @@ GB28181 example:
+     - `items[]` from audit records filtered by action:
+       - `gray_rollout.plan_batch.cache.policy.update`
+     - `limit`, `before_id` (request cursor echo, nullable), `query_string` (normalized current-page query string)
+-    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_unparseable_count`, `window_time_parseable_count`, `window_time_missing_at_count`, `window_time_invalid_at_count`, `window_time_missing_at_ratio`, `window_time_invalid_at_ratio`, `window_time_unparseable_ratio`, `window_time_parseable_ratio`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_range_seconds`, `window_time_gap_count`, `window_time_gap_zero_count`, `window_time_gap_nonzero_count`, `window_time_gap_zero_ratio`, `window_time_gap_nonzero_ratio`, `window_time_gap_median_seconds`, `window_time_gap_p90_seconds`, `window_time_gap_p75_seconds`, `window_time_gap_p25_seconds`, `window_time_gap_iqr_seconds`, `window_time_gap_p95_seconds`, `window_time_gap_p99_seconds`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `window_time_gap_stddev_seconds`, `window_time_gap_cv_ratio`, `window_time_gap_mad_seconds`, `window_time_gap_mad_ratio`, `window_time_gap_outlier_count`, `window_time_gap_outlier_lower_seconds`, `window_time_gap_outlier_upper_seconds`, `window_time_gap_outlier_fence_span_seconds`, `window_time_gap_outlier_fence_midpoint_seconds`, `window_time_gap_outlier_effective_lower_seconds`, `window_time_gap_outlier_effective_span_seconds`, `window_time_gap_outlier_effective_midpoint_seconds`, `window_time_gap_outlier_effective_coverage_ratio`, `window_time_gap_outlier_lower_truncation_seconds`, `window_time_gap_outlier_lower_truncation_ratio`, `window_time_gap_outlier_lower_clipped`, `window_time_gap_outlier_ratio`, `window_time_gap_inlier_count`, `window_time_gap_inlier_ratio`, `snapshot_at`, `order` (`id_desc`)
++    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_unparseable_count`, `window_time_parseable_count`, `window_time_missing_at_count`, `window_time_invalid_at_count`, `window_time_missing_at_ratio`, `window_time_invalid_at_ratio`, `window_time_unparseable_ratio`, `window_time_parseable_ratio`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_range_seconds`, `window_time_gap_count`, `window_time_gap_zero_count`, `window_time_gap_nonzero_count`, `window_time_gap_zero_ratio`, `window_time_gap_nonzero_ratio`, `window_time_gap_median_seconds`, `window_time_gap_p90_seconds`, `window_time_gap_p75_seconds`, `window_time_gap_p25_seconds`, `window_time_gap_iqr_seconds`, `window_time_gap_p95_seconds`, `window_time_gap_p99_seconds`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `window_time_gap_stddev_seconds`, `window_time_gap_cv_ratio`, `window_time_gap_mad_seconds`, `window_time_gap_mad_ratio`, `window_time_gap_outlier_count`, `window_time_gap_outlier_lower_seconds`, `window_time_gap_outlier_upper_seconds`, `window_time_gap_outlier_fence_span_seconds`, `window_time_gap_outlier_fence_midpoint_seconds`, `window_time_gap_outlier_effective_lower_seconds`, `window_time_gap_outlier_effective_span_seconds`, `window_time_gap_outlier_effective_midpoint_seconds`, `window_time_gap_outlier_effective_coverage_ratio`, `window_time_gap_outlier_lower_truncation_seconds`, `window_time_gap_outlier_lower_truncation_ratio`, `window_time_gap_outlier_lower_clipped`, `window_time_gap_outlier_lower_clipped_ratio`, `window_time_gap_outlier_ratio`, `window_time_gap_inlier_count`, `window_time_gap_inlier_ratio`, `snapshot_at`, `order` (`id_desc`)
+     - `window_span` = `window_max_id - window_min_id + 1` when page has items; otherwise `null`
+     - `dense_window` = whether `window_span == returned_items` when page has items; otherwise `null`
+     - `id_gap_count` = `window_span - returned_items` (non-negative) when page has items; otherwise `null`
+@@ -1000,6 +1001,7 @@ GB28181 example:
+     - `window_time_gap_outlier_lower_truncation_seconds` = lower-bound truncation seconds (`max(0, -window_time_gap_outlier_lower_seconds)`) with 6-decimal precision when timestamps are parseable; otherwise `null`
+     - `window_time_gap_outlier_lower_truncation_ratio` = lower truncation ratio (`window_time_gap_outlier_lower_truncation_seconds/window_time_gap_outlier_fence_span_seconds`) with 6-decimal precision when timestamps are parseable; returns `0.0` when fence span is zero; otherwise `null`
+     - `window_time_gap_outlier_lower_clipped` = whether Tukey lower fence is below zero (`window_time_gap_outlier_lower_seconds < 0`) when timestamps are parseable; otherwise `null`
++    - `window_time_gap_outlier_lower_clipped_ratio` = `1.0` when `window_time_gap_outlier_lower_clipped=true` else `0.0` when timestamps are parseable; otherwise `null`
+     - `window_time_gap_outlier_ratio` = `window_time_gap_outlier_count/window_time_gap_count` (6-decimal precision) when timestamps are parseable; otherwise `null`
+     - `window_time_gap_inlier_count` = number of adjacent `at` deltas inside Tukey fences (`window_time_gap_count-window_time_gap_outlier_count`) when timestamps are parseable; otherwise `null`
+     - `window_time_gap_inlier_ratio` = `window_time_gap_inlier_count/window_time_gap_count` (6-decimal precision) when timestamps are parseable; otherwise `null`
+@@ -1043,7 +1045,7 @@ GB28181 example:
+       - `gray_rollout.plan_batch.cache.clear.blocked`
+       - `gray_rollout.plan_batch.cache.clear`
+     - `limit`, `before_id` (request cursor echo, nullable), `query_string` (normalized current-page query string)
+-    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_unparseable_count`, `window_time_parseable_count`, `window_time_missing_at_count`, `window_time_invalid_at_count`, `window_time_missing_at_ratio`, `window_time_invalid_at_ratio`, `window_time_unparseable_ratio`, `window_time_parseable_ratio`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_range_seconds`, `window_time_gap_count`, `window_time_gap_zero_count`, `window_time_gap_nonzero_count`, `window_time_gap_zero_ratio`, `window_time_gap_nonzero_ratio`, `window_time_gap_median_seconds`, `window_time_gap_p90_seconds`, `window_time_gap_p75_seconds`, `window_time_gap_p25_seconds`, `window_time_gap_iqr_seconds`, `window_time_gap_p95_seconds`, `window_time_gap_p99_seconds`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `window_time_gap_stddev_seconds`, `window_time_gap_cv_ratio`, `window_time_gap_mad_seconds`, `window_time_gap_mad_ratio`, `window_time_gap_outlier_count`, `window_time_gap_outlier_lower_seconds`, `window_time_gap_outlier_upper_seconds`, `window_time_gap_outlier_fence_span_seconds`, `window_time_gap_outlier_fence_midpoint_seconds`, `window_time_gap_outlier_effective_lower_seconds`, `window_time_gap_outlier_effective_span_seconds`, `window_time_gap_outlier_effective_midpoint_seconds`, `window_time_gap_outlier_effective_coverage_ratio`, `window_time_gap_outlier_lower_truncation_seconds`, `window_time_gap_outlier_lower_truncation_ratio`, `window_time_gap_outlier_lower_clipped`, `window_time_gap_outlier_ratio`, `window_time_gap_inlier_count`, `window_time_gap_inlier_ratio`, `snapshot_at`, `order` (`id_desc`)
++    - `returned_items`, `window_max_id`, `window_min_id`, `window_span`, `dense_window`, `id_gap_count`, `window_density`, `window_newest_at`, `window_oldest_at`, `window_time_parseable`, `window_time_unparseable_count`, `window_time_parseable_count`, `window_time_missing_at_count`, `window_time_invalid_at_count`, `window_time_missing_at_ratio`, `window_time_invalid_at_ratio`, `window_time_unparseable_ratio`, `window_time_parseable_ratio`, `window_time_span_seconds`, `window_time_desc_order`, `window_time_gap_max_seconds`, `window_time_gap_min_seconds`, `window_time_gap_range_seconds`, `window_time_gap_count`, `window_time_gap_zero_count`, `window_time_gap_nonzero_count`, `window_time_gap_zero_ratio`, `window_time_gap_nonzero_ratio`, `window_time_gap_median_seconds`, `window_time_gap_p90_seconds`, `window_time_gap_p75_seconds`, `window_time_gap_p25_seconds`, `window_time_gap_iqr_seconds`, `window_time_gap_p95_seconds`, `window_time_gap_p99_seconds`, `window_time_gap_total_seconds`, `window_time_gap_avg_seconds`, `window_time_gap_stddev_seconds`, `window_time_gap_cv_ratio`, `window_time_gap_mad_seconds`, `window_time_gap_mad_ratio`, `window_time_gap_outlier_count`, `window_time_gap_outlier_lower_seconds`, `window_time_gap_outlier_upper_seconds`, `window_time_gap_outlier_fence_span_seconds`, `window_time_gap_outlier_fence_midpoint_seconds`, `window_time_gap_outlier_effective_lower_seconds`, `window_time_gap_outlier_effective_span_seconds`, `window_time_gap_outlier_effective_midpoint_seconds`, `window_time_gap_outlier_effective_coverage_ratio`, `window_time_gap_outlier_lower_truncation_seconds`, `window_time_gap_outlier_lower_truncation_ratio`, `window_time_gap_outlier_lower_clipped`, `window_time_gap_outlier_lower_clipped_ratio`, `window_time_gap_outlier_ratio`, `window_time_gap_inlier_count`, `window_time_gap_inlier_ratio`, `snapshot_at`, `order` (`id_desc`)
+     - `window_span` = `window_max_id - window_min_id + 1` when page has items; otherwise `null`
+     - `dense_window` = whether `window_span == returned_items` when page has items; otherwise `null`
+     - `id_gap_count` = `window_span - returned_items` (non-negative) when page has items; otherwise `null`
+@@ -1093,6 +1095,7 @@ GB28181 example:
+     - `window_time_gap_outlier_lower_truncation_seconds` = lower-bound truncation seconds (`max(0, -window_time_gap_outlier_lower_seconds)`) with 6-decimal precision when timestamps are parseable; otherwise `null`
+     - `window_time_gap_outlier_lower_truncation_ratio` = lower truncation ratio (`window_time_gap_outlier_lower_truncation_seconds/window_time_gap_outlier_fence_span_seconds`) with 6-decimal precision when timestamps are parseable; returns `0.0` when fence span is zero; otherwise `null`
+     - `window_time_gap_outlier_lower_clipped` = whether Tukey lower fence is below zero (`window_time_gap_outlier_lower_seconds < 0`) when timestamps are parseable; otherwise `null`
++    - `window_time_gap_outlier_lower_clipped_ratio` = `1.0` when `window_time_gap_outlier_lower_clipped=true` else `0.0` when timestamps are parseable; otherwise `null`
+     - `window_time_gap_outlier_ratio` = `window_time_gap_outlier_count/window_time_gap_count` (6-decimal precision) when timestamps are parseable; otherwise `null`
+     - `window_time_gap_inlier_count` = number of adjacent `at` deltas inside Tukey fences (`window_time_gap_count-window_time_gap_outlier_count`) when timestamps are parseable; otherwise `null`
+     - `window_time_gap_inlier_ratio` = `window_time_gap_inlier_count/window_time_gap_count` (6-decimal precision) when timestamps are parseable; otherwise `null`
+diff --git a/src/p0_runtime/runtime.py b/src/p0_runtime/runtime.py
+index b7de928..4f3ac68 100644
+--- a/src/p0_runtime/runtime.py
++++ b/src/p0_runtime/runtime.py
+@@ -1615,6 +1615,7 @@ class P0Runtime:
+         window_time_gap_outlier_lower_truncation_seconds = None
+         window_time_gap_outlier_lower_truncation_ratio = None
+         window_time_gap_outlier_lower_clipped = None
++        window_time_gap_outlier_lower_clipped_ratio = None
+         if items:
+             newest_at = items[0].get("at")
+             oldest_at = items[-1].get("at")
+@@ -1696,6 +1697,7 @@ class P0Runtime:
+                     window_time_gap_outlier_lower_truncation_seconds = 0.0
+                     window_time_gap_outlier_lower_truncation_ratio = 0.0
+                     window_time_gap_outlier_lower_clipped = False
++                    window_time_gap_outlier_lower_clipped_ratio = 0.0
+                 else:
+                     gaps = [
+                         abs((parsed_times[i] - parsed_times[i + 1]).total_seconds())
+@@ -1791,6 +1793,9 @@ class P0Runtime:
+                     else:
+                         window_time_gap_outlier_lower_truncation_ratio = 0.0
+                     window_time_gap_outlier_lower_clipped = float(outlier_lower) < 0.0
++                    window_time_gap_outlier_lower_clipped_ratio = (
++                        1.0 if window_time_gap_outlier_lower_clipped else 0.0
++                    )
+                     window_time_gap_outlier_ratio = round(
+                         float(window_time_gap_outlier_count) / float(len(gaps)),
+                         6,
+@@ -1937,6 +1942,7 @@ class P0Runtime:
+             "window_time_gap_outlier_lower_truncation_seconds": window_time_gap_outlier_lower_truncation_seconds,
+             "window_time_gap_outlier_lower_truncation_ratio": window_time_gap_outlier_lower_truncation_ratio,
+             "window_time_gap_outlier_lower_clipped": window_time_gap_outlier_lower_clipped,
++            "window_time_gap_outlier_lower_clipped_ratio": window_time_gap_outlier_lower_clipped_ratio,
+             "snapshot_at": snapshot_at,
+             "order": "id_desc",
+             "has_more": has_more,
+diff --git a/tests/p0_runtime/test_http_api.py b/tests/p0_runtime/test_http_api.py
+index 1b55a4f..b3cca2c 100644
+--- a/tests/p0_runtime/test_http_api.py
++++ b/tests/p0_runtime/test_http_api.py
+@@ -198,6 +198,7 @@ class P0HttpApiTests(unittest.TestCase):
+             else:
+                 expected_outlier_lower_truncation_ratio = 0.0
+             expected_outlier_lower_clipped = float(expected_outlier_lower) < 0.0
++            expected_outlier_lower_clipped_ratio = 1.0 if expected_outlier_lower_clipped else 0.0
+             expected_outlier_ratio = round(float(expected_outlier_count) / float(len(gaps)), 6)
+             expected_inlier_count = max(0, int(len(gaps)) - int(expected_outlier_count))
+             expected_inlier_ratio = round(float(expected_inlier_count) / float(len(gaps)), 6)
+@@ -227,6 +228,7 @@ class P0HttpApiTests(unittest.TestCase):
+             expected_outlier_lower_truncation_seconds = 0.0
+             expected_outlier_lower_truncation_ratio = 0.0
+             expected_outlier_lower_clipped = False
++            expected_outlier_lower_clipped_ratio = 0.0
+             expected_outlier_ratio = 0.0
+             expected_inlier_count = 0
+             expected_inlier_ratio = 0.0
+@@ -278,6 +280,7 @@ class P0HttpApiTests(unittest.TestCase):
+         self.assertAlmostEqual(expected_outlier_lower_truncation_seconds, float(data["window_time_gap_outlier_lower_truncation_seconds"]), places=6)
+         self.assertAlmostEqual(expected_outlier_lower_truncation_ratio, float(data["window_time_gap_outlier_lower_truncation_ratio"]), places=6)
+         self.assertEqual(expected_outlier_lower_clipped, bool(data["window_time_gap_outlier_lower_clipped"]))
++        self.assertAlmostEqual(expected_outlier_lower_clipped_ratio, float(data["window_time_gap_outlier_lower_clipped_ratio"]), places=6)
+         self.assertAlmostEqual(expected_outlier_ratio, float(data["window_time_gap_outlier_ratio"]), places=6)
+         self.assertEqual(expected_inlier_count, int(data["window_time_gap_inlier_count"]))
+         self.assertAlmostEqual(expected_inlier_ratio, float(data["window_time_gap_inlier_ratio"]), places=6)
+diff --git a/tests/p0_runtime/test_runtime.py b/tests/p0_runtime/test_runtime.py
+index 5a559b0..a10701c 100644
+--- a/tests/p0_runtime/test_runtime.py
++++ b/tests/p0_runtime/test_runtime.py
+@@ -2224,6 +2224,7 @@ class P0RuntimeTests(unittest.TestCase):
+         self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_lower_truncation_seconds"]), places=6)
+         self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_lower_truncation_ratio"]), places=6)
+         self.assertFalse(bool(page["window_time_gap_outlier_lower_clipped"]))
++        self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_lower_clipped_ratio"]), places=6)
+         self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_ratio"]), places=6)
+         self.assertEqual(0, int(page["window_time_gap_inlier_count"]))
+         self.assertAlmostEqual(0.0, float(page["window_time_gap_inlier_ratio"]), places=6)
+@@ -2362,6 +2363,7 @@ class P0RuntimeTests(unittest.TestCase):
+             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_lower_truncation_seconds"]), places=6)
+             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_lower_truncation_ratio"]), places=6)
+             self.assertFalse(bool(page_with_cursor["window_time_gap_outlier_lower_clipped"]))
++            self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_lower_clipped_ratio"]), places=6)
+             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_ratio"]), places=6)
+             self.assertEqual(0, int(page_with_cursor["window_time_gap_inlier_count"]))
+             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_inlier_ratio"]), places=6)
+@@ -2418,6 +2420,7 @@ class P0RuntimeTests(unittest.TestCase):
+             self.assertIsNone(page_with_cursor["window_time_gap_outlier_lower_truncation_seconds"])
+             self.assertIsNone(page_with_cursor["window_time_gap_outlier_lower_truncation_ratio"])
+             self.assertIsNone(page_with_cursor["window_time_gap_outlier_lower_clipped"])
++            self.assertIsNone(page_with_cursor["window_time_gap_outlier_lower_clipped_ratio"])
+             self.assertIsNone(page_with_cursor["window_time_gap_outlier_ratio"])
+             self.assertIsNone(page_with_cursor["window_time_gap_inlier_count"])
+             self.assertIsNone(page_with_cursor["window_time_gap_inlier_ratio"])
+@@ -2549,6 +2552,7 @@ class P0RuntimeTests(unittest.TestCase):
+         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_lower_truncation_seconds"]), places=6)
+         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_lower_truncation_ratio"]), places=6)
+         self.assertFalse(bool(page_with_total["window_time_gap_outlier_lower_clipped"]))
++        self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_lower_clipped_ratio"]), places=6)
+         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_ratio"]), places=6)
+         self.assertEqual(0, int(page_with_total["window_time_gap_inlier_count"]))
+         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_inlier_ratio"]), places=6)
+@@ -2722,6 +2726,7 @@ class P0RuntimeTests(unittest.TestCase):
+         self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_lower_truncation_seconds"]), places=6)
+         self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_lower_truncation_ratio"]), places=6)
+         self.assertFalse(bool(page["window_time_gap_outlier_lower_clipped"]))
++        self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_lower_clipped_ratio"]), places=6)
+         self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_ratio"]), places=6)
+         self.assertEqual(0, int(page["window_time_gap_inlier_count"]))
+         self.assertAlmostEqual(0.0, float(page["window_time_gap_inlier_ratio"]), places=6)
+@@ -2839,6 +2844,7 @@ class P0RuntimeTests(unittest.TestCase):
+             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_lower_truncation_seconds"]), places=6)
+             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_lower_truncation_ratio"]), places=6)
+             self.assertFalse(bool(page_with_cursor["window_time_gap_outlier_lower_clipped"]))
++            self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_lower_clipped_ratio"]), places=6)
+             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_ratio"]), places=6)
+             self.assertEqual(0, int(page_with_cursor["window_time_gap_inlier_count"]))
+             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_inlier_ratio"]), places=6)
+@@ -2874,6 +2880,7 @@ class P0RuntimeTests(unittest.TestCase):
+             self.assertIsNone(page_with_cursor["window_time_gap_outlier_lower_truncation_seconds"])
+             self.assertIsNone(page_with_cursor["window_time_gap_outlier_lower_truncation_ratio"])
+             self.assertIsNone(page_with_cursor["window_time_gap_outlier_lower_clipped"])
++            self.assertIsNone(page_with_cursor["window_time_gap_outlier_lower_clipped_ratio"])
+             self.assertIsNone(page_with_cursor["window_time_gap_outlier_ratio"])
+             self.assertIsNone(page_with_cursor["window_time_gap_inlier_count"])
+             self.assertIsNone(page_with_cursor["window_time_gap_inlier_ratio"])
+@@ -2984,6 +2991,7 @@ class P0RuntimeTests(unittest.TestCase):
+         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_lower_truncation_seconds"]), places=6)
+         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_lower_truncation_ratio"]), places=6)
+         self.assertFalse(bool(page_with_total["window_time_gap_outlier_lower_clipped"]))
++        self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_lower_clipped_ratio"]), places=6)
+         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_ratio"]), places=6)
+         self.assertEqual(0, int(page_with_total["window_time_gap_inlier_count"]))
+         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_inlier_ratio"]), places=6)
+@@ -3185,6 +3193,7 @@ class P0RuntimeTests(unittest.TestCase):
+         self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_lower_truncation_seconds"]), places=6)
+         self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_lower_truncation_ratio"]), places=6)
+         self.assertFalse(bool(page["window_time_gap_outlier_lower_clipped"]))
++        self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_lower_clipped_ratio"]), places=6)
+         self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_ratio"]), places=6)
+         self.assertEqual(0, int(page["window_time_gap_inlier_count"]))
+         self.assertAlmostEqual(0.0, float(page["window_time_gap_inlier_ratio"]), places=6)
+@@ -3305,6 +3314,7 @@ class P0RuntimeTests(unittest.TestCase):
+             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_lower_truncation_seconds"]), places=6)
+             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_lower_truncation_ratio"]), places=6)
+             self.assertFalse(bool(page_with_cursor["window_time_gap_outlier_lower_clipped"]))
++            self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_lower_clipped_ratio"]), places=6)
+             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_ratio"]), places=6)
+             self.assertEqual(0, int(page_with_cursor["window_time_gap_inlier_count"]))
+             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_inlier_ratio"]), places=6)
+@@ -3340,6 +3350,7 @@ class P0RuntimeTests(unittest.TestCase):
+             self.assertIsNone(page_with_cursor["window_time_gap_outlier_lower_truncation_seconds"])
+             self.assertIsNone(page_with_cursor["window_time_gap_outlier_lower_truncation_ratio"])
+             self.assertIsNone(page_with_cursor["window_time_gap_outlier_lower_clipped"])
++            self.assertIsNone(page_with_cursor["window_time_gap_outlier_lower_clipped_ratio"])
+             self.assertIsNone(page_with_cursor["window_time_gap_outlier_ratio"])
+             self.assertIsNone(page_with_cursor["window_time_gap_inlier_count"])
+             self.assertIsNone(page_with_cursor["window_time_gap_inlier_ratio"])
+@@ -3450,6 +3461,7 @@ class P0RuntimeTests(unittest.TestCase):
+         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_lower_truncation_seconds"]), places=6)
+         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_lower_truncation_ratio"]), places=6)
+         self.assertFalse(bool(page_with_total["window_time_gap_outlier_lower_clipped"]))
++        self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_lower_clipped_ratio"]), places=6)
+         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_ratio"]), places=6)
+         self.assertEqual(0, int(page_with_total["window_time_gap_inlier_count"]))
+         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_inlier_ratio"]), places=6)
