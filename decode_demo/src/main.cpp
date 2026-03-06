@@ -3,6 +3,7 @@
 #include "decode_demo/plan_manifest.hpp"
 #include "decode_demo/result_json.hpp"
 #include "decode_demo/rknn_runner.hpp"
+#include "decode_demo/runtime_plan_client.hpp"
 #include "decode_demo/runtime_probe.hpp"
 
 #include <algorithm>
@@ -23,6 +24,9 @@ struct Options {
     std::string plan_file;
     std::string asset_map;
     std::string output;
+    std::string runtime_url;
+    std::string token;
+    double budget{10.0};
     int rga_width{0};
     int rga_height{0};
 };
@@ -62,6 +66,18 @@ int parse_positive_int(const char* flag, const std::string& value) {
     std::exit(1);
 }
 
+double parse_positive_double(const char* flag, const std::string& value) {
+    try {
+        const double parsed = std::stod(value);
+        if (parsed > 0.0) {
+            return parsed;
+        }
+    } catch (...) {
+    }
+    std::cerr << "Invalid value for " << flag << ": " << value << '\n';
+    std::exit(1);
+}
+
 Options parse_args(int argc, char** argv) {
     Options options;
     for (int i = 1; i < argc; ++i) {
@@ -78,6 +94,12 @@ Options parse_args(int argc, char** argv) {
             options.asset_map = argv[++i];
         } else if (arg == "--output" && i + 1 < argc) {
             options.output = argv[++i];
+        } else if (arg == "--runtime-url" && i + 1 < argc) {
+            options.runtime_url = argv[++i];
+        } else if (arg == "--token" && i + 1 < argc) {
+            options.token = argv[++i];
+        } else if (arg == "--budget" && i + 1 < argc) {
+            options.budget = parse_positive_double("--budget", argv[++i]);
         } else if (arg == "--rga-width" && i + 1 < argc) {
             options.rga_width = parse_positive_int("--rga-width", argv[++i]);
         } else if (arg == "--rga-height" && i + 1 < argc) {
@@ -85,7 +107,8 @@ Options parse_args(int argc, char** argv) {
         } else if (arg == "--help" || arg == "-h") {
             std::cout
                 << "Usage: rk_decode_demo [--self-check] [--stream <annexb.h264>] [--model <file.rknn>] "
-                << "[--plan-file <plan.manifest.tsv>] [--asset-map <assets.tsv>] [--output <result.json>] "
+                << "[--plan-file <plan.manifest.tsv>] [--runtime-url <http://host:port>] [--token <bearer>] "
+                << "[--budget <n>] [--asset-map <assets.tsv>] [--output <result.json>] "
                 << "[--rga-width <n> --rga-height <n>]\n";
             std::exit(0);
         } else {
@@ -95,6 +118,10 @@ Options parse_args(int argc, char** argv) {
     }
     if ((options.rga_width > 0) != (options.rga_height > 0)) {
         std::cerr << "Both --rga-width and --rga-height must be provided together\n";
+        std::exit(1);
+    }
+    if (!options.plan_file.empty() && !options.runtime_url.empty()) {
+        std::cerr << "Use either --plan-file or --runtime-url, not both\n";
         std::exit(1);
     }
     return options;
@@ -273,9 +300,24 @@ void ensure_unique_output_paths(std::vector<ResolvedExecution>& executions) {
     }
 }
 
+decode_demo::PlanManifest load_execution_manifest(const Options& options) {
+    if (!options.runtime_url.empty()) {
+        decode_demo::RuntimePlanFetchOptions fetch_options;
+        fetch_options.runtime_url = options.runtime_url;
+        fetch_options.token = options.token;
+        fetch_options.budget = options.budget;
+        const decode_demo::RuntimePlanFetchResult fetched = decode_demo::fetch_runtime_plan(fetch_options);
+        std::cout << "runtime_plan_url=" << fetched.request_url << '\n';
+        std::cout << "runtime_plan_http_status=" << fetched.http_status << '\n';
+        std::cout << "runtime_plan_response_bytes=" << fetched.response_body.size() << '\n';
+        return fetched.manifest;
+    }
+    return decode_demo::load_plan_manifest(options.plan_file);
+}
+
 std::vector<ResolvedExecution> resolve_executions_from_options(const Options& options) {
     std::vector<ResolvedExecution> executions;
-    if (options.plan_file.empty()) {
+    if (options.plan_file.empty() && options.runtime_url.empty()) {
         ResolvedExecution resolved;
         resolved.stream_path = options.stream;
         resolved.model_path = options.model;
@@ -284,7 +326,7 @@ std::vector<ResolvedExecution> resolve_executions_from_options(const Options& op
         return executions;
     }
 
-    const decode_demo::PlanManifest manifest = decode_demo::load_plan_manifest(options.plan_file);
+    const decode_demo::PlanManifest manifest = load_execution_manifest(options);
     print_manifest_summary(manifest);
     static std::vector<decode_demo::ManifestWorkload> selected_workloads;
     selected_workloads = decode_demo::collect_ready_workloads(manifest);
