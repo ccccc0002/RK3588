@@ -1616,6 +1616,7 @@ class P0Runtime:
         window_time_gap_outlier_lower_truncation_ratio = None
         window_time_gap_outlier_lower_clipped = None
         window_time_gap_outlier_lower_clipped_ratio = None
+        window_time_gap_outlier_lower_unclipped_ratio = None
         if items:
             newest_at = items[0].get("at")
             oldest_at = items[-1].get("at")
@@ -1698,6 +1699,7 @@ class P0Runtime:
                     window_time_gap_outlier_lower_truncation_ratio = 0.0
                     window_time_gap_outlier_lower_clipped = False
                     window_time_gap_outlier_lower_clipped_ratio = 0.0
+                    window_time_gap_outlier_lower_unclipped_ratio = 1.0
                 else:
                     gaps = [
                         abs((parsed_times[i] - parsed_times[i + 1]).total_seconds())
@@ -1795,6 +1797,9 @@ class P0Runtime:
                     window_time_gap_outlier_lower_clipped = float(outlier_lower) < 0.0
                     window_time_gap_outlier_lower_clipped_ratio = (
                         1.0 if window_time_gap_outlier_lower_clipped else 0.0
+                    )
+                    window_time_gap_outlier_lower_unclipped_ratio = (
+                        0.0 if window_time_gap_outlier_lower_clipped else 1.0
                     )
                     window_time_gap_outlier_ratio = round(
                         float(window_time_gap_outlier_count) / float(len(gaps)),
@@ -1943,6 +1948,7 @@ class P0Runtime:
             "window_time_gap_outlier_lower_truncation_ratio": window_time_gap_outlier_lower_truncation_ratio,
             "window_time_gap_outlier_lower_clipped": window_time_gap_outlier_lower_clipped,
             "window_time_gap_outlier_lower_clipped_ratio": window_time_gap_outlier_lower_clipped_ratio,
+            "window_time_gap_outlier_lower_unclipped_ratio": window_time_gap_outlier_lower_unclipped_ratio,
             "snapshot_at": snapshot_at,
             "order": "id_desc",
             "has_more": has_more,
