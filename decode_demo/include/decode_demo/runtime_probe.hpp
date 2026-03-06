@@ -19,6 +19,8 @@ struct ProbeReport {
     std::vector<LibraryProbe> libraries;
     bool headers_compiled{true};
     bool all_libraries_loadable{false};
+    bool mpp_decoder_init_avc{false};
+    std::string mpp_decoder_init_detail;
 };
 
 ProbeReport probe_runtime_environment();

@@ -35,6 +35,27 @@ LibraryProbe probe_one_library(std::string logical_name, std::string soname) {
     return probe;
 }
 
+std::pair<bool, std::string> probe_mpp_decoder_init_avc() {
+    MppCtx ctx = nullptr;
+    MppApi* mpi = nullptr;
+    MPP_RET ret = mpp_create(&ctx, &mpi);
+    if (ret != MPP_OK) {
+        return {false, "mpp_create failed: " + std::to_string(ret)};
+    }
+
+    ret = mpp_init(ctx, MPP_CTX_DEC, MPP_VIDEO_CodingAVC);
+    if (ret != MPP_OK) {
+        mpp_destroy(ctx);
+        return {false, "mpp_init(MPP_CTX_DEC, MPP_VIDEO_CodingAVC) failed: " + std::to_string(ret)};
+    }
+
+    ret = mpp_destroy(ctx);
+    if (ret != MPP_OK) {
+        return {false, "mpp_destroy failed: " + std::to_string(ret)};
+    }
+    return {true, "initialized"};
+}
+
 }  // namespace
 
 ProbeReport probe_runtime_environment() {
@@ -55,6 +76,10 @@ ProbeReport probe_runtime_environment() {
             break;
         }
     }
+
+    const auto mpp_probe = probe_mpp_decoder_init_avc();
+    report.mpp_decoder_init_avc = mpp_probe.first;
+    report.mpp_decoder_init_detail = mpp_probe.second;
     return report;
 }
 
@@ -76,8 +101,13 @@ int run_self_check(std::ostream& os) {
         os << '\n';
     }
     os << "all_libraries_loadable=" << (report.all_libraries_loadable ? "true" : "false") << '\n';
+    os << "mpp_decoder_init_avc=" << (report.mpp_decoder_init_avc ? "true" : "false");
+    if (!report.mpp_decoder_init_detail.empty()) {
+        os << " detail=\"" << report.mpp_decoder_init_detail << "\"";
+    }
+    os << '\n';
     os << "next_step=wire MPP packet/frame decode + RGA preprocess + RKNN model execution into these adapters\n";
-    return report.all_libraries_loadable ? 0 : 2;
+    return (report.all_libraries_loadable && report.mpp_decoder_init_avc) ? 0 : 2;
 }
 
 }  // namespace decode_demo
