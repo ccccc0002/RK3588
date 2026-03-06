@@ -1304,3 +1304,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-116-manifest-consumption/20260306-171837
 - Summary: added manifest rendering/parsing for decode_demo so inference-plan data can be consumed as ready workloads; validated on RK3588 with sample plan and kept local Python regression suite green
 - Next: push branch/tag to GitHub, sync remote tracked repo, then wire real MPP decode entry and optional RKNN model init path
+
+## [2026-03-06T17:49:31+08:00] P4-iteration-117-mpp-decoder-init-probe
+- Branch: stage/P3-phase2-readiness
+- Commit: 178b8fa
+- Tag: checkpoint/P4-iteration-117-mpp-decoder-init-probe/20260306-174931
+- Summary: extended decode_demo self-check to perform real MPP AVC decoder context init on RK3588 and kept local Python regression suite green
+- Next: push branch/tag to GitHub, sync remote tracked repo, then start wiring MPP packet input/decode loop against a local sample mp4

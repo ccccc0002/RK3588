@@ -1,0 +1,14 @@
+﻿# Checkpoint 20260306-174931-P4-iteration-117-mpp-decoder-init-probe
+
+- Time: 2026-03-06T17:49:31+08:00
+- Stage: P4-iteration-117-mpp-decoder-init-probe
+- Branch: stage/P3-phase2-readiness
+- Commit: 178b8fab32676cdd6a97d9ae1111bb0a2b48ff3a
+- Tag: checkpoint/P4-iteration-117-mpp-decoder-init-probe/20260306-174931
+- Summary: extended decode_demo self-check to perform real MPP AVC decoder context init on RK3588 and kept local Python regression suite green
+- Next: push branch/tag to GitHub, sync remote tracked repo, then start wiring MPP packet input/decode loop against a local sample mp4
+
+## Changed Files
+- decode_demo/include/decode_demo/runtime_probe.hpp
+- decode_demo/src/runtime_probe.cpp
+- docs/workflow/agent-sync-log.md
