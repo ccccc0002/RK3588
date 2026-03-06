@@ -12,6 +12,7 @@ Current scope:
 - runs RGA color-convert + letterbox resize on the decoded DMA frame
 - optionally loads an RKNN model, runs one-frame inference, and emits YOLOv5 detection boxes plus raw tensor summaries
 - can resolve `stream/model/output` automatically from a plan manifest when the control-plane includes execution resources
+- can fetch `/api/v1/inference/plan` directly from the Python runtime with bearer auth and execute it without an exported manifest file
 - still supports a local execution asset map as a fallback when those execution resources are absent
 - writes structured result JSON artifacts for later runtime/reporting integration
 - executes every ready workload in a manifest run and emits a batch summary JSON index
@@ -98,7 +99,7 @@ When the manifest contains multiple ready workloads, `rk_decode_demo` now execut
 
 When a workload carries `execution.frames_per_sample > 1` or `execution.max_samples_per_run > 1`, the demo decodes multiple frames from the Annex-B stream, runs RKNN on each sampled frame, and keeps the best successful sample as the compatibility result JSON for that workload. The batch summary records the requested and actual sample counts for each workload.
 
-Expected pipeline output fields for `--stream` / `--plan-file`:
+Expected pipeline output fields for `--stream` / `--plan-file` / `--runtime-url`:
 
 - `selected_*` manifest workload fields
 - `decode_ok`
@@ -151,7 +152,7 @@ python3 tools/submit_inference_result.py \
 
 Planned next steps:
 
-1. Add a native control-plane client that fetches `/api/v1/inference/plan` directly instead of relying on an exported manifest file.
-2. Extend the result JSON schema with optional sampling metadata for per-workload debugging and auditing.
-3. Add optional label-file loading instead of the built-in COCO-80 list.
-4. Add long-running decode session management for continuous stream polling instead of file-based clips.
+1. Extend the result JSON schema with optional sampling metadata for per-workload debugging and auditing.
+2. Add optional label-file loading instead of the built-in COCO-80 list.
+3. Add long-running decode session management for continuous stream polling instead of file-based clips.
+4. Add retry/backoff and local plan caching around `--runtime-url` for intermittent control-plane outages.
