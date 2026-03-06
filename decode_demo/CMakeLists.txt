@@ -19,9 +19,11 @@ find_library(RKNN_LIB rknnrt PATHS /usr/lib /usr/lib/aarch64-linux-gnu /lib/aarc
 find_library(DL_LIB dl)
 
 add_executable(rk_decode_demo
+    src/execution_asset.cpp
     src/main.cpp
     src/mpp_decode.cpp
     src/plan_manifest.cpp
+    src/result_json.cpp
     src/rknn_runner.cpp
     src/runtime_probe.cpp
 )

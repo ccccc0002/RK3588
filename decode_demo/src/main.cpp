@@ -1,5 +1,7 @@
+#include "decode_demo/execution_asset.hpp"
 #include "decode_demo/mpp_decode.hpp"
 #include "decode_demo/plan_manifest.hpp"
+#include "decode_demo/result_json.hpp"
 #include "decode_demo/rknn_runner.hpp"
 #include "decode_demo/runtime_probe.hpp"
 
@@ -17,6 +19,8 @@ struct Options {
     std::string stream;
     std::string model;
     std::string plan_file;
+    std::string asset_map;
+    std::string output;
     int rga_width{0};
     int rga_height{0};
 };
@@ -45,12 +49,19 @@ Options parse_args(int argc, char** argv) {
             options.model = argv[++i];
         } else if (arg == "--plan-file" && i + 1 < argc) {
             options.plan_file = argv[++i];
+        } else if (arg == "--asset-map" && i + 1 < argc) {
+            options.asset_map = argv[++i];
+        } else if (arg == "--output" && i + 1 < argc) {
+            options.output = argv[++i];
         } else if (arg == "--rga-width" && i + 1 < argc) {
             options.rga_width = parse_positive_int("--rga-width", argv[++i]);
         } else if (arg == "--rga-height" && i + 1 < argc) {
             options.rga_height = parse_positive_int("--rga-height", argv[++i]);
         } else if (arg == "--help" || arg == "-h") {
-            std::cout << "Usage: rk_decode_demo [--self-check] [--stream <annexb.h264>] [--model <file.rknn>] [--rga-width <n> --rga-height <n>] [--plan-file <plan.manifest.tsv>]\n";
+            std::cout
+                << "Usage: rk_decode_demo [--self-check] [--stream <annexb.h264>] [--model <file.rknn>] "
+                << "[--plan-file <plan.manifest.tsv>] [--asset-map <assets.tsv>] [--output <result.json>] "
+                << "[--rga-width <n> --rga-height <n>]\n";
             std::exit(0);
         } else {
             std::cerr << "Unknown argument: " << arg << '\n';
@@ -77,29 +88,23 @@ void print_path_summary(const std::string& label, const std::string& value) {
     std::cout << '\n';
 }
 
-void print_manifest_summary(const std::string& plan_file) {
-    if (plan_file.empty()) {
-        return;
-    }
-    const decode_demo::PlanManifest manifest = decode_demo::load_plan_manifest(plan_file);
-    const std::vector<decode_demo::ManifestWorkload> ready = decode_demo::collect_ready_workloads(manifest);
-    std::cout << "plan_file=" << plan_file << '\n';
+void print_manifest_summary(const decode_demo::PlanManifest& manifest) {
     std::cout << "manifest_budget=" << manifest.budget << '\n';
     std::cout << "manifest_degraded=" << (manifest.degraded ? "true" : "false") << '\n';
     std::cout << "manifest_stream_count=" << manifest.stream_count << '\n';
     std::cout << "manifest_ready_stream_count=" << manifest.ready_stream_count << '\n';
     std::cout << "manifest_workload_count=" << manifest.workloads.size() << '\n';
-    std::cout << "manifest_ready_workload_count=" << ready.size() << '\n';
-    if (!ready.empty()) {
-        const auto& first = ready.front();
-        std::cout << "selected_device_id=" << first.device_id << '\n';
-        std::cout << "selected_capability=" << first.capability << '\n';
-        std::cout << "selected_algorithm_id=" << first.algorithm_id << '\n';
-        std::cout << "selected_algorithm_version=" << first.algorithm_version << '\n';
-        std::cout << "selected_base_library_id=" << first.base_library_id << '\n';
-        std::cout << "selected_stream_url=" << first.stream_url << '\n';
-        std::cout << "selected_sample_fps=" << first.sample_fps << '\n';
-    }
+}
+
+void print_selected_workload(const decode_demo::ManifestWorkload& workload) {
+    std::cout << "selected_device_id=" << workload.device_id << '\n';
+    std::cout << "selected_capability=" << workload.capability << '\n';
+    std::cout << "selected_algorithm_id=" << workload.algorithm_id << '\n';
+    std::cout << "selected_algorithm_version=" << workload.algorithm_version << '\n';
+    std::cout << "selected_base_library_id=" << workload.base_library_id << '\n';
+    std::cout << "selected_base_library_version=" << workload.base_library_version << '\n';
+    std::cout << "selected_stream_url=" << workload.stream_url << '\n';
+    std::cout << "selected_sample_fps=" << workload.sample_fps << '\n';
 }
 
 void print_rknn_model_summary(const decode_demo::RknnModelInfo& model) {
@@ -131,33 +136,69 @@ void print_rknn_run_summary(const decode_demo::RknnRunInfo& run) {
         std::cout << "detection_" << i << "_right=" << detection.right << '\n';
         std::cout << "detection_" << i << "_bottom=" << detection.bottom << '\n';
     }
-    for (std::size_t i = 0; i < run.outputs.size(); ++i) {
-        const auto& output = run.outputs[i];
-        std::cout << "rknn_output_" << i << "_name=" << output.name << '\n';
-        std::cout << "rknn_output_" << i << "_size=" << output.size << '\n';
-        std::cout << "rknn_output_" << i << "_n_elems=" << output.n_elems << '\n';
-        std::cout << "rknn_output_" << i << "_format=" << output.format << '\n';
-        std::cout << "rknn_output_" << i << "_type=" << output.type << '\n';
-        std::cout << "rknn_output_" << i << "_qnt_type=" << output.qnt_type << '\n';
-        std::ostringstream values;
-        for (std::size_t j = 0; j < output.sample_values.size(); ++j) {
-            if (j > 0) {
-                values << ',';
-            }
-            values << output.sample_values[j];
-        }
-        std::cout << "rknn_output_" << i << "_sample_values=" << values.str() << '\n';
+}
+
+struct ResolvedExecution {
+    std::string stream_path;
+    std::string model_path;
+    std::string output_path;
+    const decode_demo::ManifestWorkload* workload{nullptr};
+};
+
+ResolvedExecution resolve_execution_from_options(const Options& options) {
+    ResolvedExecution resolved;
+    resolved.stream_path = options.stream;
+    resolved.model_path = options.model;
+    resolved.output_path = options.output;
+
+    if (options.plan_file.empty()) {
+        return resolved;
     }
+
+    const decode_demo::PlanManifest manifest = decode_demo::load_plan_manifest(options.plan_file);
+    print_manifest_summary(manifest);
+    const auto ready = decode_demo::collect_ready_workloads(manifest);
+    std::cout << "manifest_ready_workload_count=" << ready.size() << '\n';
+    if (ready.empty()) {
+        throw std::runtime_error("manifest contains no ready workloads");
+    }
+
+    static decode_demo::ManifestWorkload selected;
+    selected = ready.front();
+    resolved.workload = &selected;
+    print_selected_workload(selected);
+
+    const auto bindings = decode_demo::load_execution_asset_map(options.asset_map);
+    const decode_demo::ExecutionAssetBinding* binding = decode_demo::resolve_execution_asset(bindings, selected);
+    if (binding != nullptr) {
+        std::cout << "asset_binding_resolved=true\n";
+    } else if (!options.asset_map.empty()) {
+        std::cout << "asset_binding_resolved=false\n";
+    }
+
+    if (resolved.stream_path.empty()) {
+        resolved.stream_path = decode_demo::resolve_stream_path(selected, binding);
+    }
+    if (resolved.model_path.empty()) {
+        resolved.model_path = decode_demo::resolve_model_path(selected, binding);
+    }
+    if (resolved.output_path.empty()) {
+        resolved.output_path = decode_demo::resolve_output_path(selected, binding);
+    }
+    return resolved;
 }
 
 int run_stream_pipeline(const std::string& stream_path,
                         const std::string& model_path,
+                        const std::string& output_path,
+                        const decode_demo::ManifestWorkload* workload,
                         int requested_rga_width,
                         int requested_rga_height) {
     print_path_summary("stream", stream_path);
     if (!model_path.empty()) {
         print_path_summary("model", model_path);
     }
+    print_path_summary("output", output_path);
 
     int effective_rga_width = requested_rga_width;
     int effective_rga_height = requested_rga_height;
@@ -203,8 +244,9 @@ int run_stream_pipeline(const std::string& stream_path,
     }
 
     bool ok = frame.ok && (!pipeline.rga.requested || pipeline.rga.ok);
+    decode_demo::RknnRunInfo run;
     if (!model_path.empty()) {
-        const decode_demo::RknnRunInfo run = decode_demo::run_rknn_inference(
+        run = decode_demo::run_rknn_inference(
             model_path,
             pipeline.rga.output_data,
             pipeline.rga.output_width,
@@ -217,6 +259,9 @@ int run_stream_pipeline(const std::string& stream_path,
             frame.height);
         print_rknn_run_summary(run);
         ok = ok && run.ok;
+        decode_demo::write_detection_result_json(output_path, workload, frame, pipeline.rga, &run);
+    } else {
+        decode_demo::write_detection_result_json(output_path, workload, frame, pipeline.rga, nullptr);
     }
     return ok ? 0 : 2;
 }
@@ -224,21 +269,34 @@ int run_stream_pipeline(const std::string& stream_path,
 }  // namespace
 
 int main(int argc, char** argv) {
-    const Options options = parse_args(argc, argv);
+    try {
+        const Options options = parse_args(argc, argv);
 
-    if (options.self_check) {
-        return decode_demo::run_self_check(std::cout);
+        if (options.self_check) {
+            return decode_demo::run_self_check(std::cout);
+        }
+
+        std::cout << "rk_decode_demo pipeline prototype\n";
+        const ResolvedExecution resolved = resolve_execution_from_options(options);
+
+        if (!resolved.stream_path.empty()) {
+            return run_stream_pipeline(
+                resolved.stream_path,
+                resolved.model_path,
+                resolved.output_path,
+                resolved.workload,
+                options.rga_width,
+                options.rga_height);
+        }
+
+        print_path_summary("model", resolved.model_path);
+        print_path_summary("asset_map", options.asset_map);
+        print_path_summary("output", resolved.output_path);
+        std::cout << "status=waiting_for_stream\n";
+        std::cout << "next=provide --stream directly or use --plan-file with --asset-map to resolve stream/model/output automatically\n";
+        return 0;
+    } catch (const std::exception& ex) {
+        std::cerr << "fatal=" << ex.what() << '\n';
+        return 2;
     }
-
-    std::cout << "rk_decode_demo pipeline prototype\n";
-    print_manifest_summary(options.plan_file);
-
-    if (!options.stream.empty()) {
-        return run_stream_pipeline(options.stream, options.model, options.rga_width, options.rga_height);
-    }
-
-    print_path_summary("model", options.model);
-    std::cout << "status=waiting_for_stream\n";
-    std::cout << "next=provide --stream <annexb.h264> to execute MPP, RGA, and optional RKNN inference\n";
-    return 0;
 }

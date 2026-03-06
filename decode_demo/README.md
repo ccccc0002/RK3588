@@ -11,6 +11,8 @@ Current scope:
 - decodes the first frame from a local Annex-B H.264/H.265 elementary stream with MPP
 - runs RGA color-convert + letterbox resize on the decoded DMA frame
 - optionally loads an RKNN model, runs one-frame inference, and emits YOLOv5 detection boxes plus raw tensor summaries
+- can resolve `stream/model/output` automatically from a plan manifest plus a local execution asset map
+- writes structured result JSON artifacts for later runtime/reporting integration
 
 Build:
 
@@ -48,8 +50,8 @@ Prepare a local Annex-B stream from MP4 for MPP decode testing:
 
 ```bash
 python3 tools/prepare_annexb_stream.py \
-  --input /home/zql/ks/data/media/simulated/cam-entrance-01/preview-clip.mp4 \
-  --output artifacts/preview-clip.h264
+  --input /home/zql/ks/data/media/live-preview/cam-entrance-01/latest-clip.mp4 \
+  --output artifacts/latest-clip.h264
 ```
 
 Fetch the official RK3588 YOLOv5 sample model:
@@ -59,17 +61,39 @@ python3 tools/fetch_rknn_model.py \
   --output artifacts/models/yolov5s-640-640.rknn
 ```
 
-Run the C++ executable with the generated manifest or a prepared elementary stream:
+Render an execution asset map for automatic manifest-driven execution:
 
 ```bash
-./build/rk_decode_demo --plan-file artifacts/inference-plan.manifest.tsv
-./build/rk_decode_demo --stream artifacts/preview-clip.h264
-./build/rk_decode_demo --stream artifacts/preview-clip.h264 --rga-width 640 --rga-height 640
-./build/rk_decode_demo --stream artifacts/preview-clip.h264 --model artifacts/models/yolov5s-640-640.rknn
+python3 tools/render_execution_asset_map.py \
+  --output artifacts/execution-assets.tsv \
+  --device-id cam-1 \
+  --capability face \
+  --algorithm-id face-detector \
+  --algorithm-version 1.0.0 \
+  --base-library-id lib-face-core \
+  --base-library-version 2026.03 \
+  --stream-path artifacts/latest-clip.h264 \
+  --model-path artifacts/models/yolov5s-640-640.rknn \
+  --result-path artifacts/results/cam-1.json
 ```
 
-Expected pipeline output fields for `--stream`:
+Run the C++ executable with a prepared elementary stream:
 
+```bash
+./build/rk_decode_demo --stream artifacts/latest-clip.h264 --model artifacts/models/yolov5s-640-640.rknn --output artifacts/results/manual.json
+```
+
+Run the same pipeline from a manifest plus asset map:
+
+```bash
+./build/rk_decode_demo \
+  --plan-file artifacts/inference-plan.manifest.tsv \
+  --asset-map artifacts/execution-assets.tsv
+```
+
+Expected pipeline output fields for `--stream` / `--plan-file`:
+
+- `selected_*` manifest workload fields
 - `decode_ok`
 - `decode_coding`
 - `decode_pixel_format`
@@ -91,11 +115,19 @@ Expected pipeline output fields for `--stream`:
 - `rknn_ok`
 - `rknn_detection_count`
 - `detection_<n>_*`
-- `rknn_output_<n>_sample_values`
+- `output=<result.json>`
+
+Result JSON contains:
+
+- selected workload metadata
+- decode metadata
+- RGA letterbox metadata
+- inference metadata
+- detection list with class, confidence, and box coordinates
 
 Planned next steps:
 
-1. Resolve manifest-selected streams into MPP input automatically.
-2. Convert YOLOv5 detections into the Python runtime result contract.
-3. Add optional label-file loading instead of the built-in COCO-80 list.
-4. Extend the same path to additional RKNN models.
+1. Convert result JSON artifacts into the Python runtime reporting contract.
+2. Replace the local asset map with a control-plane supplied resource contract.
+3. Execute multiple manifest-selected workloads in sequence or batches.
+4. Add optional label-file loading instead of the built-in COCO-80 list.
