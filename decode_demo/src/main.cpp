@@ -172,49 +172,28 @@ void print_rknn_run_summary(const decode_demo::RknnRunInfo& run) {
 
 void print_decode_pipeline_summary(const decode_demo::DecodePipelineInfo& pipeline) {
     const decode_demo::DecodedFrameInfo& frame = pipeline.frame;
-    std::cout << "decode_ok=" << (frame.ok ? "true" : "false") << '
-';
-    std::cout << "decode_coding=" << frame.coding << '
-';
-    std::cout << "decode_pixel_format=" << frame.pixel_format << '
-';
-    std::cout << "decode_detail=" << frame.detail << '
-';
-    std::cout << "decode_width=" << frame.width << '
-';
-    std::cout << "decode_height=" << frame.height << '
-';
-    std::cout << "decode_hor_stride=" << frame.hor_stride << '
-';
-    std::cout << "decode_ver_stride=" << frame.ver_stride << '
-';
-    std::cout << "decode_dma_fd=" << frame.dma_fd << '
-';
-    std::cout << "rga_requested=" << (pipeline.rga.requested ? "true" : "false") << '
-';
+    std::cout << "decode_ok=" << (frame.ok ? "true" : "false") << '\n';
+    std::cout << "decode_coding=" << frame.coding << '\n';
+    std::cout << "decode_pixel_format=" << frame.pixel_format << '\n';
+    std::cout << "decode_detail=" << frame.detail << '\n';
+    std::cout << "decode_width=" << frame.width << '\n';
+    std::cout << "decode_height=" << frame.height << '\n';
+    std::cout << "decode_hor_stride=" << frame.hor_stride << '\n';
+    std::cout << "decode_ver_stride=" << frame.ver_stride << '\n';
+    std::cout << "decode_dma_fd=" << frame.dma_fd << '\n';
+    std::cout << "rga_requested=" << (pipeline.rga.requested ? "true" : "false") << '\n';
     if (pipeline.rga.requested) {
-        std::cout << "rga_ok=" << (pipeline.rga.ok ? "true" : "false") << '
-';
-        std::cout << "rga_detail=" << pipeline.rga.detail << '
-';
-        std::cout << "rga_output_width=" << pipeline.rga.output_width << '
-';
-        std::cout << "rga_output_height=" << pipeline.rga.output_height << '
-';
-        std::cout << "rga_output_channels=" << pipeline.rga.output_channels << '
-';
-        std::cout << "rga_output_bytes=" << pipeline.rga.output_bytes << '
-';
-        std::cout << "rga_scaled_width=" << pipeline.rga.scaled_width << '
-';
-        std::cout << "rga_scaled_height=" << pipeline.rga.scaled_height << '
-';
-        std::cout << "rga_pad_x=" << pipeline.rga.pad_x << '
-';
-        std::cout << "rga_pad_y=" << pipeline.rga.pad_y << '
-';
-        std::cout << "rga_scale=" << pipeline.rga.scale << '
-';
+        std::cout << "rga_ok=" << (pipeline.rga.ok ? "true" : "false") << '\n';
+        std::cout << "rga_detail=" << pipeline.rga.detail << '\n';
+        std::cout << "rga_output_width=" << pipeline.rga.output_width << '\n';
+        std::cout << "rga_output_height=" << pipeline.rga.output_height << '\n';
+        std::cout << "rga_output_channels=" << pipeline.rga.output_channels << '\n';
+        std::cout << "rga_output_bytes=" << pipeline.rga.output_bytes << '\n';
+        std::cout << "rga_scaled_width=" << pipeline.rga.scaled_width << '\n';
+        std::cout << "rga_scaled_height=" << pipeline.rga.scaled_height << '\n';
+        std::cout << "rga_pad_x=" << pipeline.rga.pad_x << '\n';
+        std::cout << "rga_pad_y=" << pipeline.rga.pad_y << '\n';
+        std::cout << "rga_scale=" << pipeline.rga.scale << '\n';
     }
 }
 
@@ -391,12 +370,9 @@ PipelineRunSummary run_stream_pipeline(const std::string& stream_path,
     summary.frames_per_sample = workload != nullptr ? std::max(1, workload->frames_per_sample) : 1;
     summary.requested_sample_count = workload != nullptr ? std::max(1, workload->max_samples_per_run) : 1;
     const bool sampling_requested = summary.requested_sample_count > 1 || summary.frames_per_sample > 1;
-    std::cout << "run_frames_per_sample=" << summary.frames_per_sample << '
-';
-    std::cout << "run_requested_sample_count=" << summary.requested_sample_count << '
-';
-    std::cout << "run_sampling_requested=" << (sampling_requested ? "true" : "false") << '
-';
+    std::cout << "run_frames_per_sample=" << summary.frames_per_sample << '\n';
+    std::cout << "run_requested_sample_count=" << summary.requested_sample_count << '\n';
+    std::cout << "run_sampling_requested=" << (sampling_requested ? "true" : "false") << '\n';
 
     decode_demo::DecodePipelineInfo selected_pipeline;
     decode_demo::RknnRunInfo selected_run;
@@ -411,25 +387,19 @@ PipelineRunSummary run_stream_pipeline(const std::string& stream_path,
             summary.requested_sample_count,
             summary.frames_per_sample);
         summary.sampled_frame_count = static_cast<int>(sampling.samples.size());
-        std::cout << "run_decoded_frame_count=" << sampling.decoded_frame_count << '
-';
-        std::cout << "run_sampled_frame_count=" << summary.sampled_frame_count << '
-';
-        std::cout << "run_hit_eos=" << (sampling.hit_eos ? "true" : "false") << '
-';
+        std::cout << "run_decoded_frame_count=" << sampling.decoded_frame_count << '\n';
+        std::cout << "run_sampled_frame_count=" << summary.sampled_frame_count << '\n';
+        std::cout << "run_hit_eos=" << (sampling.hit_eos ? "true" : "false") << '\n';
 
         if (!sampling.samples.empty()) {
             std::size_t selected_sample_index = 0;
             bool have_selected_sample = false;
             for (std::size_t i = 0; i < sampling.samples.size(); ++i) {
                 const auto& sample = sampling.samples[i];
-                std::cout << "sample_" << i << "_frame_index=" << sample.frame_index << '
-';
-                std::cout << "sample_" << i << "_decode_ok=" << (sample.pipeline.frame.ok ? "true" : "false") << '
-';
+                std::cout << "sample_" << i << "_frame_index=" << sample.frame_index << '\n';
+                std::cout << "sample_" << i << "_decode_ok=" << (sample.pipeline.frame.ok ? "true" : "false") << '\n';
                 std::cout << "sample_" << i << "_rga_ok="
-                          << (!sample.pipeline.rga.requested || sample.pipeline.rga.ok ? "true" : "false") << '
-';
+                          << (!sample.pipeline.rga.requested || sample.pipeline.rga.ok ? "true" : "false") << '\n';
                 if (model_path.empty() || !pipeline_ready_for_inference(sample.pipeline)) {
                     continue;
                 }
@@ -445,10 +415,8 @@ PipelineRunSummary run_stream_pipeline(const std::string& stream_path,
                     sample.pipeline.rga.pad_y,
                     sample.pipeline.frame.width,
                     sample.pipeline.frame.height);
-                std::cout << "sample_" << i << "_rknn_ok=" << (candidate_run.ok ? "true" : "false") << '
-';
-                std::cout << "sample_" << i << "_detection_count=" << candidate_run.detections.size() << '
-';
+                std::cout << "sample_" << i << "_rknn_ok=" << (candidate_run.ok ? "true" : "false") << '\n';
+                std::cout << "sample_" << i << "_detection_count=" << candidate_run.detections.size() << '\n';
 
                 if (!have_selected_sample ||
                     sample_run_is_better(candidate_run,
@@ -481,8 +449,7 @@ PipelineRunSummary run_stream_pipeline(const std::string& stream_path,
     }
 
     if (selected_frame_index > 0) {
-        std::cout << "selected_frame_index=" << selected_frame_index << '
-';
+        std::cout << "selected_frame_index=" << selected_frame_index << '\n';
     }
     print_decode_pipeline_summary(selected_pipeline);
 
@@ -504,14 +471,10 @@ PipelineRunSummary run_stream_pipeline(const std::string& stream_path,
             summary.rknn_ok = false;
             summary.detection_count = 0;
             if (summary.rknn_requested) {
-                std::cout << "rknn_requested=true
-";
-                std::cout << "rknn_ok=false
-";
-                std::cout << "rknn_detail=skipped_due_to_decode_or_rga_failure
-";
-                std::cout << "rknn_detection_count=0
-";
+                std::cout << "rknn_requested=true\n";
+                std::cout << "rknn_ok=false\n";
+                std::cout << "rknn_detail=skipped_due_to_decode_or_rga_failure\n";
+                std::cout << "rknn_detection_count=0\n";
             }
             decode_demo::write_detection_result_json(output_path, workload, frame, selected_pipeline.rga, nullptr);
         }
