@@ -7,7 +7,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Iterable, List, Tuple
+from typing import List, Tuple
 from urllib import error, request
 
 
@@ -28,6 +28,25 @@ def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def resolve_output_path(input_path: Path, raw_output_path: str) -> Path:
+    candidate = Path(raw_output_path.strip())
+    if candidate.is_absolute():
+        return candidate
+
+    search_roots = [
+        Path.cwd(),
+        input_path.parent,
+        input_path.parent.parent,
+    ]
+    if len(input_path.parents) >= 3:
+        search_roots.append(input_path.parents[2])
+    for root in search_roots:
+        resolved = (root / candidate).resolve()
+        if resolved.exists():
+            return resolved
+    return (input_path.parent / candidate).resolve()
+
+
 def collect_payloads(input_path: Path) -> List[Tuple[Path, dict]]:
     document = load_json(input_path)
     schema_version = str(document.get("schema_version", "")).strip()
@@ -40,9 +59,7 @@ def collect_payloads(input_path: Path) -> List[Tuple[Path, dict]]:
     for item in list(document.get("items", [])):
         if not isinstance(item, dict):
             continue
-        output_path = Path(str(item.get("output_path", "")).strip())
-        if not output_path.is_absolute():
-            output_path = (input_path.parent / output_path).resolve()
+        output_path = resolve_output_path(input_path, str(item.get("output_path", "")))
         if not output_path.exists():
             raise FileNotFoundError(f"referenced result file not found: {output_path}")
         payload = load_json(output_path)
