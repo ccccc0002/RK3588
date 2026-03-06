@@ -1,14 +1,15 @@
-#include "decode_demo/execution_asset.hpp"
+﻿#include "decode_demo/execution_asset.hpp"
 #include "decode_demo/mpp_decode.hpp"
 #include "decode_demo/plan_manifest.hpp"
 #include "decode_demo/result_json.hpp"
 #include "decode_demo/rknn_runner.hpp"
 #include "decode_demo/runtime_probe.hpp"
 
+#include <cctype>
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
-#include <sstream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -23,6 +24,26 @@ struct Options {
     std::string output;
     int rga_width{0};
     int rga_height{0};
+};
+
+struct ResolvedExecution {
+    std::string stream_path;
+    std::string model_path;
+    std::string output_path;
+    const decode_demo::ManifestWorkload* workload{nullptr};
+    bool asset_binding_resolved{false};
+    std::size_t workload_index{0};
+};
+
+struct PipelineRunSummary {
+    int exit_code{0};
+    bool decode_ok{false};
+    bool rga_requested{false};
+    bool rga_ok{false};
+    bool rknn_requested{false};
+    bool rknn_ok{false};
+    int detection_count{0};
+    std::string status{"ok"};
 };
 
 int parse_positive_int(const char* flag, const std::string& value) {
@@ -138,62 +159,102 @@ void print_rknn_run_summary(const decode_demo::RknnRunInfo& run) {
     }
 }
 
-struct ResolvedExecution {
-    std::string stream_path;
-    std::string model_path;
-    std::string output_path;
-    const decode_demo::ManifestWorkload* workload{nullptr};
-};
+std::string sanitize_component(const std::string& value) {
+    std::string sanitized;
+    sanitized.reserve(value.size());
+    for (char ch : value) {
+        const unsigned char uch = static_cast<unsigned char>(ch);
+        if (std::isalnum(uch) != 0 || ch == '-' || ch == '_') {
+            sanitized.push_back(ch);
+        } else {
+            sanitized.push_back('_');
+        }
+    }
+    return sanitized.empty() ? std::string("result") : sanitized;
+}
 
-ResolvedExecution resolve_execution_from_options(const Options& options) {
-    ResolvedExecution resolved;
-    resolved.stream_path = options.stream;
-    resolved.model_path = options.model;
-    resolved.output_path = options.output;
+void ensure_unique_output_paths(std::vector<ResolvedExecution>& executions) {
+    std::map<std::string, int> counts;
+    for (const auto& execution : executions) {
+        if (!execution.output_path.empty()) {
+            ++counts[execution.output_path];
+        }
+    }
 
+    for (std::size_t i = 0; i < executions.size(); ++i) {
+        auto& execution = executions[i];
+        const bool duplicate = !execution.output_path.empty() && counts[execution.output_path] > 1;
+        if (!execution.output_path.empty() && !duplicate) {
+            continue;
+        }
+
+        std::filesystem::path parent = execution.output_path.empty()
+            ? std::filesystem::path("artifacts/results")
+            : std::filesystem::path(execution.output_path).parent_path();
+        if (parent.empty()) {
+            parent = std::filesystem::path("artifacts/results");
+        }
+
+        std::string stem = execution.workload == nullptr ? std::string("manual") : sanitize_component(execution.workload->device_id);
+        if (execution.workload != nullptr && !execution.workload->capability.empty()) {
+            stem += "__" + sanitize_component(execution.workload->capability);
+        }
+        stem += "__" + std::to_string(i + 1);
+        execution.output_path = (parent / (stem + ".json")).string();
+    }
+}
+
+std::vector<ResolvedExecution> resolve_executions_from_options(const Options& options) {
+    std::vector<ResolvedExecution> executions;
     if (options.plan_file.empty()) {
-        return resolved;
+        ResolvedExecution resolved;
+        resolved.stream_path = options.stream;
+        resolved.model_path = options.model;
+        resolved.output_path = options.output;
+        executions.push_back(resolved);
+        return executions;
     }
 
     const decode_demo::PlanManifest manifest = decode_demo::load_plan_manifest(options.plan_file);
     print_manifest_summary(manifest);
-    const auto ready = decode_demo::collect_ready_workloads(manifest);
-    std::cout << "manifest_ready_workload_count=" << ready.size() << '\n';
-    if (ready.empty()) {
+    static std::vector<decode_demo::ManifestWorkload> selected_workloads;
+    selected_workloads = decode_demo::collect_ready_workloads(manifest);
+    std::cout << "manifest_ready_workload_count=" << selected_workloads.size() << '\n';
+    if (selected_workloads.empty()) {
         throw std::runtime_error("manifest contains no ready workloads");
     }
 
-    static decode_demo::ManifestWorkload selected;
-    selected = ready.front();
-    resolved.workload = &selected;
-    print_selected_workload(selected);
-
     const auto bindings = decode_demo::load_execution_asset_map(options.asset_map);
-    const decode_demo::ExecutionAssetBinding* binding = decode_demo::resolve_execution_asset(bindings, selected);
-    if (binding != nullptr) {
-        std::cout << "asset_binding_resolved=true\n";
-    } else if (!options.asset_map.empty()) {
-        std::cout << "asset_binding_resolved=false\n";
+    const bool single_ready_workload = selected_workloads.size() == 1;
+    for (std::size_t i = 0; i < selected_workloads.size(); ++i) {
+        const auto& workload = selected_workloads[i];
+        const decode_demo::ExecutionAssetBinding* binding = decode_demo::resolve_execution_asset(bindings, workload);
+
+        ResolvedExecution execution;
+        execution.workload = &selected_workloads[i];
+        execution.workload_index = i;
+        execution.asset_binding_resolved = binding != nullptr;
+        execution.stream_path = options.stream.empty() ? decode_demo::resolve_stream_path(workload, binding) : options.stream;
+        execution.model_path = options.model.empty() ? decode_demo::resolve_model_path(workload, binding) : options.model;
+        execution.output_path = (single_ready_workload && !options.output.empty())
+            ? options.output
+            : decode_demo::resolve_output_path(workload, binding);
+        executions.push_back(execution);
     }
 
-    if (resolved.stream_path.empty()) {
-        resolved.stream_path = decode_demo::resolve_stream_path(selected, binding);
+    if (executions.size() > 1) {
+        ensure_unique_output_paths(executions);
     }
-    if (resolved.model_path.empty()) {
-        resolved.model_path = decode_demo::resolve_model_path(selected, binding);
-    }
-    if (resolved.output_path.empty()) {
-        resolved.output_path = decode_demo::resolve_output_path(selected, binding);
-    }
-    return resolved;
+    return executions;
 }
 
-int run_stream_pipeline(const std::string& stream_path,
-                        const std::string& model_path,
-                        const std::string& output_path,
-                        const decode_demo::ManifestWorkload* workload,
-                        int requested_rga_width,
-                        int requested_rga_height) {
+PipelineRunSummary run_stream_pipeline(const std::string& stream_path,
+                                       const std::string& model_path,
+                                       const std::string& output_path,
+                                       const decode_demo::ManifestWorkload* workload,
+                                       int requested_rga_width,
+                                       int requested_rga_height) {
+    PipelineRunSummary summary;
     print_path_summary("stream", stream_path);
     if (!model_path.empty()) {
         print_path_summary("model", model_path);
@@ -208,7 +269,9 @@ int run_stream_pipeline(const std::string& stream_path,
         model_info = decode_demo::inspect_rknn_model(model_path);
         print_rknn_model_summary(model_info);
         if (!model_info.ok) {
-            return 2;
+            summary.exit_code = 2;
+            summary.status = "model_probe_failed";
+            return summary;
         }
         if (effective_rga_width == 0 && effective_rga_height == 0) {
             effective_rga_width = model_info.model_width;
@@ -219,6 +282,9 @@ int run_stream_pipeline(const std::string& stream_path,
     const decode_demo::DecodePipelineInfo pipeline =
         decode_demo::decode_pipeline_from_annexb(stream_path, effective_rga_width, effective_rga_height);
     const decode_demo::DecodedFrameInfo& frame = pipeline.frame;
+    summary.decode_ok = frame.ok;
+    summary.rga_requested = pipeline.rga.requested;
+    summary.rga_ok = pipeline.rga.ok;
     std::cout << "decode_ok=" << (frame.ok ? "true" : "false") << '\n';
     std::cout << "decode_coding=" << frame.coding << '\n';
     std::cout << "decode_pixel_format=" << frame.pixel_format << '\n';
@@ -257,13 +323,48 @@ int run_stream_pipeline(const std::string& stream_path,
             pipeline.rga.pad_y,
             frame.width,
             frame.height);
+        summary.rknn_requested = run.requested;
+        summary.rknn_ok = run.ok;
+        summary.detection_count = static_cast<int>(run.detections.size());
         print_rknn_run_summary(run);
         ok = ok && run.ok;
         decode_demo::write_detection_result_json(output_path, workload, frame, pipeline.rga, &run);
     } else {
+        summary.rknn_requested = false;
+        summary.rknn_ok = false;
+        summary.detection_count = 0;
         decode_demo::write_detection_result_json(output_path, workload, frame, pipeline.rga, nullptr);
     }
-    return ok ? 0 : 2;
+
+    summary.exit_code = ok ? 0 : 2;
+    if (!summary.decode_ok) {
+        summary.status = "decode_failed";
+    } else if (summary.rga_requested && !summary.rga_ok) {
+        summary.status = "rga_failed";
+    } else if (summary.rknn_requested && !summary.rknn_ok) {
+        summary.status = "inference_failed";
+    } else {
+        summary.status = "ok";
+    }
+    return summary;
+}
+
+std::string default_batch_output_path(const Options& options, const std::vector<ResolvedExecution>& executions) {
+    if (executions.size() <= 1) {
+        return options.output;
+    }
+    if (!options.output.empty()) {
+        return options.output;
+    }
+    return "artifacts/results/manifest-run-summary.json";
+}
+
+void print_waiting_message(const ResolvedExecution& execution, const Options& options) {
+    print_path_summary("model", execution.model_path);
+    print_path_summary("asset_map", options.asset_map);
+    print_path_summary("output", execution.output_path);
+    std::cout << "status=waiting_for_stream\n";
+    std::cout << "next=provide --stream directly or use --plan-file with --asset-map to resolve stream/model/output automatically\n";
 }
 
 }  // namespace
@@ -277,24 +378,105 @@ int main(int argc, char** argv) {
         }
 
         std::cout << "rk_decode_demo pipeline prototype\n";
-        const ResolvedExecution resolved = resolve_execution_from_options(options);
-
-        if (!resolved.stream_path.empty()) {
-            return run_stream_pipeline(
-                resolved.stream_path,
-                resolved.model_path,
-                resolved.output_path,
-                resolved.workload,
-                options.rga_width,
-                options.rga_height);
+        std::vector<ResolvedExecution> executions = resolve_executions_from_options(options);
+        if (executions.empty()) {
+            throw std::runtime_error("no executable workload resolved");
         }
 
-        print_path_summary("model", resolved.model_path);
-        print_path_summary("asset_map", options.asset_map);
-        print_path_summary("output", resolved.output_path);
-        std::cout << "status=waiting_for_stream\n";
-        std::cout << "next=provide --stream directly or use --plan-file with --asset-map to resolve stream/model/output automatically\n";
-        return 0;
+        if (executions.size() == 1) {
+            const ResolvedExecution& execution = executions.front();
+            if (execution.workload != nullptr) {
+                print_selected_workload(*execution.workload);
+                std::cout << "asset_binding_resolved=" << (execution.asset_binding_resolved ? "true" : "false") << '\n';
+            }
+            if (execution.stream_path.empty()) {
+                print_waiting_message(execution, options);
+                return 0;
+            }
+            if (execution.workload != nullptr && execution.model_path.empty()) {
+                print_path_summary("stream", execution.stream_path);
+                print_path_summary("asset_map", options.asset_map);
+                std::cout << "status=waiting_for_model\n";
+                std::cout << "next=provide --model directly or use --asset-map to resolve model/output automatically\n";
+                return 2;
+            }
+            const PipelineRunSummary summary = run_stream_pipeline(
+                execution.stream_path,
+                execution.model_path,
+                execution.output_path,
+                execution.workload,
+                options.rga_width,
+                options.rga_height);
+            return summary.exit_code;
+        }
+
+        std::vector<decode_demo::BatchExecutionItem> batch_items;
+        batch_items.reserve(executions.size());
+        int overall_exit = 0;
+        int success_count = 0;
+        for (const auto& execution : executions) {
+            std::cout << "batch_workload_index=" << execution.workload_index << '\n';
+            if (execution.workload != nullptr) {
+                print_selected_workload(*execution.workload);
+            }
+            std::cout << "asset_binding_resolved=" << (execution.asset_binding_resolved ? "true" : "false") << '\n';
+
+            decode_demo::BatchExecutionItem item;
+            item.workload = execution.workload;
+            item.stream_path = execution.stream_path;
+            item.model_path = execution.model_path;
+            item.output_path = execution.output_path;
+            item.asset_binding_resolved = execution.asset_binding_resolved;
+
+            if (execution.stream_path.empty()) {
+                std::cout << "status=waiting_for_stream\n";
+                item.exit_code = 2;
+                item.status = "waiting_for_stream";
+                overall_exit = 2;
+                batch_items.push_back(item);
+                continue;
+            }
+            if (execution.workload != nullptr && execution.model_path.empty()) {
+                print_path_summary("stream", execution.stream_path);
+                print_path_summary("output", execution.output_path);
+                std::cout << "status=waiting_for_model\n";
+                item.exit_code = 2;
+                item.status = "waiting_for_model";
+                overall_exit = 2;
+                batch_items.push_back(item);
+                continue;
+            }
+
+            const PipelineRunSummary summary = run_stream_pipeline(
+                execution.stream_path,
+                execution.model_path,
+                execution.output_path,
+                execution.workload,
+                options.rga_width,
+                options.rga_height);
+            item.exit_code = summary.exit_code;
+            item.status = summary.status;
+            item.decode_ok = summary.decode_ok;
+            item.rga_requested = summary.rga_requested;
+            item.rga_ok = summary.rga_ok;
+            item.rknn_requested = summary.rknn_requested;
+            item.rknn_ok = summary.rknn_ok;
+            item.detection_count = summary.detection_count;
+            if (summary.exit_code == 0) {
+                ++success_count;
+            } else {
+                overall_exit = 2;
+            }
+            batch_items.push_back(item);
+        }
+
+        const std::string batch_output_path = default_batch_output_path(options, executions);
+        decode_demo::write_batch_result_json(batch_output_path, batch_items);
+        print_path_summary("batch_output", batch_output_path);
+        std::cout << "batch_run_count=" << batch_items.size() << '\n';
+        std::cout << "batch_success_count=" << success_count << '\n';
+        std::cout << "batch_failure_count=" << (batch_items.size() - static_cast<std::size_t>(success_count)) << '\n';
+        return overall_exit;
     } catch (const std::exception& ex) {
         std::cerr << "fatal=" << ex.what() << '\n';
         return 2;

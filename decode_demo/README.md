@@ -13,6 +13,8 @@ Current scope:
 - optionally loads an RKNN model, runs one-frame inference, and emits YOLOv5 detection boxes plus raw tensor summaries
 - can resolve `stream/model/output` automatically from a plan manifest plus a local execution asset map
 - writes structured result JSON artifacts for later runtime/reporting integration
+- executes every ready workload in a manifest run and emits a batch summary JSON index
+- can submit single-result or batch-result artifacts back to the Python runtime via `/api/v1/inference/results`
 
 Build:
 
@@ -91,6 +93,8 @@ Run the same pipeline from a manifest plus asset map:
   --asset-map artifacts/execution-assets.tsv
 ```
 
+When the manifest contains multiple ready workloads, `rk_decode_demo` now executes each workload in sequence, writes one per-workload result JSON, and emits a batch summary JSON (default: `artifacts/results/manifest-run-summary.json`).
+
 Expected pipeline output fields for `--stream` / `--plan-file`:
 
 - `selected_*` manifest workload fields
@@ -124,6 +128,22 @@ Result JSON contains:
 - RGA letterbox metadata
 - inference metadata
 - detection list with class, confidence, and box coordinates
+
+Batch summary JSON contains:
+
+- one item per manifest-selected workload
+- resolved stream/model/output paths
+- per-workload exit code and stage status
+- per-workload detection counts
+
+Submit result artifacts back to the Python runtime:
+
+```bash
+python3 tools/submit_inference_result.py \
+  --runtime-url http://127.0.0.1:18080 \
+  --token <bearer-token> \
+  --input artifacts/results/manifest-run-summary.json
+```
 
 Planned next steps:
 

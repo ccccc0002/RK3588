@@ -84,12 +84,15 @@ class P0Runtime:
         self._push_worker: PushWorker | None = None
         self._last_capability_schedule: SchedulePlan | None = None
         self._audit_records: list[dict] = self._storage.load_audit_records() if self._storage else []
+        self._inference_results: list[dict] = self._storage.load_inference_results() if self._storage else []
         self._audit_policy: dict = self._storage.load_audit_policy() if self._storage else {"max_records": 2000}
         max_records = max(1, int(self._audit_policy.get("max_records", 2000)))
         if len(self._audit_records) > max_records:
             self._audit_records = self._audit_records[-max_records:]
         max_audit_id = max((int(item["id"]) for item in self._audit_records), default=0)
         self._audit_next_id: int = max_audit_id + 1
+        max_inference_result_id = max((int(item["id"]) for item in self._inference_results), default=0)
+        self._inference_result_next_id: int = max_inference_result_id + 1
         self._network_policy: dict = (
             self._storage.load_network_policy() if self._storage else {"enforce_allowlist": False, "webhook_allowlist": []}
         )
@@ -3196,6 +3199,179 @@ class P0Runtime:
                 for item in plan["streams"]
             ],
         }
+
+    @staticmethod
+    def _coerce_int(value: object, default: int = 0) -> int:
+        if value is None or value == "":
+            return default
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+
+    @staticmethod
+    def _coerce_float(value: object, default: float = 0.0) -> float:
+        if value is None or value == "":
+            return default
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    @classmethod
+    def _normalize_inference_detection(cls, payload: object) -> dict:
+        if not isinstance(payload, dict):
+            raise ValueError("inference.detections entries must be objects")
+        return {
+            "class_id": cls._coerce_int(payload.get("class_id"), 0),
+            "class_name": str(payload.get("class_name", "")),
+            "confidence": cls._coerce_float(payload.get("confidence"), 0.0),
+            "left": cls._coerce_int(payload.get("left"), 0),
+            "top": cls._coerce_int(payload.get("top"), 0),
+            "right": cls._coerce_int(payload.get("right"), 0),
+            "bottom": cls._coerce_int(payload.get("bottom"), 0),
+        }
+
+    def _normalize_inference_result_payload(self, payload: dict, now: datetime | None = None) -> dict:
+        source = dict(payload)
+        schema_version = str(source.get("schema_version", "")).strip()
+        if schema_version != "rk_decode_demo_result/v1":
+            raise ValueError(f"unsupported inference result schema_version: {schema_version or '<missing>'}")
+
+        workload = dict(source.get("workload") or {})
+        decode = dict(source.get("decode") or {})
+        rga = dict(source.get("rga") or {})
+        inference = dict(source.get("inference") or {})
+
+        device_id = str(workload.get("device_id", "")).strip()
+        if not device_id:
+            raise ValueError("device_id must not be empty")
+
+        detections_raw = inference.get("detections", [])
+        if detections_raw is None:
+            detections_raw = []
+        if not isinstance(detections_raw, list):
+            raise ValueError("inference.detections must be a list")
+        detections = [self._normalize_inference_detection(item) for item in detections_raw]
+        detection_count = self._coerce_int(inference.get("detection_count"), len(detections))
+        if detection_count != len(detections):
+            detection_count = len(detections)
+
+        at = self._now_or(now).isoformat()
+        decode_ok = bool(decode.get("ok", False))
+        rga_requested = bool(rga.get("requested", False))
+        rga_ok = bool(rga.get("ok", False))
+        inference_requested = bool(inference.get("requested", False))
+        inference_ok = bool(inference.get("ok", False))
+
+        status = "ok"
+        if not decode_ok:
+            status = "decode_failed"
+        elif rga_requested and not rga_ok:
+            status = "rga_failed"
+        elif inference_requested and not inference_ok:
+            status = "inference_failed"
+
+        return {
+            "at": at,
+            "reported_at": at,
+            "source_schema_version": schema_version,
+            "tenant_id": str(workload.get("tenant_id", "")),
+            "site_id": str(workload.get("site_id", "")),
+            "box_id": str(workload.get("box_id", "")),
+            "device_id": device_id,
+            "capability": str(workload.get("capability", "")),
+            "algorithm_id": str(workload.get("algorithm_id", "")),
+            "algorithm_version": str(workload.get("algorithm_version", "")),
+            "base_library_id": str(workload.get("base_library_id", "")),
+            "base_library_version": str(workload.get("base_library_version", "")),
+            "stream_url": str(workload.get("stream_url", "")),
+            "decode_ok": decode_ok,
+            "decode_detail": str(decode.get("detail", "")),
+            "decode_coding": str(decode.get("coding", "")),
+            "decode_pixel_format": str(decode.get("pixel_format", "")),
+            "frame_width": self._coerce_int(decode.get("width"), 0),
+            "frame_height": self._coerce_int(decode.get("height"), 0),
+            "rga_requested": rga_requested,
+            "rga_ok": rga_ok,
+            "rga_detail": str(rga.get("detail", "")),
+            "rga_output_width": self._coerce_int(rga.get("output_width"), 0),
+            "rga_output_height": self._coerce_int(rga.get("output_height"), 0),
+            "rga_output_channels": self._coerce_int(rga.get("output_channels"), 0),
+            "rga_scaled_width": self._coerce_int(rga.get("scaled_width"), 0),
+            "rga_scaled_height": self._coerce_int(rga.get("scaled_height"), 0),
+            "rga_pad_x": self._coerce_int(rga.get("pad_x"), 0),
+            "rga_pad_y": self._coerce_int(rga.get("pad_y"), 0),
+            "rga_scale": self._coerce_float(rga.get("scale"), 0.0),
+            "inference_requested": inference_requested,
+            "inference_ok": inference_ok,
+            "inference_detail": str(inference.get("detail", "")),
+            "detection_count": detection_count,
+            "has_detections": detection_count > 0,
+            "detections": detections,
+            "status": status,
+        }
+
+    def submit_inference_result(self, payload: dict, now: datetime | None = None) -> dict:
+        normalized = self._normalize_inference_result_payload(dict(payload), now=now)
+        with self._lock:
+            record = dict(normalized)
+            record["id"] = self._inference_result_next_id
+            self._inference_result_next_id += 1
+            self._inference_results.append(record)
+            if self._storage is not None:
+                self._storage.append_inference_result(record)
+            self._append_audit_locked(
+                "inference.result.submit",
+                {
+                    "inference_result_id": int(record["id"]),
+                    "device_id": record["device_id"],
+                    "capability": record["capability"],
+                    "status": record["status"],
+                    "detection_count": int(record["detection_count"]),
+                },
+            )
+            return dict(record)
+
+    def list_inference_results(self, limit: object = 20, before_id: object = None) -> list[dict]:
+        capped = self._normalize_cache_operations_list_limit(limit)
+        max_id_exclusive = self._normalize_audit_before_id(before_id)
+        with self._lock:
+            matched: list[dict] = []
+            for item in self._inference_results:
+                if max_id_exclusive is not None:
+                    try:
+                        record_id = int(item.get("id"))
+                    except (TypeError, ValueError):
+                        continue
+                    if record_id >= max_id_exclusive:
+                        continue
+                matched.append(item)
+            tail = matched[-capped:]
+            return [dict(item) for item in reversed(tail)]
+
+    def _count_inference_results(self, before_id: int | None) -> int:
+        with self._lock:
+            if before_id is None:
+                return len(self._inference_results)
+            total = 0
+            for item in self._inference_results:
+                try:
+                    record_id = int(item.get("id"))
+                except (TypeError, ValueError):
+                    continue
+                if record_id < before_id:
+                    total += 1
+            return total
+
+    def list_inference_results_page(self, limit: object = 20, before_id: object = None, include_total: object = False) -> dict:
+        return self._build_audit_cursor_page(
+            self.list_inference_results,
+            self._count_inference_results,
+            limit=limit,
+            before_id=before_id,
+            include_total=include_total,
+        )
 
     def authorize(self, token: str, required_action: str, now: datetime | None = None) -> Tuple[bool, dict | None]:
         at = self._now_or(now)

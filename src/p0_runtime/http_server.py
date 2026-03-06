@@ -230,6 +230,25 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
             _json_response(self, 200, ok_payload({"items": self.runtime.list_stream_telemetry()}))
             return
 
+        if parsed.path == "/api/v1/inference/results":
+            query = parse_qs(parsed.query)
+            try:
+                limit = (query.get("limit", ["20"]) or ["20"])[0]
+                before_id = (query.get("before_id", [None]) or [None])[0]
+                include_total = (query.get("include_total", ["false"]) or ["false"])[0]
+                _json_response(
+                    self,
+                    200,
+                    ok_payload(
+                        self.runtime.list_inference_results_page(
+                            limit=limit, before_id=before_id, include_total=include_total
+                        )
+                    ),
+                )
+            except ValueError as exc:
+                _json_response(self, 400, error_payload("bad_request", str(exc)))
+            return
+
         _json_response(self, 404, error_payload("not_found", "endpoint not found"))
 
     def do_POST(self) -> None:
@@ -389,6 +408,11 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                 _json_response(self, 200, ok_payload(res))
                 return
 
+            if parsed.path == "/api/v1/inference/results":
+                res = self.runtime.submit_inference_result(dict(body), now=_parse_time(body.get("now")))
+                _json_response(self, 200, ok_payload(res))
+                return
+
             if parsed.path == "/api/v1/runtime/telemetry":
                 res = self.runtime.update_stream_telemetry(dict(body), now=_parse_time(body.get("now")))
                 _json_response(self, 200, ok_payload(res))
@@ -536,4 +560,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 

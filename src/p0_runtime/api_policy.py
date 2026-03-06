@@ -53,6 +53,8 @@ def required_get_action(path: str) -> str | None:
         return "device:read"
     if path == "/api/v1/runtime/telemetry":
         return "device:read"
+    if path == "/api/v1/inference/results":
+        return "device:read"
     return None
 
 
@@ -116,6 +118,8 @@ def required_post_action(path: str) -> str | None:
     if path == "/api/v1/audit/policy":
         return "device:write"
     if path == "/api/v1/runtime/telemetry":
+        return "device:write"
+    if path == "/api/v1/inference/results":
         return "device:write"
     if path == "/api/v1/network/policy":
         return "device:write"

@@ -1999,6 +1999,80 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual("lib-face-http", workload["base_library_id"])
         self.assertEqual("ready", workload["binding_status"])
 
+
+    def test_inference_result_endpoint_accepts_decode_demo_payload(self) -> None:
+        status, payload = self._post(
+            "/api/v1/inference/results",
+            {
+                "schema_version": "rk_decode_demo_result/v1",
+                "workload": {
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "device_id": "cam-http-result",
+                    "capability": "face",
+                    "algorithm_id": "face-detector-http",
+                    "algorithm_version": "1.0.0",
+                    "base_library_id": "lib-face-http",
+                    "base_library_version": "2026.03",
+                    "stream_url": "rtsp://10.0.0.91/live",
+                },
+                "decode": {
+                    "ok": True,
+                    "detail": "decoded_first_frame",
+                    "coding": "h264",
+                    "pixel_format": "nv12",
+                    "width": 1280,
+                    "height": 720,
+                },
+                "rga": {
+                    "requested": True,
+                    "ok": True,
+                    "detail": "letterboxed",
+                    "output_width": 640,
+                    "output_height": 640,
+                    "output_channels": 3,
+                    "scaled_width": 640,
+                    "scaled_height": 360,
+                    "pad_x": 0,
+                    "pad_y": 140,
+                    "scale": 0.5,
+                },
+                "inference": {
+                    "requested": True,
+                    "ok": True,
+                    "detail": "ok",
+                    "detections": [
+                        {
+                            "class_id": 0,
+                            "class_name": "person",
+                            "confidence": 0.93,
+                            "left": 12,
+                            "top": 18,
+                            "right": 112,
+                            "bottom": 218,
+                        }
+                    ],
+                },
+            },
+            token=self.operator_token,
+        )
+        self.assertEqual(200, status)
+        self.assertTrue(payload["success"])
+        self.assertEqual("cam-http-result", payload["data"]["device_id"])
+        self.assertEqual(1, int(payload["data"]["detection_count"]))
+        self.assertEqual("ok", payload["data"]["status"])
+
+        list_status, list_payload = self._get("/api/v1/inference/results?limit=5&include_total=true", token=self.viewer_token)
+        self.assertEqual(200, list_status)
+        self.assertTrue(list_payload["success"])
+        self.assertEqual(5, int(list_payload["data"]["limit"]))
+        self.assertGreaterEqual(int(list_payload["data"]["returned_items"]), 1)
+        self.assertGreaterEqual(int(list_payload["data"]["total_candidates"]), 1)
+        match = next(item for item in list_payload["data"]["items"] if item["device_id"] == "cam-http-result")
+        self.assertEqual("rk_decode_demo_result/v1", match["source_schema_version"])
+        self.assertEqual(1, int(match["detection_count"]))
+
     def test_audit_recent_endpoint_requires_operator_role(self) -> None:
         self._post(
             "/api/v1/devices/register",

@@ -2201,6 +2201,102 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual("ocr-engine", missing_stream["workloads"][0]["algorithm_id"])
         self.assertIsNone(missing_stream["workloads"][0]["base_library_id"])
 
+    def test_submit_inference_result_normalizes_decode_demo_payload(self) -> None:
+        result = self.runtime.submit_inference_result(
+            {
+                "schema_version": "rk_decode_demo_result/v1",
+                "workload": {
+                    "tenant_id": "t1",
+                    "site_id": "s1",
+                    "box_id": "b1",
+                    "device_id": "cam-result",
+                    "capability": "face",
+                    "algorithm_id": "face-detector",
+                    "algorithm_version": "1.0.0",
+                    "base_library_id": "lib-face-core",
+                    "base_library_version": "2026.03",
+                    "stream_url": "rtsp://10.0.0.90/live",
+                },
+                "decode": {
+                    "ok": True,
+                    "detail": "decoded_first_frame",
+                    "coding": "h264",
+                    "pixel_format": "nv12",
+                    "width": 1920,
+                    "height": 1080,
+                },
+                "rga": {
+                    "requested": True,
+                    "ok": True,
+                    "detail": "letterboxed",
+                    "output_width": 640,
+                    "output_height": 640,
+                    "output_channels": 3,
+                    "scaled_width": 640,
+                    "scaled_height": 360,
+                    "pad_x": 0,
+                    "pad_y": 140,
+                    "scale": 0.333333,
+                },
+                "inference": {
+                    "requested": True,
+                    "ok": True,
+                    "detail": "ok",
+                    "detection_count": 2,
+                    "detections": [
+                        {
+                            "class_id": 0,
+                            "class_name": "person",
+                            "confidence": 0.91,
+                            "left": 10,
+                            "top": 20,
+                            "right": 110,
+                            "bottom": 220,
+                        },
+                        {
+                            "class_id": 2,
+                            "class_name": "car",
+                            "confidence": 0.88,
+                            "left": 40,
+                            "top": 60,
+                            "right": 240,
+                            "bottom": 260,
+                        },
+                    ],
+                },
+            },
+            now=self.now,
+        )
+
+        self.assertEqual(1, int(result["id"]))
+        self.assertEqual("rk_decode_demo_result/v1", result["source_schema_version"])
+        self.assertEqual("cam-result", result["device_id"])
+        self.assertEqual("face", result["capability"])
+        self.assertTrue(result["decode_ok"])
+        self.assertTrue(result["rga_ok"])
+        self.assertTrue(result["inference_ok"])
+        self.assertEqual(2, int(result["detection_count"]))
+        self.assertTrue(result["has_detections"])
+        self.assertEqual("ok", result["status"])
+        self.assertEqual(2, len(result["detections"]))
+        self.assertEqual("person", result["detections"][0]["class_name"])
+
+        items = self.runtime.list_inference_results(limit=5)
+        self.assertEqual(1, len(items))
+        self.assertEqual(int(result["id"]), int(items[0]["id"]))
+
+    def test_submit_inference_result_rejects_missing_device_identity(self) -> None:
+        with self.assertRaisesRegex(ValueError, "device_id must not be empty"):
+            self.runtime.submit_inference_result(
+                {
+                    "schema_version": "rk_decode_demo_result/v1",
+                    "decode": {"ok": False, "detail": "missing_identity"},
+                    "rga": {"requested": False, "ok": False, "detail": "not_requested"},
+                    "inference": {"requested": False, "ok": False, "detail": "not_requested", "detections": []},
+                },
+                now=self.now,
+            )
+
     def test_audit_records_capture_device_changes(self) -> None:
         self.runtime.register_device(
             {

@@ -34,7 +34,7 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
     if not is_fastapi_available():
         raise RuntimeError("fastapi/pydantic not installed")
 
-    from fastapi import Body, FastAPI, Header
+    from fastapi import Body, FastAPI, Header, Query
     from fastapi.responses import JSONResponse
 
     app = FastAPI(title="RK3588 P0 FastAPI Adapter", version="0.1.0")
@@ -693,6 +693,36 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         budget = float(payload.get("budget", 10.0))
         return ok_payload(rt.build_inference_plan(budget=budget))
 
+    @app.get("/api/v1/inference/results")
+    def inference_results_ep(
+        limit: int = Query(default=20),
+        before_id: int | None = Query(default=None),
+        include_total: bool = Query(default=False),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, required_get_action("/api/v1/inference/results") or "device:read")
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(
+                rt.list_inference_results_page(limit=limit, before_id=before_id, include_total=include_total)
+            )
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
+    @app.post("/api/v1/inference/results")
+    def inference_results_submit_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, required_post_action("/api/v1/inference/results") or "device:write")
+        if denied is not None:
+            return denied
+        try:
+            return ok_payload(rt.submit_inference_result(dict(payload), now=_parse_time(payload.get("now"))))
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content=error_payload("bad_request", str(exc)))
+
     @app.get("/api/v1/runtime/telemetry")
     def runtime_telemetry_ep(authorization: str = Header(default="", alias="Authorization")):
         denied = _authorize_request(authorization, required_get_action("/api/v1/runtime/telemetry") or "device:read")
@@ -864,4 +894,5 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         return ok_payload(rt.stop_push_worker())
 
     return app
+
 

@@ -1,4 +1,4 @@
-#include "decode_demo/result_json.hpp"
+﻿#include "decode_demo/result_json.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -67,6 +67,46 @@ void write_int_field(std::ofstream& output, int indent, const std::string& key, 
     output << '\n';
 }
 
+void ensure_parent_dir(const std::string& path) {
+    if (path.empty()) {
+        return;
+    }
+    const auto parent = std::filesystem::path(path).parent_path();
+    if (!parent.empty()) {
+        std::filesystem::create_directories(parent);
+    }
+}
+
+void write_workload_object(std::ofstream& output, int indent, const ManifestWorkload* workload, bool trailing_comma) {
+    if (workload == nullptr) {
+        write_indent(output, indent);
+        output << "\"workload\": null";
+        if (trailing_comma) {
+            output << ',';
+        }
+        output << '\n';
+        return;
+    }
+    write_indent(output, indent);
+    output << "\"workload\": {\n";
+    write_string_field(output, indent + 2, "tenant_id", workload->tenant_id, true);
+    write_string_field(output, indent + 2, "site_id", workload->site_id, true);
+    write_string_field(output, indent + 2, "box_id", workload->box_id, true);
+    write_string_field(output, indent + 2, "device_id", workload->device_id, true);
+    write_string_field(output, indent + 2, "capability", workload->capability, true);
+    write_string_field(output, indent + 2, "algorithm_id", workload->algorithm_id, true);
+    write_string_field(output, indent + 2, "algorithm_version", workload->algorithm_version, true);
+    write_string_field(output, indent + 2, "base_library_id", workload->base_library_id, true);
+    write_string_field(output, indent + 2, "base_library_version", workload->base_library_version, true);
+    write_string_field(output, indent + 2, "stream_url", workload->stream_url, false);
+    write_indent(output, indent);
+    output << '}';
+    if (trailing_comma) {
+        output << ',';
+    }
+    output << '\n';
+}
+
 }  // namespace
 
 void write_detection_result_json(const std::string& path,
@@ -77,10 +117,7 @@ void write_detection_result_json(const std::string& path,
     if (path.empty()) {
         return;
     }
-    const auto parent = std::filesystem::path(path).parent_path();
-    if (!parent.empty()) {
-        std::filesystem::create_directories(parent);
-    }
+    ensure_parent_dir(path);
     std::ofstream output(path, std::ios::binary | std::ios::trunc);
     if (!output.is_open()) {
         throw std::runtime_error("failed to open result output: " + path);
@@ -88,22 +125,7 @@ void write_detection_result_json(const std::string& path,
 
     output << "{\n";
     write_string_field(output, 2, "schema_version", "rk_decode_demo_result/v1", true);
-    if (workload != nullptr) {
-        write_indent(output, 2);
-        output << "\"workload\": {\n";
-        write_string_field(output, 4, "tenant_id", workload->tenant_id, true);
-        write_string_field(output, 4, "site_id", workload->site_id, true);
-        write_string_field(output, 4, "box_id", workload->box_id, true);
-        write_string_field(output, 4, "device_id", workload->device_id, true);
-        write_string_field(output, 4, "capability", workload->capability, true);
-        write_string_field(output, 4, "algorithm_id", workload->algorithm_id, true);
-        write_string_field(output, 4, "algorithm_version", workload->algorithm_version, true);
-        write_string_field(output, 4, "base_library_id", workload->base_library_id, true);
-        write_string_field(output, 4, "base_library_version", workload->base_library_version, true);
-        write_string_field(output, 4, "stream_url", workload->stream_url, false);
-        write_indent(output, 2);
-        output << "},\n";
-    }
+    write_workload_object(output, 2, workload, true);
 
     write_indent(output, 2);
     output << "\"decode\": {\n";
@@ -174,6 +196,60 @@ void write_detection_result_json(const std::string& path,
     }
     write_indent(output, 2);
     output << "}\n";
+    output << "}\n";
+}
+
+void write_batch_result_json(const std::string& path, const std::vector<BatchExecutionItem>& items) {
+    if (path.empty()) {
+        return;
+    }
+    ensure_parent_dir(path);
+    std::ofstream output(path, std::ios::binary | std::ios::trunc);
+    if (!output.is_open()) {
+        throw std::runtime_error("failed to open batch result output: " + path);
+    }
+
+    int success_count = 0;
+    for (const auto& item : items) {
+        if (item.exit_code == 0) {
+            ++success_count;
+        }
+    }
+
+    output << "{\n";
+    write_string_field(output, 2, "schema_version", "rk_decode_demo_batch_result/v1", true);
+    write_int_field(output, 2, "item_count", static_cast<int>(items.size()), true);
+    write_int_field(output, 2, "success_count", success_count, true);
+    write_int_field(output, 2, "failure_count", static_cast<int>(items.size()) - success_count, true);
+    write_indent(output, 2);
+    output << "\"items\": [\n";
+    for (std::size_t i = 0; i < items.size(); ++i) {
+        const auto& item = items[i];
+        write_indent(output, 4);
+        output << "{\n";
+        write_int_field(output, 6, "index", static_cast<int>(i), true);
+        write_workload_object(output, 6, item.workload, true);
+        write_string_field(output, 6, "stream_path", item.stream_path, true);
+        write_string_field(output, 6, "model_path", item.model_path, true);
+        write_string_field(output, 6, "output_path", item.output_path, true);
+        write_bool_field(output, 6, "asset_binding_resolved", item.asset_binding_resolved, true);
+        write_int_field(output, 6, "exit_code", item.exit_code, true);
+        write_string_field(output, 6, "status", item.status, true);
+        write_bool_field(output, 6, "decode_ok", item.decode_ok, true);
+        write_bool_field(output, 6, "rga_requested", item.rga_requested, true);
+        write_bool_field(output, 6, "rga_ok", item.rga_ok, true);
+        write_bool_field(output, 6, "rknn_requested", item.rknn_requested, true);
+        write_bool_field(output, 6, "rknn_ok", item.rknn_ok, true);
+        write_int_field(output, 6, "detection_count", item.detection_count, false);
+        write_indent(output, 4);
+        output << '}';
+        if (i + 1 < items.size()) {
+            output << ',';
+        }
+        output << '\n';
+    }
+    write_indent(output, 2);
+    output << "]\n";
     output << "}\n";
 }
 

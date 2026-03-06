@@ -228,6 +228,15 @@ class RuntimeStorage:
                 )
                 """
             )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS inference_results (
+                  id INTEGER PRIMARY KEY,
+                  at TEXT NOT NULL,
+                  record_json TEXT NOT NULL
+                )
+                """
+            )
             self._conn.commit()
 
     def load_devices(self) -> Dict[Tuple[str, str, str, str], dict]:
@@ -846,6 +855,30 @@ class RuntimeStorage:
             )
             self._conn.commit()
 
+    def load_inference_results(self) -> list[dict]:
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT record_json
+                FROM inference_results
+                ORDER BY id ASC
+                """
+            ).fetchall()
+        return [dict(json.loads(str(row["record_json"]))) for row in rows]
+
+    def append_inference_result(self, record: dict) -> None:
+        payload = json.dumps(record, sort_keys=True, separators=(",", ":"))
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO inference_results
+                (id, at, record_json)
+                VALUES (?, ?, ?)
+                """,
+                (int(record["id"]), str(record["at"]), payload),
+            )
+            self._conn.commit()
+
     def stats(self) -> dict:
         with self._lock:
             device_count = int(self._conn.execute("SELECT COUNT(1) FROM devices").fetchone()[0])
@@ -868,6 +901,7 @@ class RuntimeStorage:
             audit_count = int(self._conn.execute("SELECT COUNT(1) FROM audit_records").fetchone()[0])
             audit_policy_count = int(self._conn.execute("SELECT COUNT(1) FROM audit_policy").fetchone()[0])
             network_policy_count = int(self._conn.execute("SELECT COUNT(1) FROM network_policy").fetchone()[0])
+            inference_result_count = int(self._conn.execute("SELECT COUNT(1) FROM inference_results").fetchone()[0])
             gray_rollout_policy_count = int(self._conn.execute("SELECT COUNT(1) FROM gray_rollout_policy").fetchone()[0])
             gray_batch_cache_policy_count = int(
                 self._conn.execute("SELECT COUNT(1) FROM gray_batch_cache_policy").fetchone()[0]
@@ -890,6 +924,7 @@ class RuntimeStorage:
             "audit_count": audit_count,
             "audit_policy_count": audit_policy_count,
             "network_policy_count": network_policy_count,
+            "inference_result_count": inference_result_count,
             "gray_rollout_policy_count": gray_rollout_policy_count,
             "gray_batch_cache_policy_count": gray_batch_cache_policy_count,
         }
