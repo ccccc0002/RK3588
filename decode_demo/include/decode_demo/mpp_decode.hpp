@@ -40,7 +40,23 @@ struct DecodePipelineInfo {
     RgaResizeInfo rga;
 };
 
+struct SampledDecodePipelineInfo {
+    int frame_index{0};
+    DecodePipelineInfo pipeline;
+};
+
+struct DecodeSamplingInfo {
+    std::vector<SampledDecodePipelineInfo> samples;
+    int decoded_frame_count{0};
+    bool hit_eos{false};
+};
+
 DecodedFrameInfo decode_one_frame_from_annexb(const std::string& path);
 DecodePipelineInfo decode_pipeline_from_annexb(const std::string& path, int rga_width, int rga_height);
+DecodeSamplingInfo decode_sampled_pipelines_from_annexb(const std::string& path,
+                                                        int rga_width,
+                                                        int rga_height,
+                                                        int max_samples,
+                                                        int frames_per_sample);
 
 }  // namespace decode_demo

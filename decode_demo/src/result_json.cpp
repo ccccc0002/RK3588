@@ -1,4 +1,4 @@
-﻿#include "decode_demo/result_json.hpp"
+#include "decode_demo/result_json.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -240,7 +240,10 @@ void write_batch_result_json(const std::string& path, const std::vector<BatchExe
         write_bool_field(output, 6, "rga_ok", item.rga_ok, true);
         write_bool_field(output, 6, "rknn_requested", item.rknn_requested, true);
         write_bool_field(output, 6, "rknn_ok", item.rknn_ok, true);
-        write_int_field(output, 6, "detection_count", item.detection_count, false);
+        write_int_field(output, 6, "detection_count", item.detection_count, true);
+        write_int_field(output, 6, "frames_per_sample", item.frames_per_sample, true);
+        write_int_field(output, 6, "requested_sample_count", item.requested_sample_count, true);
+        write_int_field(output, 6, "sampled_frame_count", item.sampled_frame_count, false);
         write_indent(output, 4);
         output << '}';
         if (i + 1 < items.size()) {

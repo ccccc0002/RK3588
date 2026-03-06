@@ -305,25 +305,22 @@ RgaResizeInfo probe_rga_resize(MppFrame frame, int output_width, int output_heig
 
 }  // namespace
 
-DecodePipelineInfo decode_pipeline_from_annexb(const std::string& path, int rga_width, int rga_height) {
-    DecodePipelineInfo result;
-    result.rga.requested = rga_width > 0 && rga_height > 0;
-    result.rga.output_width = rga_width;
-    result.rga.output_height = rga_height;
-    result.rga.output_channels = 3;
+DecodeSamplingInfo decode_sampled_pipelines_from_annexb(const std::string& path,
+                                                        int rga_width,
+                                                        int rga_height,
+                                                        int max_samples,
+                                                        int frames_per_sample) {
+    DecodeSamplingInfo sampling;
+    const int capped_max_samples = std::max(1, max_samples);
+    const int frame_stride = std::max(1, frames_per_sample);
 
     std::vector<std::uint8_t> bitstream;
     if (!load_file_to_buffer(path, &bitstream)) {
-        result.frame.detail = "failed to load bitstream file";
-        if (result.rga.requested) {
-            result.rga.detail = "decode input unavailable";
-        }
-        return result;
+        return sampling;
     }
 
     const auto nal_offsets = build_nal_offsets(bitstream);
     const MppCodingType coding = guess_coding(path);
-    result.frame.coding = coding_name(coding);
 
     MppCtx ctx = nullptr;
     MppApi* mpi = nullptr;
@@ -334,11 +331,7 @@ DecodePipelineInfo decode_pipeline_from_annexb(const std::string& path, int rga_
 
     MPP_RET ret = mpp_create(&ctx, &mpi);
     if (ret != MPP_OK || ctx == nullptr || mpi == nullptr) {
-        result.frame.detail = "mpp_create failed: " + std::to_string(ret);
-        if (result.rga.requested) {
-            result.rga.detail = "decode session initialization failed";
-        }
-        return result;
+        return sampling;
     }
 
     RK_U32 split_mode = 1;
@@ -346,57 +339,101 @@ DecodePipelineInfo decode_pipeline_from_annexb(const std::string& path, int rga_
     ret = mpp_init(ctx, MPP_CTX_DEC, coding);
     if (ret != MPP_OK) {
         mpp_destroy(ctx);
-        result.frame.detail = "mpp_init failed: " + std::to_string(ret);
-        if (result.rga.requested) {
-            result.rga.detail = "decode session initialization failed";
-        }
-        return result;
+        return sampling;
     }
 
-    for (int attempts = 0; attempts < 128; ++attempts) {
-        feed_one_packet(ctx, mpi, bitstream, nal_offsets, &offset, &nal_index, &eos_sent);
+    int idle_loops_after_eos = 0;
+    for (int attempts = 0; attempts < 4096; ++attempts) {
+        const bool fed_packet = feed_one_packet(ctx, mpi, bitstream, nal_offsets, &offset, &nal_index, &eos_sent);
 
         MppFrame frame = nullptr;
         ret = mpi->decode_get_frame(ctx, &frame);
         if (ret != MPP_OK || frame == nullptr) {
+            if (eos_sent && !fed_packet) {
+                ++idle_loops_after_eos;
+                if (idle_loops_after_eos > 64) {
+                    break;
+                }
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
             continue;
         }
+        idle_loops_after_eos = 0;
 
         if (mpp_frame_get_info_change(frame)) {
-            if (!ensure_external_group(ctx, mpi, &frm_grp, frame) && result.frame.detail.empty()) {
-                result.frame.detail = "failed to configure external MPP buffer group";
+            if (!ensure_external_group(ctx, mpi, &frm_grp, frame)) {
+                mpp_frame_deinit(&frame);
+                break;
             }
             mpp_frame_deinit(&frame);
             continue;
         }
 
-        result.frame.ok = true;
-        result.frame.width = static_cast<int>(mpp_frame_get_width(frame));
-        result.frame.height = static_cast<int>(mpp_frame_get_height(frame));
-        result.frame.hor_stride = static_cast<int>(mpp_frame_get_hor_stride(frame));
-        result.frame.ver_stride = static_cast<int>(mpp_frame_get_ver_stride(frame));
-        result.frame.pixel_format = pixel_format_name(mpp_frame_get_fmt(frame));
-        MppBuffer buffer = mpp_frame_get_buffer(frame);
-        result.frame.dma_fd = buffer ? mpp_buffer_get_fd(buffer) : -1;
-        result.frame.detail = "decoded_first_frame";
-        if (result.rga.requested) {
-            result.rga = probe_rga_resize(frame, rga_width, rga_height);
+        ++sampling.decoded_frame_count;
+        const bool should_sample = ((sampling.decoded_frame_count - 1) % frame_stride) == 0;
+        if (should_sample) {
+            SampledDecodePipelineInfo sample;
+            sample.frame_index = sampling.decoded_frame_count;
+            sample.pipeline.frame.ok = true;
+            sample.pipeline.frame.width = static_cast<int>(mpp_frame_get_width(frame));
+            sample.pipeline.frame.height = static_cast<int>(mpp_frame_get_height(frame));
+            sample.pipeline.frame.hor_stride = static_cast<int>(mpp_frame_get_hor_stride(frame));
+            sample.pipeline.frame.ver_stride = static_cast<int>(mpp_frame_get_ver_stride(frame));
+            sample.pipeline.frame.pixel_format = pixel_format_name(mpp_frame_get_fmt(frame));
+            sample.pipeline.frame.coding = coding_name(coding);
+            MppBuffer buffer = mpp_frame_get_buffer(frame);
+            sample.pipeline.frame.dma_fd = buffer ? mpp_buffer_get_fd(buffer) : -1;
+            sample.pipeline.frame.detail = "decoded_sample_frame";
+            sample.pipeline.rga.requested = rga_width > 0 && rga_height > 0;
+            sample.pipeline.rga.output_width = rga_width;
+            sample.pipeline.rga.output_height = rga_height;
+            sample.pipeline.rga.output_channels = 3;
+            if (sample.pipeline.rga.requested) {
+                sample.pipeline.rga = probe_rga_resize(frame, rga_width, rga_height);
+            }
+            sampling.samples.push_back(std::move(sample));
+            if (static_cast<int>(sampling.samples.size()) >= capped_max_samples) {
+                mpp_frame_deinit(&frame);
+                break;
+            }
         }
         mpp_frame_deinit(&frame);
-        break;
     }
 
+    sampling.hit_eos = eos_sent;
     if (frm_grp != nullptr) {
         mpp_buffer_group_put(frm_grp);
     }
     if (ctx != nullptr) {
         mpp_destroy(ctx);
     }
-    if (!result.frame.ok && result.frame.detail.empty()) {
-        result.frame.detail = "no frame decoded within attempt budget";
+    return sampling;
+}
+
+DecodePipelineInfo decode_pipeline_from_annexb(const std::string& path, int rga_width, int rga_height) {
+    DecodePipelineInfo result;
+    result.rga.requested = rga_width > 0 && rga_height > 0;
+    result.rga.output_width = rga_width;
+    result.rga.output_height = rga_height;
+    result.rga.output_channels = 3;
+
+    const DecodeSamplingInfo sampling = decode_sampled_pipelines_from_annexb(path, rga_width, rga_height, 1, 1);
+    if (!sampling.samples.empty()) {
+        return sampling.samples.front().pipeline;
     }
-    if (result.rga.requested && !result.frame.ok && result.rga.detail.empty()) {
+
+    std::vector<std::uint8_t> bitstream;
+    if (!load_file_to_buffer(path, &bitstream)) {
+        result.frame.detail = "failed to load bitstream file";
+        if (result.rga.requested) {
+            result.rga.detail = "decode input unavailable";
+        }
+        return result;
+    }
+
+    result.frame.coding = coding_name(guess_coding(path));
+    result.frame.detail = "no frame decoded within attempt budget";
+    if (result.rga.requested) {
         result.rga.detail = "decode did not produce a frame";
     }
     return result;

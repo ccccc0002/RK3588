@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "decode_demo/mpp_decode.hpp"
 #include "decode_demo/plan_manifest.hpp"
@@ -23,6 +23,9 @@ struct BatchExecutionItem {
     bool rknn_requested{false};
     bool rknn_ok{false};
     int detection_count{0};
+    int frames_per_sample{1};
+    int requested_sample_count{1};
+    int sampled_frame_count{1};
 };
 
 void write_detection_result_json(const std::string& path,
