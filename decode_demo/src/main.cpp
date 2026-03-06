@@ -120,6 +120,17 @@ void print_rknn_run_summary(const decode_demo::RknnRunInfo& run) {
     std::cout << "rknn_requested=" << (run.requested ? "true" : "false") << '\n';
     std::cout << "rknn_ok=" << (run.ok ? "true" : "false") << '\n';
     std::cout << "rknn_detail=" << run.detail << '\n';
+    std::cout << "rknn_detection_count=" << run.detections.size() << '\n';
+    for (std::size_t i = 0; i < run.detections.size(); ++i) {
+        const auto& detection = run.detections[i];
+        std::cout << "detection_" << i << "_class_id=" << detection.class_id << '\n';
+        std::cout << "detection_" << i << "_class_name=" << detection.class_name << '\n';
+        std::cout << "detection_" << i << "_confidence=" << detection.confidence << '\n';
+        std::cout << "detection_" << i << "_left=" << detection.left << '\n';
+        std::cout << "detection_" << i << "_top=" << detection.top << '\n';
+        std::cout << "detection_" << i << "_right=" << detection.right << '\n';
+        std::cout << "detection_" << i << "_bottom=" << detection.bottom << '\n';
+    }
     for (std::size_t i = 0; i < run.outputs.size(); ++i) {
         const auto& output = run.outputs[i];
         std::cout << "rknn_output_" << i << "_name=" << output.name << '\n';
@@ -184,6 +195,11 @@ int run_stream_pipeline(const std::string& stream_path,
         std::cout << "rga_output_height=" << pipeline.rga.output_height << '\n';
         std::cout << "rga_output_channels=" << pipeline.rga.output_channels << '\n';
         std::cout << "rga_output_bytes=" << pipeline.rga.output_bytes << '\n';
+        std::cout << "rga_scaled_width=" << pipeline.rga.scaled_width << '\n';
+        std::cout << "rga_scaled_height=" << pipeline.rga.scaled_height << '\n';
+        std::cout << "rga_pad_x=" << pipeline.rga.pad_x << '\n';
+        std::cout << "rga_pad_y=" << pipeline.rga.pad_y << '\n';
+        std::cout << "rga_scale=" << pipeline.rga.scale << '\n';
     }
 
     bool ok = frame.ok && (!pipeline.rga.requested || pipeline.rga.ok);
@@ -193,7 +209,12 @@ int run_stream_pipeline(const std::string& stream_path,
             pipeline.rga.output_data,
             pipeline.rga.output_width,
             pipeline.rga.output_height,
-            pipeline.rga.output_channels);
+            pipeline.rga.output_channels,
+            pipeline.rga.scale,
+            pipeline.rga.pad_x,
+            pipeline.rga.pad_y,
+            frame.width,
+            frame.height);
         print_rknn_run_summary(run);
         ok = ok && run.ok;
     }

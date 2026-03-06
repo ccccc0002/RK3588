@@ -27,6 +27,11 @@ struct RgaResizeInfo {
     int output_height{0};
     int output_channels{0};
     std::size_t output_bytes{0};
+    int scaled_width{0};
+    int scaled_height{0};
+    int pad_x{0};
+    int pad_y{0};
+    float scale{1.0f};
     std::vector<std::uint8_t> output_data;
 };
 

@@ -9,8 +9,8 @@ Current scope:
 - establishes a dedicated `decode_demo` CMake target for future `MPP -> RGA -> RKNN` work
 - aligns with the Python control-plane contract exposed by `POST /api/v1/inference/plan`
 - decodes the first frame from a local Annex-B H.264/H.265 elementary stream with MPP
-- optionally runs one in-process RGA color-convert + resize probe on the decoded DMA frame
-- optionally loads an RKNN model and runs one-frame inference, printing raw output tensor summaries
+- runs RGA color-convert + letterbox resize on the decoded DMA frame
+- optionally loads an RKNN model, runs one-frame inference, and emits YOLOv5 detection boxes plus raw tensor summaries
 
 Build:
 
@@ -82,17 +82,20 @@ Expected pipeline output fields for `--stream`:
 - `rga_requested`
 - `rga_ok`
 - `rga_detail`
-- `rga_output_width`
-- `rga_output_height`
-- `rga_output_channels`
-- `rga_output_bytes`
+- `rga_scaled_width`
+- `rga_scaled_height`
+- `rga_pad_x`
+- `rga_pad_y`
+- `rga_scale`
 - `rknn_model_ok`
 - `rknn_ok`
+- `rknn_detection_count`
+- `detection_<n>_*`
 - `rknn_output_<n>_sample_values`
 
 Planned next steps:
 
 1. Resolve manifest-selected streams into MPP input automatically.
-2. Replace raw RKNN tensor dumps with YOLOv5 post-processing and detection boxes.
-3. Return structured detections back to the Python runtime.
+2. Convert YOLOv5 detections into the Python runtime result contract.
+3. Add optional label-file loading instead of the built-in COCO-80 list.
 4. Extend the same path to additional RKNN models.

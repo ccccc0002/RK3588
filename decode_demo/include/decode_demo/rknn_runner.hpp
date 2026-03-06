@@ -20,6 +20,16 @@ struct RknnTensorSummary {
     std::vector<float> sample_values;
 };
 
+struct RknnDetection {
+    int class_id{-1};
+    std::string class_name;
+    float confidence{0.0f};
+    int left{0};
+    int top{0};
+    int right{0};
+    int bottom{0};
+};
+
 struct RknnModelInfo {
     bool ok{false};
     std::string detail;
@@ -42,6 +52,7 @@ struct RknnRunInfo {
     std::string detail;
     RknnModelInfo model;
     std::vector<RknnTensorSummary> outputs;
+    std::vector<RknnDetection> detections;
 };
 
 RknnModelInfo inspect_rknn_model(const std::string& model_path);
@@ -49,6 +60,11 @@ RknnRunInfo run_rknn_inference(const std::string& model_path,
                                const std::vector<std::uint8_t>& input_data,
                                int input_width,
                                int input_height,
-                               int input_channels);
+                               int input_channels,
+                               float letterbox_scale,
+                               int letterbox_pad_x,
+                               int letterbox_pad_y,
+                               int source_width,
+                               int source_height);
 
 }  // namespace decode_demo

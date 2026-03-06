@@ -1,9 +1,12 @@
 #include "decode_demo/mpp_decode.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
+#include <cstring>
 #include <fstream>
 #include <thread>
+#include <utility>
 #include <vector>
 
 extern "C" {
@@ -13,6 +16,12 @@ extern "C" {
 
 namespace decode_demo {
 namespace {
+
+constexpr std::uint8_t kLetterboxFill = 114;
+
+int align_up(int value, int alignment) {
+    return ((value + alignment - 1) / alignment) * alignment;
+}
 
 bool load_file_to_buffer(const std::string& path, std::vector<std::uint8_t>* out) {
     std::ifstream ifs(path, std::ios::binary);
@@ -214,6 +223,17 @@ RgaResizeInfo probe_rga_resize(MppFrame frame, int output_width, int output_heig
         return info;
     }
 
+    const float scale_w = static_cast<float>(output_width) / static_cast<float>(src_width);
+    const float scale_h = static_cast<float>(output_height) / static_cast<float>(src_height);
+    info.scale = std::min(scale_w, scale_h);
+    info.scaled_width = std::max(1, std::min(output_width, static_cast<int>(static_cast<float>(src_width) * info.scale + 0.5f)));
+    info.scaled_height = std::max(1, std::min(output_height, static_cast<int>(static_cast<float>(src_height) * info.scale + 0.5f)));
+    info.pad_x = (output_width - info.scaled_width) / 2;
+    info.pad_y = (output_height - info.scaled_height) / 2;
+
+    const int rgb_src_stride = align_up(src_width, 16);
+    const int rgb_scaled_stride = align_up(info.scaled_width, 16);
+
     rga_buffer_handle_t src_handle = importbuffer_fd(dma_fd, src_hor_stride, src_ver_stride, rga_format);
     if (src_handle == 0) {
         info.detail = "importbuffer_fd failed";
@@ -221,9 +241,9 @@ RgaResizeInfo probe_rga_resize(MppFrame frame, int output_width, int output_heig
     }
 
     std::vector<std::uint8_t> rgb_src(
-        static_cast<std::size_t>(src_width) * static_cast<std::size_t>(src_height) * static_cast<std::size_t>(info.output_channels), 0);
+        static_cast<std::size_t>(rgb_src_stride) * static_cast<std::size_t>(src_height) * static_cast<std::size_t>(info.output_channels), 0);
     std::vector<std::uint8_t> rgb_scaled(
-        static_cast<std::size_t>(output_width) * static_cast<std::size_t>(output_height) * static_cast<std::size_t>(info.output_channels), 0);
+        static_cast<std::size_t>(rgb_scaled_stride) * static_cast<std::size_t>(info.scaled_height) * static_cast<std::size_t>(info.output_channels), 0);
 
     rga_buffer_handle_t rgb_src_handle = importbuffer_virtualaddr(rgb_src.data(), static_cast<int>(rgb_src.size()));
     rga_buffer_handle_t rgb_scaled_handle = importbuffer_virtualaddr(rgb_scaled.data(), static_cast<int>(rgb_scaled.size()));
@@ -241,9 +261,9 @@ RgaResizeInfo probe_rga_resize(MppFrame frame, int output_width, int output_heig
 
     rga_buffer_t src_buffer = wrapbuffer_handle_t(src_handle, src_width, src_height, src_hor_stride, src_ver_stride, rga_format);
     rga_buffer_t rgb_src_buffer = wrapbuffer_handle_t(
-        rgb_src_handle, src_width, src_height, src_width, src_height, RK_FORMAT_RGB_888);
+        rgb_src_handle, src_width, src_height, rgb_src_stride, src_height, RK_FORMAT_RGB_888);
     rga_buffer_t rgb_scaled_buffer = wrapbuffer_handle_t(
-        rgb_scaled_handle, output_width, output_height, output_width, output_height, RK_FORMAT_RGB_888);
+        rgb_scaled_handle, info.scaled_width, info.scaled_height, rgb_scaled_stride, info.scaled_height, RK_FORMAT_RGB_888);
 
     IM_STATUS status = imcvtcolor(src_buffer, rgb_src_buffer, rga_format, RK_FORMAT_RGB_888);
     if (!is_im_success(status)) {
@@ -263,10 +283,23 @@ RgaResizeInfo probe_rga_resize(MppFrame frame, int output_width, int output_heig
         return info;
     }
 
+    std::vector<std::uint8_t> rgb_output(
+        static_cast<std::size_t>(output_width) * static_cast<std::size_t>(output_height) * static_cast<std::size_t>(info.output_channels),
+        kLetterboxFill);
+    for (int y = 0; y < info.scaled_height; ++y) {
+        const std::size_t dst_row =
+            (static_cast<std::size_t>(y + info.pad_y) * static_cast<std::size_t>(output_width) + static_cast<std::size_t>(info.pad_x)) *
+            static_cast<std::size_t>(info.output_channels);
+        const std::size_t src_row =
+            static_cast<std::size_t>(y) * static_cast<std::size_t>(rgb_scaled_stride) * static_cast<std::size_t>(info.output_channels);
+        const std::size_t copy_bytes = static_cast<std::size_t>(info.scaled_width) * static_cast<std::size_t>(info.output_channels);
+        std::memcpy(rgb_output.data() + dst_row, rgb_scaled.data() + src_row, copy_bytes);
+    }
+
     info.ok = true;
-    info.output_bytes = rgb_scaled.size();
-    info.output_data = std::move(rgb_scaled);
-    info.detail = "imcvtcolor+imresize_ok";
+    info.output_bytes = rgb_output.size();
+    info.output_data = std::move(rgb_output);
+    info.detail = "imcvtcolor+imresize_letterbox_ok";
     return info;
 }
 
@@ -374,5 +407,3 @@ DecodedFrameInfo decode_one_frame_from_annexb(const std::string& path) {
 }
 
 }  // namespace decode_demo
-
-
