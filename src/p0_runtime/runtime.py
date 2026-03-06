@@ -1616,6 +1616,7 @@ class P0Runtime:
         window_time_gap_outlier_lower_truncation_ratio = None
         window_time_gap_outlier_lower_clipped = None
         window_time_gap_outlier_lower_clipped_ratio = None
+        window_time_gap_outlier_lower_unclipped = None
         window_time_gap_outlier_lower_unclipped_ratio = None
         if items:
             newest_at = items[0].get("at")
@@ -1699,6 +1700,7 @@ class P0Runtime:
                     window_time_gap_outlier_lower_truncation_ratio = 0.0
                     window_time_gap_outlier_lower_clipped = False
                     window_time_gap_outlier_lower_clipped_ratio = 0.0
+                    window_time_gap_outlier_lower_unclipped = True
                     window_time_gap_outlier_lower_unclipped_ratio = 1.0
                 else:
                     gaps = [
@@ -1798,6 +1800,7 @@ class P0Runtime:
                     window_time_gap_outlier_lower_clipped_ratio = (
                         1.0 if window_time_gap_outlier_lower_clipped else 0.0
                     )
+                    window_time_gap_outlier_lower_unclipped = not window_time_gap_outlier_lower_clipped
                     window_time_gap_outlier_lower_unclipped_ratio = (
                         0.0 if window_time_gap_outlier_lower_clipped else 1.0
                     )
@@ -1948,6 +1951,7 @@ class P0Runtime:
             "window_time_gap_outlier_lower_truncation_ratio": window_time_gap_outlier_lower_truncation_ratio,
             "window_time_gap_outlier_lower_clipped": window_time_gap_outlier_lower_clipped,
             "window_time_gap_outlier_lower_clipped_ratio": window_time_gap_outlier_lower_clipped_ratio,
+            "window_time_gap_outlier_lower_unclipped": window_time_gap_outlier_lower_unclipped,
             "window_time_gap_outlier_lower_unclipped_ratio": window_time_gap_outlier_lower_unclipped_ratio,
             "snapshot_at": snapshot_at,
             "order": "id_desc",
