@@ -4,7 +4,9 @@ from collections import deque
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
+import os
 import re
+import secrets
 import threading
 from time import perf_counter
 from typing import Callable, Deque, Dict, Tuple
@@ -31,11 +33,17 @@ class P0Runtime:
         self,
         webhook_url: str,
         webhook_token: str,
-        token_secret: str = "rk3588-secret",
+        token_secret: str | None = None,
         storage_db_path: str | None = None,
     ) -> None:
         self._webhook_url = webhook_url
         self._webhook_token = webhook_token
+        if token_secret is None:
+            env_secret = os.getenv("P0_TOKEN_SECRET")
+            if env_secret:
+                token_secret = env_secret
+            else:
+                token_secret = secrets.token_urlsafe(32)
         self._token_secret = token_secret
         self._storage = RuntimeStorage(storage_db_path) if storage_db_path else None
 

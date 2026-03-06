@@ -1,4 +1,5 @@
-﻿import unittest
+﻿import os
+import unittest
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
@@ -46,6 +47,49 @@ class P0RuntimeTests(unittest.TestCase):
 
         self.assertTrue(ok)
         self.assertEqual("admin", context["role"])
+
+    def test_runtime_uses_env_token_secret_when_not_provided(self) -> None:
+        old = os.environ.get("P0_TOKEN_SECRET")
+        os.environ["P0_TOKEN_SECRET"] = "env-secret-runtime"
+        try:
+            rt = P0Runtime(webhook_url="https://example.com/hook", webhook_token="token")
+            token_res = rt.issue_token(user_id="u2", role="admin", now=self.now)
+            ok, context = rt.authorize(
+                token=token_res["token"],
+                required_action="license:update",
+                now=self.now.replace(second=5),
+            )
+            self.assertTrue(ok)
+            self.assertEqual("admin", context["role"])
+        finally:
+            if old is None:
+                os.environ.pop("P0_TOKEN_SECRET", None)
+            else:
+                os.environ["P0_TOKEN_SECRET"] = old
+
+    def test_explicit_token_secret_overrides_env(self) -> None:
+        old = os.environ.get("P0_TOKEN_SECRET")
+        os.environ["P0_TOKEN_SECRET"] = "env-secret-ignored"
+        try:
+            rt = P0Runtime(
+                webhook_url="https://example.com/hook",
+                webhook_token="token",
+                token_secret="explicit-secret",
+            )
+            self.assertEqual("explicit-secret", rt._token_secret)
+            token_res = rt.issue_token(user_id="u3", role="admin", now=self.now)
+            ok, context = rt.authorize(
+                token=token_res["token"],
+                required_action="license:update",
+                now=self.now.replace(second=5),
+            )
+            self.assertTrue(ok)
+            self.assertEqual("admin", context["role"])
+        finally:
+            if old is None:
+                os.environ.pop("P0_TOKEN_SECRET", None)
+            else:
+                os.environ["P0_TOKEN_SECRET"] = old
 
     def test_update_device_capabilities(self) -> None:
         self.runtime.register_device(
