@@ -1297,3 +1297,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-115-inference-plan-fetch-tool/20260306-170831
 - Summary: added decode_demo fetch_inference_plan.py tool and documented runtime plan export flow while keeping local Python regression suite green
 - Next: push branch/tag to GitHub, sync decode_demo tool to remote via bundle if needed, then wire plan-file consumption into the C++ executable
+
+## [2026-03-06T17:18:37+08:00] P4-iteration-116-manifest-consumption
+- Branch: stage/P3-phase2-readiness
+- Commit: 3706210
+- Tag: checkpoint/P4-iteration-116-manifest-consumption/20260306-171837
+- Summary: added manifest rendering/parsing for decode_demo so inference-plan data can be consumed as ready workloads; validated on RK3588 with sample plan and kept local Python regression suite green
+- Next: push branch/tag to GitHub, sync remote tracked repo, then wire real MPP decode entry and optional RKNN model init path
