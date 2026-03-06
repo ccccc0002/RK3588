@@ -1255,3 +1255,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-109-audit-cursor-window-time-gap-outlier-inlier-ratio-delta-basis-points-validated/20260306-142318
 - Summary: add window_time_gap_outlier_inlier_ratio_delta_basis_points metadata with local and remote validation and ignore .tmp packaging artifacts
 - Next: continue next audit cursor metadata iteration
+
+## [2026-03-06T14:45:40+08:00] P4-iteration-110-audit-cursor-window-time-gap-outlier-inlier-ratio-delta-basis-points-abs-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 93b3e59
+- Tag: checkpoint/P4-iteration-110-audit-cursor-window-time-gap-outlier-inlier-ratio-delta-basis-points-abs-validated/20260306-144540
+- Summary: add window_time_gap_outlier_inlier_ratio_delta_basis_points_abs metadata with local and remote validation
+- Next: continue next audit cursor metadata iteration
