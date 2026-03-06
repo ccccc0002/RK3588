@@ -188,7 +188,7 @@ std::string resolve_local_uri_or_path(const std::string& value) {
         return value.substr(7);
     }
     if (value.rfind("/", 0) == 0 || value.rfind("./", 0) == 0 || value.rfind("../", 0) == 0 ||
-        value.find(":\") != std::string::npos) {
+        value.find(":\\") != std::string::npos) {
         return value;
     }
     return {};
