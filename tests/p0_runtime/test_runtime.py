@@ -2247,6 +2247,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertFalse(bool(page["window_time_gap_outlier_inlier_ratio_delta_nonzero"]))
         self.assertEqual("zero", page["window_time_gap_outlier_inlier_ratio_delta_state"])
         self.assertEqual("balanced", page["window_time_gap_outlier_inlier_ratio_delta_direction"])
+        self.assertEqual(0, int(page["window_time_gap_outlier_inlier_ratio_delta_direction_code"]))
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
         self.assertIsNone(page["remaining_candidates"])
@@ -2405,6 +2406,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertFalse(bool(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_nonzero"]))
             self.assertEqual("zero", page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_state"])
             self.assertEqual("balanced", page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_direction"])
+            self.assertEqual(0, int(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_direction_code"]))
         else:
             self.assertIsNone(page_with_cursor["window_max_id"])
             self.assertIsNone(page_with_cursor["window_min_id"])
@@ -2481,6 +2483,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_nonzero"])
             self.assertIsNone(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_state"])
             self.assertIsNone(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_direction"])
+            self.assertIsNone(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_direction_code"])
 
         if page_with_cursor["has_more"]:
             self.assertIsNotNone(page_with_cursor["next_query_string"])
@@ -2633,6 +2636,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertFalse(bool(page_with_total["window_time_gap_outlier_inlier_ratio_delta_nonzero"]))
         self.assertEqual("zero", page_with_total["window_time_gap_outlier_inlier_ratio_delta_state"])
         self.assertEqual("balanced", page_with_total["window_time_gap_outlier_inlier_ratio_delta_direction"])
+        self.assertEqual(0, int(page_with_total["window_time_gap_outlier_inlier_ratio_delta_direction_code"]))
         self.assertIsNotNone(page_with_total["next_query"])
         self.assertIsNotNone(page_with_total["next_query_string"])
         self.assertIn("include_total=true", page_with_total["next_query_string"])
@@ -2826,6 +2830,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertFalse(bool(page["window_time_gap_outlier_inlier_ratio_delta_nonzero"]))
         self.assertEqual("zero", page["window_time_gap_outlier_inlier_ratio_delta_state"])
         self.assertEqual("balanced", page["window_time_gap_outlier_inlier_ratio_delta_direction"])
+        self.assertEqual(0, int(page["window_time_gap_outlier_inlier_ratio_delta_direction_code"]))
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
         self.assertIsNone(page["remaining_candidates"])
@@ -2963,6 +2968,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertFalse(bool(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_nonzero"]))
             self.assertEqual("zero", page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_state"])
             self.assertEqual("balanced", page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_direction"])
+            self.assertEqual(0, int(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_direction_code"]))
         else:
             self.assertIsNone(page_with_cursor["window_max_id"])
             self.assertIsNone(page_with_cursor["window_min_id"])
@@ -3018,6 +3024,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_nonzero"])
             self.assertIsNone(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_state"])
             self.assertIsNone(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_direction"])
+            self.assertIsNone(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_direction_code"])
 
         if page_with_cursor["has_more"]:
             self.assertIsNotNone(page_with_cursor["next_query_string"])
@@ -3149,6 +3156,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertFalse(bool(page_with_total["window_time_gap_outlier_inlier_ratio_delta_nonzero"]))
         self.assertEqual("zero", page_with_total["window_time_gap_outlier_inlier_ratio_delta_state"])
         self.assertEqual("balanced", page_with_total["window_time_gap_outlier_inlier_ratio_delta_direction"])
+        self.assertEqual(0, int(page_with_total["window_time_gap_outlier_inlier_ratio_delta_direction_code"]))
         self.assertIsNotNone(page_with_total["next_query"])
         self.assertIsNotNone(page_with_total["next_query_string"])
         self.assertIn("include_total=true", page_with_total["next_query_string"])
@@ -3370,6 +3378,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertFalse(bool(page["window_time_gap_outlier_inlier_ratio_delta_nonzero"]))
         self.assertEqual("zero", page["window_time_gap_outlier_inlier_ratio_delta_state"])
         self.assertEqual("balanced", page["window_time_gap_outlier_inlier_ratio_delta_direction"])
+        self.assertEqual(0, int(page["window_time_gap_outlier_inlier_ratio_delta_direction_code"]))
         self.assertEqual("id_desc", page["order"])
         self.assertIsNone(page["total_candidates"])
         self.assertIsNone(page["remaining_candidates"])
@@ -3510,6 +3519,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertFalse(bool(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_nonzero"]))
             self.assertEqual("zero", page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_state"])
             self.assertEqual("balanced", page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_direction"])
+            self.assertEqual(0, int(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_direction_code"]))
         else:
             self.assertIsNone(page_with_cursor["window_max_id"])
             self.assertIsNone(page_with_cursor["window_min_id"])
@@ -3565,6 +3575,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_nonzero"])
             self.assertIsNone(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_state"])
             self.assertIsNone(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_direction"])
+            self.assertIsNone(page_with_cursor["window_time_gap_outlier_inlier_ratio_delta_direction_code"])
 
         if page_with_cursor["has_more"]:
             self.assertIsNotNone(page_with_cursor["next_query_string"])
@@ -3696,6 +3707,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertFalse(bool(page_with_total["window_time_gap_outlier_inlier_ratio_delta_nonzero"]))
         self.assertEqual("zero", page_with_total["window_time_gap_outlier_inlier_ratio_delta_state"])
         self.assertEqual("balanced", page_with_total["window_time_gap_outlier_inlier_ratio_delta_direction"])
+        self.assertEqual(0, int(page_with_total["window_time_gap_outlier_inlier_ratio_delta_direction_code"]))
         self.assertIsNotNone(page_with_total["next_query"])
         self.assertIsNotNone(page_with_total["next_query_string"])
         self.assertIn("include_total=true", page_with_total["next_query_string"])

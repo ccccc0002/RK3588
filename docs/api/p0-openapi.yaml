@@ -3021,6 +3021,10 @@ components:
           type: string
           enum: [outlier_heavier, balanced, inlier_heavier]
           nullable: true
+        window_time_gap_outlier_inlier_ratio_delta_direction_code:
+          type: integer
+          enum: [1, 0, -1]
+          nullable: true
         snapshot_at:
           type: string
           format: date-time
