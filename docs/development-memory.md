@@ -1073,3 +1073,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-83-audit-cursor-window-time-gap-outlier-lower-truncation-seconds-validated/20260306-092348
 - Summary: added window_time_gap_outlier_lower_truncation_seconds across runtime/http/docs/openapi with local and remote test validation
 - Next: continue audit cursor distribution metadata iterations
+
+## [2026-03-06T09:39:57+08:00] P4-iteration-84-audit-cursor-window-time-gap-outlier-lower-truncation-ratio-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 6ba851c
+- Tag: checkpoint/P4-iteration-84-audit-cursor-window-time-gap-outlier-lower-truncation-ratio-validated/20260306-093957
+- Summary: added window_time_gap_outlier_lower_truncation_ratio across runtime/http/docs/openapi with local and remote test validation
+- Next: continue audit cursor distribution metadata iterations
