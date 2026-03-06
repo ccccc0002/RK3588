@@ -503,8 +503,7 @@ RuntimePlanFetchResult fetch_runtime_plan(const RuntimePlanFetchOptions& options
     RuntimePlanFetchResult result;
     result.request_url = request_url;
     result.response_body = output.substr(0, marker_pos);
-    if (!result.response_body.empty() && result.response_body.back() == '
-') {
+    if (!result.response_body.empty() && result.response_body.back() == static_cast<char>(10)) {
         result.response_body.pop_back();
     }
     const std::string status_text = output.substr(marker_pos + marker.size());
