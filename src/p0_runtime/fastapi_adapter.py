@@ -696,7 +696,7 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
     @app.get("/api/v1/inference/results")
     def inference_results_ep(
         limit: int = Query(default=20),
-        before_id: int | None = Query(default=None),
+        before_id: Optional[int] = Query(default=None),
         include_total: bool = Query(default=False),
         authorization: str = Header(default="", alias="Authorization"),
     ):
@@ -894,5 +894,6 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         return ok_payload(rt.stop_push_worker())
 
     return app
+
 
 
