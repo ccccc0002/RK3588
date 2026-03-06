@@ -1,10 +1,9 @@
-﻿#include "decode_demo/plan_manifest.hpp"
+#include "decode_demo/mpp_decode.hpp"
+#include "decode_demo/plan_manifest.hpp"
 #include "decode_demo/runtime_probe.hpp"
 
-#include <algorithm>
 #include <cstdlib>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -16,7 +15,21 @@ struct Options {
     std::string stream;
     std::string model;
     std::string plan_file;
+    int rga_width{0};
+    int rga_height{0};
 };
+
+int parse_positive_int(const char* flag, const std::string& value) {
+    try {
+        const int parsed = std::stoi(value);
+        if (parsed > 0) {
+            return parsed;
+        }
+    } catch (...) {
+    }
+    std::cerr << "Invalid value for " << flag << ": " << value << '\n';
+    std::exit(1);
+}
 
 Options parse_args(int argc, char** argv) {
     Options options;
@@ -30,13 +43,21 @@ Options parse_args(int argc, char** argv) {
             options.model = argv[++i];
         } else if (arg == "--plan-file" && i + 1 < argc) {
             options.plan_file = argv[++i];
+        } else if (arg == "--rga-width" && i + 1 < argc) {
+            options.rga_width = parse_positive_int("--rga-width", argv[++i]);
+        } else if (arg == "--rga-height" && i + 1 < argc) {
+            options.rga_height = parse_positive_int("--rga-height", argv[++i]);
         } else if (arg == "--help" || arg == "-h") {
-            std::cout << "Usage: rk_decode_demo [--self-check] [--stream <url_or_path>] [--model <file.rknn>] [--plan-file <plan.manifest.tsv>]\n";
+            std::cout << "Usage: rk_decode_demo [--self-check] [--stream <annexb.h264>] [--rga-width <n> --rga-height <n>] [--model <file.rknn>] [--plan-file <plan.manifest.tsv>]\n";
             std::exit(0);
         } else {
             std::cerr << "Unknown argument: " << arg << '\n';
             std::exit(1);
         }
+    }
+    if ((options.rga_width > 0) != (options.rga_height > 0)) {
+        std::cerr << "Both --rga-width and --rga-height must be provided together\n";
+        std::exit(1);
     }
     return options;
 }
@@ -79,6 +100,32 @@ void print_manifest_summary(const std::string& plan_file) {
     }
 }
 
+int run_stream_decode(const std::string& stream_path, int rga_width, int rga_height) {
+    print_path_summary("stream", stream_path);
+    const decode_demo::DecodePipelineInfo pipeline = decode_demo::decode_pipeline_from_annexb(stream_path, rga_width, rga_height);
+    const decode_demo::DecodedFrameInfo& frame = pipeline.frame;
+    std::cout << "decode_ok=" << (frame.ok ? "true" : "false") << '\n';
+    std::cout << "decode_coding=" << frame.coding << '\n';
+    std::cout << "decode_pixel_format=" << frame.pixel_format << '\n';
+    std::cout << "decode_detail=" << frame.detail << '\n';
+    std::cout << "decode_width=" << frame.width << '\n';
+    std::cout << "decode_height=" << frame.height << '\n';
+    std::cout << "decode_hor_stride=" << frame.hor_stride << '\n';
+    std::cout << "decode_ver_stride=" << frame.ver_stride << '\n';
+    std::cout << "decode_dma_fd=" << frame.dma_fd << '\n';
+    std::cout << "rga_requested=" << (pipeline.rga.requested ? "true" : "false") << '\n';
+    if (pipeline.rga.requested) {
+        std::cout << "rga_ok=" << (pipeline.rga.ok ? "true" : "false") << '\n';
+        std::cout << "rga_detail=" << pipeline.rga.detail << '\n';
+        std::cout << "rga_output_width=" << pipeline.rga.output_width << '\n';
+        std::cout << "rga_output_height=" << pipeline.rga.output_height << '\n';
+        std::cout << "rga_output_channels=" << pipeline.rga.output_channels << '\n';
+        std::cout << "rga_output_bytes=" << pipeline.rga.output_bytes << '\n';
+    }
+    const bool ok = frame.ok && (!pipeline.rga.requested || pipeline.rga.ok);
+    return ok ? 0 : 2;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -88,13 +135,15 @@ int main(int argc, char** argv) {
         return decode_demo::run_self_check(std::cout);
     }
 
-    std::cout << "rk_decode_demo pipeline skeleton\n";
+    std::cout << "rk_decode_demo pipeline prototype\n";
     print_path_summary("model", options.model);
-    if (!options.stream.empty()) {
-        std::cout << "stream=" << options.stream << '\n';
-    }
     print_manifest_summary(options.plan_file);
-    std::cout << "status=not_yet_executing_real_pipeline\n";
-    std::cout << "next=implement MPP demux/decode, RGA resize, and RKNN init/run using the selected ready workload\n";
+
+    if (!options.stream.empty()) {
+        return run_stream_decode(options.stream, options.rga_width, options.rga_height);
+    }
+
+    std::cout << "status=waiting_for_stream\n";
+    std::cout << "next=provide --stream <annexb.h264> to execute MPP first-frame decode, then extend to RGA and RKNN\n";
     return 0;
 }

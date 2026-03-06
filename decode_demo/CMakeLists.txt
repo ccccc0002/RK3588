@@ -1,13 +1,17 @@
-﻿cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.16)
 project(rk_decode_demo LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(RK_MPP_INCLUDE_DIR "/usr/include/rockchip" CACHE PATH "Rockchip MPP headers")
-set(RGA_INCLUDE_DIR "/usr/include/rga" CACHE PATH "Rockchip RGA headers")
-set(RKNN_INCLUDE_DIR "/home/zql/ks/third_party/rknn_model_zoo/3rdparty/rknpu2/include" CACHE PATH "RKNN headers")
+find_path(RK_MPP_INCLUDE_DIR rk_mpi.h PATHS /usr/include/rockchip /usr/local/include/rockchip)
+find_path(RGA_INCLUDE_DIR im2d.h PATHS /usr/include/rga /usr/local/include/rga)
+find_path(RKNN_INCLUDE_DIR rknn_api.h PATHS
+    /usr/include
+    /usr/local/include
+    /home/zql/ks/third_party/rknn_model_zoo/3rdparty/rknpu2/include
+)
 
 find_library(RK_MPP_LIB rockchip_mpp PATHS /usr/lib /usr/lib/aarch64-linux-gnu /lib/aarch64-linux-gnu)
 find_library(RGA_LIB rga PATHS /usr/lib /usr/lib/aarch64-linux-gnu /lib/aarch64-linux-gnu)
@@ -16,6 +20,7 @@ find_library(DL_LIB dl)
 
 add_executable(rk_decode_demo
     src/main.cpp
+    src/mpp_decode.cpp
     src/plan_manifest.cpp
     src/runtime_probe.cpp
 )
@@ -52,4 +57,3 @@ message(STATUS "RKNN_INCLUDE_DIR=${RKNN_INCLUDE_DIR}")
 message(STATUS "RK_MPP_LIB=${RK_MPP_LIB}")
 message(STATUS "RGA_LIB=${RGA_LIB}")
 message(STATUS "RKNN_LIB=${RKNN_LIB}")
-
