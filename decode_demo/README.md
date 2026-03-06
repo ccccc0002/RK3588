@@ -11,7 +11,8 @@ Current scope:
 - decodes the first frame from a local Annex-B H.264/H.265 elementary stream with MPP
 - runs RGA color-convert + letterbox resize on the decoded DMA frame
 - optionally loads an RKNN model, runs one-frame inference, and emits YOLOv5 detection boxes plus raw tensor summaries
-- can resolve `stream/model/output` automatically from a plan manifest plus a local execution asset map
+- can resolve `stream/model/output` automatically from a plan manifest when the control-plane includes execution resources
+- still supports a local execution asset map as a fallback when those execution resources are absent
 - writes structured result JSON artifacts for later runtime/reporting integration
 - executes every ready workload in a manifest run and emits a batch summary JSON index
 - can submit single-result or batch-result artifacts back to the Python runtime via `/api/v1/inference/results`
@@ -93,7 +94,7 @@ Run the same pipeline from a manifest plus asset map:
   --asset-map artifacts/execution-assets.tsv
 ```
 
-When the manifest contains multiple ready workloads, `rk_decode_demo` now executes each workload in sequence, writes one per-workload result JSON, and emits a batch summary JSON (default: `artifacts/results/manifest-run-summary.json`).
+When the manifest contains multiple ready workloads, `rk_decode_demo` now executes each workload in sequence, writes one per-workload result JSON, and emits a batch summary JSON (default: `artifacts/results/manifest-run-summary.json`). If the manifest carries `execution.stream_uri` / `execution.model_uri` / `execution.result_uri`, the demo can run without `--asset-map`.
 
 Expected pipeline output fields for `--stream` / `--plan-file`:
 

@@ -126,6 +126,13 @@ void print_selected_workload(const decode_demo::ManifestWorkload& workload) {
     std::cout << "selected_base_library_version=" << workload.base_library_version << '\n';
     std::cout << "selected_stream_url=" << workload.stream_url << '\n';
     std::cout << "selected_sample_fps=" << workload.sample_fps << '\n';
+    std::cout << "selected_execution_ready=" << (workload.execution_ready ? "true" : "false") << '\n';
+    std::cout << "selected_stream_uri=" << workload.stream_uri << '\n';
+    std::cout << "selected_model_uri=" << workload.model_uri << '\n';
+    std::cout << "selected_result_uri=" << workload.result_uri << '\n';
+    std::cout << "selected_sample_period_ms=" << workload.sample_period_ms << '\n';
+    std::cout << "selected_frames_per_sample=" << workload.frames_per_sample << '\n';
+    std::cout << "selected_max_samples_per_run=" << workload.max_samples_per_run << '\n';
 }
 
 void print_rknn_model_summary(const decode_demo::RknnModelInfo& model) {
@@ -171,6 +178,20 @@ std::string sanitize_component(const std::string& value) {
         }
     }
     return sanitized.empty() ? std::string("result") : sanitized;
+}
+
+std::string resolve_local_uri_or_path(const std::string& value) {
+    if (value.empty()) {
+        return {};
+    }
+    if (value.rfind("file://", 0) == 0) {
+        return value.substr(7);
+    }
+    if (value.rfind("/", 0) == 0 || value.rfind("./", 0) == 0 || value.rfind("../", 0) == 0 ||
+        value.find(":\") != std::string::npos) {
+        return value;
+    }
+    return {};
 }
 
 void ensure_unique_output_paths(std::vector<ResolvedExecution>& executions) {
@@ -234,11 +255,30 @@ std::vector<ResolvedExecution> resolve_executions_from_options(const Options& op
         execution.workload = &selected_workloads[i];
         execution.workload_index = i;
         execution.asset_binding_resolved = binding != nullptr;
-        execution.stream_path = options.stream.empty() ? decode_demo::resolve_stream_path(workload, binding) : options.stream;
-        execution.model_path = options.model.empty() ? decode_demo::resolve_model_path(workload, binding) : options.model;
-        execution.output_path = (single_ready_workload && !options.output.empty())
-            ? options.output
-            : decode_demo::resolve_output_path(workload, binding);
+        if (!options.stream.empty()) {
+            execution.stream_path = options.stream;
+        } else {
+            execution.stream_path = resolve_local_uri_or_path(workload.stream_uri);
+            if (execution.stream_path.empty()) {
+                execution.stream_path = decode_demo::resolve_stream_path(workload, binding);
+            }
+        }
+        if (!options.model.empty()) {
+            execution.model_path = options.model;
+        } else {
+            execution.model_path = resolve_local_uri_or_path(workload.model_uri);
+            if (execution.model_path.empty()) {
+                execution.model_path = decode_demo::resolve_model_path(workload, binding);
+            }
+        }
+        if (single_ready_workload && !options.output.empty()) {
+            execution.output_path = options.output;
+        } else {
+            execution.output_path = resolve_local_uri_or_path(workload.result_uri);
+            if (execution.output_path.empty()) {
+                execution.output_path = decode_demo::resolve_output_path(workload, binding);
+            }
+        }
         executions.push_back(execution);
     }
 

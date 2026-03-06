@@ -1663,6 +1663,8 @@ components:
           type: boolean
         capabilities:
           $ref: '#/components/schemas/DeviceCapabilities'
+        execution_hints:
+          $ref: '#/components/schemas/DeviceExecutionHints'
 
     DeviceRecord:
       type: object
@@ -1687,6 +1689,20 @@ components:
           additionalProperties: true
         capabilities:
           $ref: '#/components/schemas/DeviceCapabilities'
+        execution_hints:
+          $ref: '#/components/schemas/DeviceExecutionHints'
+
+    DeviceExecutionHints:
+      type: object
+      additionalProperties: true
+      properties:
+        stream_uri:
+          type: string
+        result_root_uri:
+          type: string
+        max_samples_per_run:
+          type: integer
+          minimum: 1
 
     DeviceCapabilities:
       type: object
@@ -1824,6 +1840,8 @@ components:
           type: string
         library_version:
           type: string
+        execution_hints:
+          $ref: '#/components/schemas/MappingExecutionHints'
 
     BatchUpsertBaseLibraryMappingsRequest:
       type: object
@@ -1853,6 +1871,8 @@ components:
           type: string
         library_version:
           type: string
+        execution_hints:
+          $ref: '#/components/schemas/MappingExecutionHints'
         updated_at:
           type: string
           format: date-time
@@ -2664,9 +2684,40 @@ components:
           items:
             $ref: '#/components/schemas/RuntimeScheduleStream'
 
+    MappingExecutionHints:
+      type: object
+      additionalProperties: true
+      properties:
+        model_uri:
+          type: string
+        result_uri:
+          type: string
+
+    InferenceExecutionSpec:
+      type: object
+      required: [stream_uri, model_uri, result_uri, sample_period_ms, frames_per_sample, max_samples_per_run, execution_ready]
+      properties:
+        stream_uri:
+          type: string
+        model_uri:
+          type: string
+        result_uri:
+          type: string
+        sample_period_ms:
+          type: integer
+          minimum: 0
+        frames_per_sample:
+          type: integer
+          minimum: 0
+        max_samples_per_run:
+          type: integer
+          minimum: 1
+        execution_ready:
+          type: boolean
+
     InferencePlanWorkload:
       type: object
-      required: [capability, binding_status]
+      required: [capability, binding_status, execution]
       properties:
         capability:
           type: string
@@ -2689,6 +2740,8 @@ components:
         binding_status:
           type: string
           enum: [ready, missing_algorithm, missing_base_library, missing_algorithm_and_base_library]
+        execution:
+          $ref: '#/components/schemas/InferenceExecutionSpec'
 
     InferencePlanCapabilities:
       type: object

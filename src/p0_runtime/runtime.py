@@ -344,6 +344,52 @@ class P0Runtime:
         source = dict(payload or {})
         return {"ocr": bool(source.get("ocr", False)), "face": bool(source.get("face", False))}
 
+    @staticmethod
+    def _normalize_device_execution_hints(payload: object) -> dict:
+        if payload is None:
+            return {}
+        if not isinstance(payload, dict):
+            raise ValueError("execution_hints must be an object")
+        normalized: dict[str, object] = {}
+        stream_uri = str(payload.get("stream_uri", "")).strip()
+        if stream_uri:
+            normalized["stream_uri"] = stream_uri
+        result_root_uri = str(payload.get("result_root_uri", "")).strip()
+        if result_root_uri:
+            normalized["result_root_uri"] = result_root_uri
+        max_samples_raw = payload.get("max_samples_per_run")
+        if max_samples_raw not in (None, ""):
+            max_samples = int(max_samples_raw)
+            if max_samples < 1 or max_samples > 10000:
+                raise ValueError("max_samples_per_run must be between 1 and 10000")
+            normalized["max_samples_per_run"] = max_samples
+        return normalized
+
+    @staticmethod
+    def _normalize_mapping_execution_hints(payload: object) -> dict:
+        if payload is None:
+            return {}
+        if not isinstance(payload, dict):
+            raise ValueError("execution_hints must be an object")
+        normalized: dict[str, object] = {}
+        model_uri = str(payload.get("model_uri", "")).strip()
+        if model_uri:
+            normalized["model_uri"] = model_uri
+        result_uri = str(payload.get("result_uri", "")).strip()
+        if result_uri:
+            normalized["result_uri"] = result_uri
+        return normalized
+
+    @staticmethod
+    def _join_result_root_uri(result_root_uri: str, device_id: str, capability: str) -> str:
+        root = str(result_root_uri).strip()
+        if not root:
+            return ""
+        suffix = f"{device_id}__{capability}.json"
+        if root.endswith("/"):
+            return root + suffix
+        return root + "/" + suffix
+
     def register_device(self, payload: dict) -> dict:
         required = ("tenant_id", "site_id", "box_id", "device_id", "protocol")
         for field in required:
@@ -365,6 +411,7 @@ class P0Runtime:
             "enabled": bool(payload.get("enabled", True)),
             "ingest_spec": ingest_spec,
             "capabilities": self._normalize_capabilities(payload.get("capabilities")),
+            "execution_hints": self._normalize_device_execution_hints(payload.get("execution_hints")),
         }
         key = (record["tenant_id"], record["site_id"], record["box_id"], record["device_id"])
         with self._lock:
@@ -678,6 +725,7 @@ class P0Runtime:
                 "capability": key[4],
                 "library_id": library_key[0],
                 "library_version": library_key[1],
+                "execution_hints": self._normalize_mapping_execution_hints(payload.get("execution_hints")),
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
             self._base_library_mappings[key] = record
@@ -3140,6 +3188,19 @@ class P0Runtime:
                     binding_status = "missing_algorithm"
                 else:
                     binding_status = "missing_base_library"
+                device_execution_hints = dict(device.get("execution_hints", {}))
+                mapping_execution_hints = {} if mapping is None else dict(mapping.get("execution_hints", {}))
+                sample_fps = float(schedule_item.sample_fps)
+                fps_in = float(prepared["fps_in"])
+                sample_period_ms = 0 if sample_fps <= 0.0 else max(1, int(round(1000.0 / sample_fps)))
+                frames_per_sample = 0 if sample_fps <= 0.0 else max(1, int(round(fps_in / sample_fps)))
+                stream_uri = str(device_execution_hints.get("stream_uri", "")).strip() or str(device.get("stream_url", ""))
+                result_root_uri = str(device_execution_hints.get("result_root_uri", "")).strip()
+                result_uri = str(mapping_execution_hints.get("result_uri", "")).strip()
+                if not result_uri:
+                    result_uri = self._join_result_root_uri(result_root_uri, str(device["device_id"]), capability)
+                model_uri = str(mapping_execution_hints.get("model_uri", "")).strip()
+                max_samples_per_run = int(device_execution_hints.get("max_samples_per_run", 1) or 1)
                 workloads.append(
                     {
                         "capability": capability,
@@ -3149,6 +3210,15 @@ class P0Runtime:
                         "base_library_id": None if mapping is None else str(mapping.get("library_id", "")),
                         "base_library_version": None if mapping is None else str(mapping.get("library_version", "")),
                         "binding_status": binding_status,
+                        "execution": {
+                            "stream_uri": stream_uri,
+                            "model_uri": model_uri,
+                            "result_uri": result_uri,
+                            "sample_period_ms": sample_period_ms,
+                            "frames_per_sample": frames_per_sample,
+                            "max_samples_per_run": max_samples_per_run,
+                            "execution_ready": bool(stream_uri and model_uri),
+                        },
                     }
                 )
 

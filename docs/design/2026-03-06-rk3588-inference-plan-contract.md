@@ -11,6 +11,7 @@ Provide a stable control-plane contract that a RK3588 data-plane process can con
 - MPP decode stream selection
 - RGA pre-processing scheduling
 - RKNN model/base-library binding
+- On-box execution resource resolution without a local-only asset map
 - Per-stream sample FPS control under budget pressure
 
 ## Request
@@ -61,7 +62,16 @@ Provide a stable control-plane contract that a RK3588 data-plane process can con
             "algorithm_status": "active",
             "base_library_id": "lib-face-core",
             "base_library_version": "2026.03",
-            "binding_status": "ready"
+            "binding_status": "ready",
+            "execution": {
+              "stream_uri": "file:///data/cam-1/latest.h264",
+              "model_uri": "file:///models/face-detector.rknn",
+              "result_uri": "file:///data/results/cam-1__face.json",
+              "sample_period_ms": 125,
+              "frames_per_sample": 2,
+              "max_samples_per_run": 3,
+              "execution_ready": true
+            }
           },
           {
             "capability": "ocr",
@@ -99,6 +109,17 @@ Provide a stable control-plane contract that a RK3588 data-plane process can con
    - matching is by `capabilities[]`
    - the lexicographically first `(algorithm_id, version)` match is selected
 6. Base-library resolution is explicit and per-device/per-capability via existing mapping records.
+7. Optional execution resources can be supplied through:
+   - `device.execution_hints.stream_uri`
+   - `device.execution_hints.result_root_uri`
+   - `device.execution_hints.max_samples_per_run`
+   - `base_library_mapping.execution_hints.model_uri`
+   - `base_library_mapping.execution_hints.result_uri`
+8. When `result_uri` is not provided on the mapping but `result_root_uri` exists on the device, the runtime derives:
+   - `<result_root_uri>/<device_id>__<capability>.json`
+9. Sampling execution metadata is derived deterministically:
+   - `sample_period_ms = round(1000 / sample_fps)`
+   - `frames_per_sample = round(fps_in / sample_fps)`, clamped to at least `1`
 
 ## Binding status semantics
 
@@ -115,10 +136,13 @@ A C++ inference core can poll this endpoint and then:
 2. Initialize MPP decode sessions from `stream_url` / `ingest_spec`.
 3. Apply `sample_fps` as the sampling throttle.
 4. For each `workload` with `binding_status == "ready"`:
+   - prefer `execution.stream_uri` / `execution.model_uri` / `execution.result_uri` when present
+   - apply `execution.sample_period_ms` or `execution.frames_per_sample` as the sampling throttle metadata
    - load the corresponding RKNN model/base-library
    - run RGA resize/crop as needed
    - execute inference for the capability
-5. Skip or alarm on any workload with non-ready binding state.
+5. Use a local fallback asset map only when execution resources are absent from the contract.
+6. Skip or alarm on any workload with non-ready binding state.
 
 ## Next data-plane work
 

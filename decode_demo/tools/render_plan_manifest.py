@@ -22,6 +22,7 @@ def main() -> int:
 
     for stream in data.get("streams", []):
         for workload in stream.get("workloads", []):
+            execution = workload.get("execution", {}) if isinstance(workload, dict) else {}
             parts = [
                 "workload",
                 str(stream.get("tenant_id", "")),
@@ -41,6 +42,13 @@ def main() -> int:
                 str(workload.get("base_library_id", "") or ""),
                 str(workload.get("base_library_version", "") or ""),
                 str(workload.get("binding_status", "")),
+                str(execution.get("execution_ready", "")),
+                str(execution.get("stream_uri", "")),
+                str(execution.get("model_uri", "")),
+                str(execution.get("result_uri", "")),
+                str(execution.get("sample_period_ms", "")),
+                str(execution.get("frames_per_sample", "")),
+                str(execution.get("max_samples_per_run", "")),
             ]
             lines.append("\t".join(parts))
 
@@ -54,4 +62,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

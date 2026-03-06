@@ -25,7 +25,7 @@ std::vector<std::string> split_tab(const std::string& line) {
 }
 
 bool parse_bool(const std::string& value) {
-    return value == "true" || value == "1" || value == "yes";
+    return value == "true" || value == "True" || value == "1" || value == "yes";
 }
 
 double parse_double(const std::string& value) {
@@ -95,6 +95,27 @@ PlanManifest load_plan_manifest(const std::string& path) {
             item.base_library_id = fields[15];
             item.base_library_version = fields[16];
             item.binding_status = fields[17];
+            if (fields.size() > 18) {
+                item.execution_ready = parse_bool(fields[18]);
+            }
+            if (fields.size() > 19) {
+                item.stream_uri = fields[19];
+            }
+            if (fields.size() > 20) {
+                item.model_uri = fields[20];
+            }
+            if (fields.size() > 21) {
+                item.result_uri = fields[21];
+            }
+            if (fields.size() > 22) {
+                item.sample_period_ms = parse_int(fields[22]);
+            }
+            if (fields.size() > 23) {
+                item.frames_per_sample = parse_int(fields[23]);
+            }
+            if (fields.size() > 24) {
+                item.max_samples_per_run = parse_int(fields[24]);
+            }
             manifest.workloads.push_back(item);
         }
     }

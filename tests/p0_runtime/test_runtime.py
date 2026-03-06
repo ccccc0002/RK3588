@@ -2201,6 +2201,78 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertEqual("ocr-engine", missing_stream["workloads"][0]["algorithm_id"])
         self.assertIsNone(missing_stream["workloads"][0]["base_library_id"])
 
+    def test_build_inference_plan_exposes_execution_resources(self) -> None:
+        self.runtime.upsert_algorithm(
+            {
+                "algorithm_id": "face-detector",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            }
+        )
+        self.runtime.upsert_base_library(
+            {
+                "library_id": "lib-face-core",
+                "version": "2026.03",
+                "capability": "face",
+                "status": "active",
+            }
+        )
+        self.runtime.register_device(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-resource",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.92/live",
+                "capabilities": {"face": True, "ocr": False},
+                "enabled": True,
+                "execution_hints": {
+                    "stream_uri": "file:///data/cam-resource/latest.h264",
+                    "result_root_uri": "file:///data/results",
+                    "max_samples_per_run": 3,
+                },
+            }
+        )
+        self.runtime.upsert_base_library_mapping(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-resource",
+                "capability": "face",
+                "library_id": "lib-face-core",
+                "library_version": "2026.03",
+                "execution_hints": {
+                    "model_uri": "file:///models/face-detector.rknn",
+                },
+            }
+        )
+        self.runtime.update_stream_telemetry(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-resource",
+                "fps_in": 12.0,
+            },
+            now=self.now,
+        )
+
+        plan = self.runtime.build_inference_plan(budget=100.0)
+        stream = next(item for item in plan["streams"] if item["device_id"] == "cam-resource")
+        workload = stream["workloads"][0]
+        execution = workload["execution"]
+
+        self.assertEqual("file:///data/cam-resource/latest.h264", execution["stream_uri"])
+        self.assertEqual("file:///models/face-detector.rknn", execution["model_uri"])
+        self.assertEqual("file:///data/results/cam-resource__face.json", execution["result_uri"])
+        self.assertEqual(125, int(execution["sample_period_ms"]))
+        self.assertEqual(2, int(execution["frames_per_sample"]))
+        self.assertEqual(3, int(execution["max_samples_per_run"]))
+        self.assertTrue(bool(execution["execution_ready"]))
+
     def test_submit_inference_result_normalizes_decode_demo_payload(self) -> None:
         result = self.runtime.submit_inference_result(
             {

@@ -2000,6 +2000,87 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual("ready", workload["binding_status"])
 
 
+    def test_inference_plan_endpoint_includes_execution_resources(self) -> None:
+        self._post(
+            "/api/v1/algorithms/upsert",
+            {
+                "algorithm_id": "face-detector-resource-http",
+                "version": "1.0.0",
+                "capabilities": ["face"],
+                "status": "active",
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/base-libraries/upsert",
+            {
+                "library_id": "lib-face-resource-http",
+                "version": "2026.03",
+                "capability": "face",
+                "status": "active",
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/devices/register",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-resource-http",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.93/live",
+                "capabilities": {"ocr": False, "face": True},
+                "enabled": True,
+                "execution_hints": {
+                    "stream_uri": "file:///runtime/cam-resource-http/latest.h264",
+                    "result_root_uri": "file:///runtime/results",
+                    "max_samples_per_run": 4,
+                },
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/base-libraries/mappings/upsert",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-resource-http",
+                "capability": "face",
+                "library_id": "lib-face-resource-http",
+                "library_version": "2026.03",
+                "execution_hints": {
+                    "model_uri": "file:///runtime/models/face-resource-http.rknn",
+                },
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/runtime/telemetry",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-resource-http",
+                "fps_in": 10.0,
+            },
+            token=self.operator_token,
+        )
+
+        status, payload = self._post("/api/v1/inference/plan", {"budget": 100.0}, token=self.viewer_token)
+        self.assertEqual(200, status)
+        stream = next(item for item in payload["data"]["streams"] if item["device_id"] == "cam-resource-http")
+        workload = stream["workloads"][0]
+        execution = workload["execution"]
+        self.assertEqual("file:///runtime/cam-resource-http/latest.h264", execution["stream_uri"])
+        self.assertEqual("file:///runtime/models/face-resource-http.rknn", execution["model_uri"])
+        self.assertEqual("file:///runtime/results/cam-resource-http__face.json", execution["result_uri"])
+        self.assertEqual(125, int(execution["sample_period_ms"]))
+        self.assertEqual(1, int(execution["frames_per_sample"]))
+        self.assertEqual(4, int(execution["max_samples_per_run"]))
+        self.assertTrue(bool(execution["execution_ready"]))
+
     def test_inference_result_endpoint_accepts_decode_demo_payload(self) -> None:
         status, payload = self._post(
             "/api/v1/inference/results",
@@ -3565,4 +3646,5 @@ class P0HttpApiTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
 

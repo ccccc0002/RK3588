@@ -23,6 +23,13 @@ struct ManifestWorkload {
     std::string base_library_id;
     std::string base_library_version;
     std::string binding_status;
+    bool execution_ready{false};
+    std::string stream_uri;
+    std::string model_uri;
+    std::string result_uri;
+    int sample_period_ms{0};
+    int frames_per_sample{0};
+    int max_samples_per_run{1};
 };
 
 struct PlanManifest {
