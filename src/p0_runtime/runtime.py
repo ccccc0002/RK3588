@@ -1609,6 +1609,7 @@ class P0Runtime:
         window_time_gap_outlier_fence_span_seconds = None
         window_time_gap_outlier_fence_midpoint_seconds = None
         window_time_gap_outlier_effective_lower_seconds = None
+        window_time_gap_outlier_effective_span_seconds = None
         if items:
             newest_at = items[0].get("at")
             oldest_at = items[-1].get("at")
@@ -1684,6 +1685,7 @@ class P0Runtime:
                     window_time_gap_outlier_fence_span_seconds = 0.0
                     window_time_gap_outlier_fence_midpoint_seconds = 0.0
                     window_time_gap_outlier_effective_lower_seconds = 0.0
+                    window_time_gap_outlier_effective_span_seconds = 0.0
                 else:
                     gaps = [
                         abs((parsed_times[i] - parsed_times[i + 1]).total_seconds())
@@ -1748,6 +1750,10 @@ class P0Runtime:
                     )
                     window_time_gap_outlier_effective_lower_seconds = round(
                         max(0.0, float(outlier_lower)),
+                        6,
+                    )
+                    window_time_gap_outlier_effective_span_seconds = round(
+                        max(0.0, float(outlier_upper) - max(0.0, float(outlier_lower))),
                         6,
                     )
                     window_time_gap_outlier_ratio = round(
@@ -1890,6 +1896,7 @@ class P0Runtime:
             "window_time_gap_outlier_fence_span_seconds": window_time_gap_outlier_fence_span_seconds,
             "window_time_gap_outlier_fence_midpoint_seconds": window_time_gap_outlier_fence_midpoint_seconds,
             "window_time_gap_outlier_effective_lower_seconds": window_time_gap_outlier_effective_lower_seconds,
+            "window_time_gap_outlier_effective_span_seconds": window_time_gap_outlier_effective_span_seconds,
             "snapshot_at": snapshot_at,
             "order": "id_desc",
             "has_more": has_more,
