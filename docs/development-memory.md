@@ -1213,3 +1213,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-103-audit-cursor-window-time-gap-outlier-inlier-ratio-delta-nonzero-validated/20260306-130659
 - Summary: add window_time_gap_outlier_inlier_ratio_delta_nonzero across runtime/http/docs/tests with py3.8 isolated validation
 - Next: continue next audit cursor metric iteration
+
+## [2026-03-06T13:15:42+08:00] P4-iteration-104-audit-cursor-window-time-gap-outlier-inlier-ratio-delta-state-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: fbdd1de
+- Tag: checkpoint/P4-iteration-104-audit-cursor-window-time-gap-outlier-inlier-ratio-delta-state-validated/20260306-131542
+- Summary: add window_time_gap_outlier_inlier_ratio_delta_state across runtime/http/docs/tests with py3.8 isolated validation
+- Next: continue next audit cursor metric iteration
