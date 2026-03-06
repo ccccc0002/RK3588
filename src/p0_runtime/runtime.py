@@ -1609,6 +1609,7 @@ class P0Runtime:
         window_time_gap_outlier_inlier_ratio_delta = None
         window_time_gap_outlier_inlier_ratio_delta_basis_points = None
         window_time_gap_outlier_inlier_ratio_delta_basis_points_abs = None
+        window_time_gap_outlier_inlier_ratio_delta_per_mille = None
         window_time_gap_outlier_inlier_ratio_delta_percentage_points = None
         window_time_gap_outlier_inlier_ratio_delta_percentage_points_abs = None
         window_time_gap_outlier_inlier_ratio_delta_abs = None
@@ -1715,6 +1716,7 @@ class P0Runtime:
                     window_time_gap_outlier_inlier_ratio_delta = 0.0
                     window_time_gap_outlier_inlier_ratio_delta_basis_points = 0
                     window_time_gap_outlier_inlier_ratio_delta_basis_points_abs = 0
+                    window_time_gap_outlier_inlier_ratio_delta_per_mille = 0.0
                     window_time_gap_outlier_inlier_ratio_delta_percentage_points = 0.0
                     window_time_gap_outlier_inlier_ratio_delta_percentage_points_abs = 0.0
                     window_time_gap_outlier_inlier_ratio_delta_abs = 0.0
@@ -1893,6 +1895,10 @@ class P0Runtime:
                     window_time_gap_outlier_inlier_ratio_delta_basis_points_abs = abs(
                         int(window_time_gap_outlier_inlier_ratio_delta_basis_points)
                     )
+                    window_time_gap_outlier_inlier_ratio_delta_per_mille = round(
+                        float(window_time_gap_outlier_inlier_ratio_delta) * 1000.0,
+                        6,
+                    )
                     window_time_gap_outlier_inlier_ratio_delta_percentage_points = round(
                         float(window_time_gap_outlier_inlier_ratio_delta) * 100.0,
                         6,
@@ -2069,6 +2075,7 @@ class P0Runtime:
             "window_time_gap_outlier_inlier_ratio_delta": window_time_gap_outlier_inlier_ratio_delta,
             "window_time_gap_outlier_inlier_ratio_delta_basis_points": window_time_gap_outlier_inlier_ratio_delta_basis_points,
             "window_time_gap_outlier_inlier_ratio_delta_basis_points_abs": window_time_gap_outlier_inlier_ratio_delta_basis_points_abs,
+            "window_time_gap_outlier_inlier_ratio_delta_per_mille": window_time_gap_outlier_inlier_ratio_delta_per_mille,
             "window_time_gap_outlier_inlier_ratio_delta_percentage_points": window_time_gap_outlier_inlier_ratio_delta_percentage_points,
             "window_time_gap_outlier_inlier_ratio_delta_percentage_points_abs": window_time_gap_outlier_inlier_ratio_delta_percentage_points_abs,
             "window_time_gap_outlier_inlier_ratio_delta_abs": window_time_gap_outlier_inlier_ratio_delta_abs,

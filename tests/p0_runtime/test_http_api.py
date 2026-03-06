@@ -226,6 +226,10 @@ class P0HttpApiTests(unittest.TestCase):
             expected_outlier_inlier_ratio_delta_basis_points_abs = abs(
                 int(expected_outlier_inlier_ratio_delta_basis_points)
             )
+            expected_outlier_inlier_ratio_delta_per_mille = round(
+                float(expected_outlier_inlier_ratio_delta) * 1000.0,
+                6,
+            )
             expected_outlier_inlier_ratio_delta_percentage_points = round(
                 float(expected_outlier_inlier_ratio_delta) * 100.0,
                 6,
@@ -300,6 +304,7 @@ class P0HttpApiTests(unittest.TestCase):
             expected_outlier_inlier_ratio_delta = 0.0
             expected_outlier_inlier_ratio_delta_basis_points = 0
             expected_outlier_inlier_ratio_delta_basis_points_abs = 0
+            expected_outlier_inlier_ratio_delta_per_mille = 0.0
             expected_outlier_inlier_ratio_delta_percentage_points = 0.0
             expected_outlier_inlier_ratio_delta_percentage_points_abs = 0.0
             expected_outlier_inlier_ratio_delta_abs = 0.0
@@ -376,6 +381,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertAlmostEqual(expected_outlier_inlier_ratio_delta, float(data["window_time_gap_outlier_inlier_ratio_delta"]), places=6)
         self.assertEqual(expected_outlier_inlier_ratio_delta_basis_points, int(data["window_time_gap_outlier_inlier_ratio_delta_basis_points"]))
         self.assertEqual(expected_outlier_inlier_ratio_delta_basis_points_abs, int(data["window_time_gap_outlier_inlier_ratio_delta_basis_points_abs"]))
+        self.assertAlmostEqual(expected_outlier_inlier_ratio_delta_per_mille, float(data["window_time_gap_outlier_inlier_ratio_delta_per_mille"]), places=6)
         self.assertAlmostEqual(expected_outlier_inlier_ratio_delta_percentage_points, float(data["window_time_gap_outlier_inlier_ratio_delta_percentage_points"]), places=6)
         self.assertAlmostEqual(expected_outlier_inlier_ratio_delta_percentage_points_abs, float(data["window_time_gap_outlier_inlier_ratio_delta_percentage_points_abs"]), places=6)
         self.assertAlmostEqual(expected_outlier_inlier_ratio_delta_abs, float(data["window_time_gap_outlier_inlier_ratio_delta_abs"]), places=6)
