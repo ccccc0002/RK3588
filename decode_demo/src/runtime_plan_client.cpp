@@ -1,10 +1,10 @@
 #include "decode_demo/runtime_plan_client.hpp"
 
-#include <curl/curl.h>
-
 #include <cctype>
+#include <cstdio>
 #include <cstdlib>
 #include <iomanip>
+#include <memory>
 #include <map>
 #include <sstream>
 #include <stdexcept>
@@ -331,11 +331,62 @@ const JsonValue& require_array_field(const JsonValue& object, const char* key) {
     return *value;
 }
 
-size_t append_http_body(char* ptr, size_t size, size_t nmemb, void* userdata) {
-    const size_t bytes = size * nmemb;
-    auto* output = static_cast<std::string*>(userdata);
-    output->append(ptr, bytes);
-    return bytes;
+std::string shell_escape_single_quoted(const std::string& value) {
+    std::string escaped;
+    escaped.reserve(value.size() + 8);
+    escaped.push_back(static_cast<char>(39));
+    for (char ch : value) {
+        if (ch == static_cast<char>(39)) {
+            escaped += "'\''";
+        } else {
+            escaped.push_back(ch);
+        }
+    }
+    escaped.push_back(static_cast<char>(39));
+    return escaped;
+}
+
+std::string run_command_capture_stdout(const std::string& command, int* exit_code) {
+#if defined(_WIN32)
+    FILE* pipe = _popen(command.c_str(), "rb");
+#else
+    FILE* pipe = popen(command.c_str(), "r");
+#endif
+    if (pipe == nullptr) {
+        throw std::runtime_error("failed to launch runtime plan fetch command");
+    }
+
+    std::string output;
+    char buffer[4096];
+    while (true) {
+        const std::size_t read_bytes = std::fread(buffer, 1, sizeof(buffer), pipe);
+        if (read_bytes > 0) {
+            output.append(buffer, read_bytes);
+        }
+        if (read_bytes < sizeof(buffer)) {
+            if (std::feof(pipe) != 0) {
+                break;
+            }
+            if (std::ferror(pipe) != 0) {
+#if defined(_WIN32)
+                _pclose(pipe);
+#else
+                pclose(pipe);
+#endif
+                throw std::runtime_error("failed while reading runtime plan fetch command output");
+            }
+        }
+    }
+
+#if defined(_WIN32)
+    const int status = _pclose(pipe);
+#else
+    const int status = pclose(pipe);
+#endif
+    if (exit_code != nullptr) {
+        *exit_code = status;
+    }
+    return output;
 }
 
 std::string build_runtime_plan_request_body(double budget) {
@@ -423,47 +474,46 @@ RuntimePlanFetchResult fetch_runtime_plan(const RuntimePlanFetchOptions& options
     }
     const std::string request_url = options.runtime_url + "/api/v1/inference/plan";
     const std::string request_body = build_runtime_plan_request_body(options.budget);
+    const std::string marker = "__RK_HTTP_STATUS__:";
 
-    CURL* curl = curl_easy_init();
-    if (curl == nullptr) {
-        throw std::runtime_error("failed to initialize libcurl");
+    std::string command = "curl -sS -X POST --max-time 15 -H 'Content-Type: application/json' ";
+    if (!options.token.empty()) {
+        command += "-H ";
+        command += shell_escape_single_quoted("Authorization: Bearer " + options.token);
+        command += ' ';
+    }
+    command += "--data ";
+    command += shell_escape_single_quoted(request_body);
+    command += ' ';
+    command += shell_escape_single_quoted(request_url);
+    command += " -w ";
+    command += shell_escape_single_quoted("\n" + marker + "%{http_code}");
+
+    int exit_code = 0;
+    const std::string output = run_command_capture_stdout(command, &exit_code);
+    if (exit_code != 0) {
+        throw std::runtime_error("runtime plan request command failed with exit code " + std::to_string(exit_code));
+    }
+
+    const std::size_t marker_pos = output.rfind(marker);
+    if (marker_pos == std::string::npos) {
+        throw std::runtime_error("runtime plan fetch response missing HTTP status marker");
     }
 
     RuntimePlanFetchResult result;
     result.request_url = request_url;
-    std::string response_body;
-    struct curl_slist* headers = nullptr;
-    headers = curl_slist_append(headers, "Content-Type: application/json");
-    if (!options.token.empty()) {
-        const std::string auth = "Authorization: Bearer " + options.token;
-        headers = curl_slist_append(headers, auth.c_str());
+    result.response_body = output.substr(0, marker_pos);
+    if (!result.response_body.empty() && result.response_body.back() == '
+') {
+        result.response_body.pop_back();
     }
-
-    curl_easy_setopt(curl, CURLOPT_URL, request_url.c_str());
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_POST, 1L);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request_body.c_str());
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, static_cast<long>(request_body.size()));
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 15L);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &append_http_body);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_body);
-
-    const CURLcode rc = curl_easy_perform(curl);
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &result.http_status);
-
-    curl_slist_free_all(headers);
-    curl_easy_cleanup(curl);
-
-    result.response_body = response_body;
-
-    if (rc != CURLE_OK) {
-        throw std::runtime_error(std::string("runtime plan request failed: ") + curl_easy_strerror(rc));
-    }
+    const std::string status_text = output.substr(marker_pos + marker.size());
+    result.http_status = std::strtol(status_text.c_str(), nullptr, 10);
     if (result.http_status != 200) {
-        throw std::runtime_error("runtime plan request returned HTTP " + std::to_string(result.http_status) + ": " + response_body);
+        throw std::runtime_error("runtime plan request returned HTTP " + std::to_string(result.http_status) + ": " + result.response_body);
     }
 
-    result.manifest = parse_runtime_plan_json(response_body);
+    result.manifest = parse_runtime_plan_json(result.response_body);
     return result;
 }
 

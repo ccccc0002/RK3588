@@ -5,8 +5,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(CURL REQUIRED)
-
 find_path(RK_MPP_INCLUDE_DIR rk_mpi.h PATHS /usr/include/rockchip /usr/local/include/rockchip)
 find_path(RGA_INCLUDE_DIR im2d.h PATHS /usr/include/rga /usr/local/include/rga)
 find_path(RKNN_INCLUDE_DIR rknn_api.h PATHS
@@ -36,7 +34,6 @@ target_include_directories(rk_decode_demo PRIVATE
     ${RK_MPP_INCLUDE_DIR}
     ${RGA_INCLUDE_DIR}
     ${RKNN_INCLUDE_DIR}
-    ${CURL_INCLUDE_DIRS}
 )
 
 if(RK_MPP_LIB)
@@ -51,7 +48,6 @@ endif()
 if(DL_LIB)
     target_link_libraries(rk_decode_demo PRIVATE ${DL_LIB})
 endif()
-target_link_libraries(rk_decode_demo PRIVATE ${CURL_LIBRARIES})
 
 target_compile_definitions(rk_decode_demo PRIVATE
     RK_DECODE_DEMO_RK_MPP_INCLUDE_DIR="${RK_MPP_INCLUDE_DIR}"
@@ -66,5 +62,3 @@ message(STATUS "RK_MPP_LIB=${RK_MPP_LIB}")
 message(STATUS "RGA_LIB=${RGA_LIB}")
 message(STATUS "RKNN_LIB=${RKNN_LIB}")
 
-message(STATUS "CURL_INCLUDE_DIRS=${CURL_INCLUDE_DIRS}")
-message(STATUS "CURL_LIBRARIES=${CURL_LIBRARIES}")
