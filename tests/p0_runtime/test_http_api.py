@@ -225,6 +225,7 @@ class P0HttpApiTests(unittest.TestCase):
                 6,
             )
             expected_outlier_inlier_ratio_delta_positive = expected_outlier_inlier_ratio_delta > 0.0
+            expected_outlier_inlier_ratio_delta_nonpositive = expected_outlier_inlier_ratio_delta <= 0.0
             if expected_outlier_inlier_ratio_delta > 0.0:
                 expected_outlier_inlier_ratio_delta_sign = 1
             elif expected_outlier_inlier_ratio_delta < 0.0:
@@ -273,6 +274,7 @@ class P0HttpApiTests(unittest.TestCase):
             expected_outlier_inlier_ratio_delta_abs = 0.0
             expected_outlier_inlier_ratio_delta_sign = 0
             expected_outlier_inlier_ratio_delta_positive = False
+            expected_outlier_inlier_ratio_delta_nonpositive = True
         if gaps:
             expected_total_raw = float(sum(gaps))
             expected_avg_raw = expected_total_raw / float(len(gaps))
@@ -337,6 +339,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertAlmostEqual(expected_outlier_inlier_ratio_delta_abs, float(data["window_time_gap_outlier_inlier_ratio_delta_abs"]), places=6)
         self.assertEqual(expected_outlier_inlier_ratio_delta_sign, int(data["window_time_gap_outlier_inlier_ratio_delta_sign"]))
         self.assertEqual(expected_outlier_inlier_ratio_delta_positive, bool(data["window_time_gap_outlier_inlier_ratio_delta_positive"]))
+        self.assertEqual(expected_outlier_inlier_ratio_delta_nonpositive, bool(data["window_time_gap_outlier_inlier_ratio_delta_nonpositive"]))
 
     def test_issue_token_endpoint(self) -> None:
         status, payload = self._post("/api/v1/auth/token", {"user_id": "u1", "role": "operator"})
@@ -3356,6 +3359,9 @@ class P0HttpApiTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
 
 
 
