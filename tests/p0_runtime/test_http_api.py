@@ -206,6 +206,10 @@ class P0HttpApiTests(unittest.TestCase):
             expected_outlier_ratio = round(float(expected_outlier_count) / float(len(gaps)), 6)
             expected_inlier_count = max(0, int(len(gaps)) - int(expected_outlier_count))
             expected_inlier_ratio = round(float(expected_inlier_count) / float(len(gaps)), 6)
+            expected_outlier_inlier_count_ratio = round(
+                float(expected_outlier_count) / float(max(1, int(expected_inlier_count))),
+                6,
+            )
             p95_index = max(0, int((len(sorted_gaps) * 95 + 99) // 100) - 1)
             expected_p95 = round(float(sorted_gaps[p95_index]), 6)
             p99_index = max(0, int((len(sorted_gaps) * 99 + 99) // 100) - 1)
@@ -240,6 +244,7 @@ class P0HttpApiTests(unittest.TestCase):
             expected_outlier_ratio = 0.0
             expected_inlier_count = 0
             expected_inlier_ratio = 0.0
+            expected_outlier_inlier_count_ratio = 0.0
         if gaps:
             expected_total_raw = float(sum(gaps))
             expected_avg_raw = expected_total_raw / float(len(gaps))
@@ -296,6 +301,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertAlmostEqual(expected_outlier_ratio, float(data["window_time_gap_outlier_ratio"]), places=6)
         self.assertEqual(expected_inlier_count, int(data["window_time_gap_inlier_count"]))
         self.assertAlmostEqual(expected_inlier_ratio, float(data["window_time_gap_inlier_ratio"]), places=6)
+        self.assertAlmostEqual(expected_outlier_inlier_count_ratio, float(data["window_time_gap_outlier_inlier_count_ratio"]), places=6)
 
     def test_issue_token_endpoint(self) -> None:
         status, payload = self._post("/api/v1/auth/token", {"user_id": "u1", "role": "operator"})
