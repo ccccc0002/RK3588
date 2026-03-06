@@ -1,0 +1,17 @@
+﻿# Checkpoint 20260306-105419-P4-iteration-92-audit-cursor-window-time-gap-inlier-outlier-count-ratio-validated
+
+- Time: 2026-03-06T10:54:19+08:00
+- Stage: P4-iteration-92-audit-cursor-window-time-gap-inlier-outlier-count-ratio-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 2ddde2de59a0e2192c830d0693a5d45f8b3d7887
+- Tag: checkpoint/P4-iteration-92-audit-cursor-window-time-gap-inlier-outlier-count-ratio-validated/20260306-105419
+- Summary: add window_time_gap_inlier_outlier_count_ratio across runtime/http/docs/tests with py3.8 isolated validation
+- Next: continue P4 metadata rollout iteration-93
+
+## Changed Files
+- docs/api/p0-openapi.yaml
+- docs/api/p0-runtime-endpoints.md
+- docs/workflow/agent-sync-log.md
+- src/p0_runtime/runtime.py
+- tests/p0_runtime/test_http_api.py
+- tests/p0_runtime/test_runtime.py
