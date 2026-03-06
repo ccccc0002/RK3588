@@ -1276,3 +1276,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-112-runtime-token-secret-configurable-validated/20260306-150439
 - Summary: make runtime token_secret configurable via env or explicit parameter with local and remote validation
 - Next: continue P4 hardening and integration tasks
+
+## [2026-03-06T16:24:37+08:00] P4-iteration-113-inference-plan-contract-local-gate
+- Branch: stage/P3-phase2-readiness
+- Commit: e12b170
+- Tag: checkpoint/P4-iteration-113-inference-plan-contract-local-gate/20260306-162437
+- Summary: added inference plan control contract endpoint with runtime/http/fastapi/docs/tests parity and local full unittest validation; remote py3.8 gate pending due SSH tooling limitation
+- Next: sync branch and tags to GitHub, then resume RK3588 data-plane MPP+RGA+RKNN work once remote noninteractive validation is available
