@@ -1283,3 +1283,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-113-inference-plan-contract-local-gate/20260306-162437
 - Summary: added inference plan control contract endpoint with runtime/http/fastapi/docs/tests parity and local full unittest validation; remote py3.8 gate pending due SSH tooling limitation
 - Next: sync branch and tags to GitHub, then resume RK3588 data-plane MPP+RGA+RKNN work once remote noninteractive validation is available
+
+## [2026-03-06T17:06:44+08:00] P4-iteration-114-rk3588-decode-demo-skeleton
+- Branch: stage/P3-phase2-readiness
+- Commit: c703fb8
+- Tag: checkpoint/P4-iteration-114-rk3588-decode-demo-skeleton/20260306-170644
+- Summary: synced remote repo via safe backup plus bundle fallback, added tracked decode_demo CMake skeleton for MPP/RGA/RKNN probing, and validated remote self-check with local Python regression suite
+- Next: push branch/tag to GitHub, bundle latest decode_demo back to remote, then implement inference-plan fetch and first-frame pipeline wiring

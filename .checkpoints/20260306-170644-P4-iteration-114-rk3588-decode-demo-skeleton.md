@@ -1,0 +1,17 @@
+﻿# Checkpoint 20260306-170644-P4-iteration-114-rk3588-decode-demo-skeleton
+
+- Time: 2026-03-06T17:06:44+08:00
+- Stage: P4-iteration-114-rk3588-decode-demo-skeleton
+- Branch: stage/P3-phase2-readiness
+- Commit: c703fb8fe2b50735ef749db18e05a48409c602bb
+- Tag: checkpoint/P4-iteration-114-rk3588-decode-demo-skeleton/20260306-170644
+- Summary: synced remote repo via safe backup plus bundle fallback, added tracked decode_demo CMake skeleton for MPP/RGA/RKNN probing, and validated remote self-check with local Python regression suite
+- Next: push branch/tag to GitHub, bundle latest decode_demo back to remote, then implement inference-plan fetch and first-frame pipeline wiring
+
+## Changed Files
+- decode_demo/CMakeLists.txt
+- decode_demo/README.md
+- decode_demo/include/decode_demo/runtime_probe.hpp
+- decode_demo/src/main.cpp
+- decode_demo/src/runtime_probe.cpp
+- docs/workflow/agent-sync-log.md
