@@ -1269,3 +1269,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-111-audit-cursor-window-time-gap-outlier-inlier-ratio-delta-per-mille-validated/20260306-145015
 - Summary: add window_time_gap_outlier_inlier_ratio_delta_per_mille metadata with local and remote validation
 - Next: continue next audit cursor metadata iteration
+
+## [2026-03-06T15:04:39+08:00] P4-iteration-112-runtime-token-secret-configurable-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: a91e53a
+- Tag: checkpoint/P4-iteration-112-runtime-token-secret-configurable-validated/20260306-150439
+- Summary: make runtime token_secret configurable via env or explicit parameter with local and remote validation
+- Next: continue P4 hardening and integration tasks
