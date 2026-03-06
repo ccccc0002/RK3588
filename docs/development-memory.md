@@ -1290,3 +1290,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-114-rk3588-decode-demo-skeleton/20260306-170644
 - Summary: synced remote repo via safe backup plus bundle fallback, added tracked decode_demo CMake skeleton for MPP/RGA/RKNN probing, and validated remote self-check with local Python regression suite
 - Next: push branch/tag to GitHub, bundle latest decode_demo back to remote, then implement inference-plan fetch and first-frame pipeline wiring
+
+## [2026-03-06T17:08:31+08:00] P4-iteration-115-inference-plan-fetch-tool
+- Branch: stage/P3-phase2-readiness
+- Commit: 3d475e1
+- Tag: checkpoint/P4-iteration-115-inference-plan-fetch-tool/20260306-170831
+- Summary: added decode_demo fetch_inference_plan.py tool and documented runtime plan export flow while keeping local Python regression suite green
+- Next: push branch/tag to GitHub, sync decode_demo tool to remote via bundle if needed, then wire plan-file consumption into the C++ executable
