@@ -1427,6 +1427,36 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/inference/plan:
+    post:
+      tags: [runtime]
+      summary: Build the normalized inference execution plan for enabled devices
+      description: >-
+        Extends the runtime scheduler output with ingest metadata and per-capability
+        algorithm/base-library bindings so an external RK3588 inference core can
+        consume a deterministic control-plane contract.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuntimeScheduleRequest'
+      responses:
+        '200':
+          description: Inference plan result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InferencePlanEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/runtime/telemetry:
     get:
       tags: [runtime]
@@ -2633,6 +2663,123 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/RuntimeScheduleStream'
+
+    InferencePlanWorkload:
+      type: object
+      required: [capability, binding_status]
+      properties:
+        capability:
+          type: string
+          enum: [face, ocr]
+        algorithm_id:
+          type: string
+          nullable: true
+        algorithm_version:
+          type: string
+          nullable: true
+        algorithm_status:
+          type: string
+          nullable: true
+        base_library_id:
+          type: string
+          nullable: true
+        base_library_version:
+          type: string
+          nullable: true
+        binding_status:
+          type: string
+          enum: [ready, missing_algorithm, missing_base_library, missing_algorithm_and_base_library]
+
+    InferencePlanCapabilities:
+      type: object
+      required: [ocr, face]
+      properties:
+        ocr:
+          type: boolean
+        face:
+          type: boolean
+
+    InferencePlanStream:
+      type: object
+      required:
+        - tenant_id
+        - site_id
+        - box_id
+        - device_id
+        - protocol
+        - stream_url
+        - ingest_spec
+        - capabilities
+        - fps_in
+        - sample_fps
+        - estimated_cost
+        - priority
+        - complexity
+        - workloads
+        - workload_count
+        - ready_workload_count
+        - binding_ready
+      properties:
+        tenant_id:
+          type: string
+        site_id:
+          type: string
+        box_id:
+          type: string
+        device_id:
+          type: string
+        protocol:
+          type: string
+        stream_url:
+          type: string
+        ingest_spec:
+          type: object
+          additionalProperties: true
+        capabilities:
+          $ref: '#/components/schemas/InferencePlanCapabilities'
+        fps_in:
+          type: number
+        sample_fps:
+          type: number
+        estimated_cost:
+          type: number
+        priority:
+          type: integer
+        complexity:
+          type: number
+        workloads:
+          type: array
+          items:
+            $ref: '#/components/schemas/InferencePlanWorkload'
+        workload_count:
+          type: integer
+          minimum: 0
+        ready_workload_count:
+          type: integer
+          minimum: 0
+        binding_ready:
+          type: boolean
+
+    InferencePlanData:
+      type: object
+      required: [budget, degraded, total_cost, stream_count, ready_stream_count, streams]
+      properties:
+        budget:
+          type: number
+        degraded:
+          type: boolean
+        total_cost:
+          type: number
+        stream_count:
+          type: integer
+          minimum: 0
+        ready_stream_count:
+          type: integer
+          minimum: 0
+        streams:
+          type: array
+          items:
+            $ref: '#/components/schemas/InferencePlanStream'
 
     RuntimeTelemetryRequest:
       type: object
@@ -3988,6 +4135,14 @@ components:
             data:
               $ref: '#/components/schemas/RuntimeScheduleData'
 
+    InferencePlanEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/InferencePlanData'
+
     RuntimeTelemetryEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiSuccessEnvelope'
@@ -4091,3 +4246,6 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/MetricsData'
+
+
+

@@ -2073,6 +2073,134 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertGreater(streams["cam-telemetry-high"]["sample_fps"], streams["cam-telemetry-low"]["sample_fps"])
         self.assertLessEqual(streams["cam-telemetry-low"]["sample_fps"], 2.0)
 
+    def test_build_inference_plan_resolves_bindings_and_missing_workloads(self) -> None:
+        self.runtime.upsert_algorithm(
+            {
+                "algorithm_id": "face-detector",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            }
+        )
+        self.runtime.upsert_algorithm(
+            {
+                "algorithm_id": "ocr-engine",
+                "version": "2.0.0",
+                "status": "active",
+                "capabilities": ["ocr"],
+            }
+        )
+        self.runtime.upsert_algorithm(
+            {
+                "algorithm_id": "ocr-engine",
+                "version": "1.0.0",
+                "status": "draft",
+                "capabilities": ["ocr"],
+            }
+        )
+        self.runtime.upsert_base_library(
+            {
+                "library_id": "lib-face-core",
+                "version": "2026.03",
+                "capability": "face",
+                "status": "active",
+            }
+        )
+        self.runtime.upsert_base_library(
+            {
+                "library_id": "lib-ocr-core",
+                "version": "2026.03",
+                "capability": "ocr",
+                "status": "active",
+            }
+        )
+        self.runtime.register_device(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-ready",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.70/live",
+                "capabilities": {"ocr": True, "face": True},
+                "enabled": True,
+            }
+        )
+        self.runtime.register_device(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-missing",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.71/live",
+                "capabilities": {"ocr": True, "face": False},
+                "enabled": True,
+            }
+        )
+        self.runtime.upsert_base_library_mapping(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-ready",
+                "capability": "face",
+                "library_id": "lib-face-core",
+                "library_version": "2026.03",
+            }
+        )
+        self.runtime.upsert_base_library_mapping(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-ready",
+                "capability": "ocr",
+                "library_id": "lib-ocr-core",
+                "library_version": "2026.03",
+            }
+        )
+        self.runtime.update_stream_telemetry(
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-ready",
+                "fps_in": 12.0,
+            },
+            now=self.now,
+        )
+
+        plan = self.runtime.build_inference_plan(budget=100.0)
+
+        self.assertEqual(100.0, plan["budget"])
+        self.assertEqual(2, plan["stream_count"])
+        self.assertEqual(1, plan["ready_stream_count"])
+        self.assertEqual(["cam-missing", "cam-ready"], [item["device_id"] for item in plan["streams"]])
+
+        ready_stream = next(item for item in plan["streams"] if item["device_id"] == "cam-ready")
+        self.assertEqual(2, ready_stream["workload_count"])
+        self.assertEqual(2, ready_stream["ready_workload_count"])
+        self.assertTrue(ready_stream["binding_ready"])
+        self.assertEqual(8.0, ready_stream["sample_fps"])
+        workloads = {item["capability"]: item for item in ready_stream["workloads"]}
+        self.assertEqual("ready", workloads["face"]["binding_status"])
+        self.assertEqual("face-detector", workloads["face"]["algorithm_id"])
+        self.assertEqual("1.0.0", workloads["face"]["algorithm_version"])
+        self.assertEqual("lib-face-core", workloads["face"]["base_library_id"])
+        self.assertEqual("ready", workloads["ocr"]["binding_status"])
+        self.assertEqual("ocr-engine", workloads["ocr"]["algorithm_id"])
+        self.assertEqual("2.0.0", workloads["ocr"]["algorithm_version"])
+        self.assertEqual("lib-ocr-core", workloads["ocr"]["base_library_id"])
+
+        missing_stream = next(item for item in plan["streams"] if item["device_id"] == "cam-missing")
+        self.assertEqual(1, missing_stream["workload_count"])
+        self.assertEqual(0, missing_stream["ready_workload_count"])
+        self.assertFalse(missing_stream["binding_ready"])
+        self.assertEqual("missing_base_library", missing_stream["workloads"][0]["binding_status"])
+        self.assertEqual("ocr-engine", missing_stream["workloads"][0]["algorithm_id"])
+        self.assertIsNone(missing_stream["workloads"][0]["base_library_id"])
+
     def test_audit_records_capture_device_changes(self) -> None:
         self.runtime.register_device(
             {
@@ -3873,3 +4001,4 @@ class P0RuntimeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

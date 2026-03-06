@@ -383,6 +383,12 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
                 _json_response(self, 200, ok_payload(res))
                 return
 
+            if parsed.path == "/api/v1/inference/plan":
+                budget = float(body.get("budget", 10.0))
+                res = self.runtime.build_inference_plan(budget=budget)
+                _json_response(self, 200, ok_payload(res))
+                return
+
             if parsed.path == "/api/v1/runtime/telemetry":
                 res = self.runtime.update_stream_telemetry(dict(body), now=_parse_time(body.get("now")))
                 _json_response(self, 200, ok_payload(res))
@@ -530,3 +536,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

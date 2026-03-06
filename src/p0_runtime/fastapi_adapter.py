@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime
 import importlib.util
@@ -682,6 +682,17 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         budget = float(payload.get("budget", 10.0))
         return ok_payload(rt.plan_capability_schedule(budget=budget))
 
+    @app.post("/api/v1/inference/plan")
+    def inference_plan_ep(
+        payload: dict = Body(default_factory=dict),
+        authorization: str = Header(default="", alias="Authorization"),
+    ):
+        denied = _authorize_request(authorization, required_post_action("/api/v1/inference/plan") or "device:read")
+        if denied is not None:
+            return denied
+        budget = float(payload.get("budget", 10.0))
+        return ok_payload(rt.build_inference_plan(budget=budget))
+
     @app.get("/api/v1/runtime/telemetry")
     def runtime_telemetry_ep(authorization: str = Header(default="", alias="Authorization")):
         denied = _authorize_request(authorization, required_get_action("/api/v1/runtime/telemetry") or "device:read")
@@ -853,3 +864,4 @@ def create_fastapi_app(runtime: P0Runtime | None = None, bootstrap_token: str = 
         return ok_payload(rt.stop_push_worker())
 
     return app
+

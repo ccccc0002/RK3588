@@ -1922,6 +1922,83 @@ class P0HttpApiTests(unittest.TestCase):
             streams["cam-telemetry-low-http"]["sample_fps"],
         )
 
+    def test_inference_plan_endpoint(self) -> None:
+        self._post(
+            "/api/v1/algorithms/upsert",
+            {
+                "algorithm_id": "face-detector-http",
+                "version": "1.0.0",
+                "status": "active",
+                "capabilities": ["face"],
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/base-libraries/upsert",
+            {
+                "library_id": "lib-face-http",
+                "version": "2026.03",
+                "capability": "face",
+                "status": "active",
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/devices/register",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-inference-http",
+                "protocol": "rtsp",
+                "stream_url": "rtsp://10.0.0.80/live",
+                "capabilities": {"ocr": False, "face": True},
+                "enabled": True,
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/base-libraries/mappings/upsert",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-inference-http",
+                "capability": "face",
+                "library_id": "lib-face-http",
+                "library_version": "2026.03",
+            },
+            token=self.operator_token,
+        )
+        self._post(
+            "/api/v1/runtime/telemetry",
+            {
+                "tenant_id": "t1",
+                "site_id": "s1",
+                "box_id": "b1",
+                "device_id": "cam-inference-http",
+                "fps_in": 9.0,
+            },
+            token=self.operator_token,
+        )
+
+        status, payload = self._post("/api/v1/inference/plan", {"budget": 20.0}, token=self.viewer_token)
+        self.assertEqual(200, status)
+        self.assertTrue(payload["success"])
+        self.assertEqual(20.0, payload["data"]["budget"])
+        stream = next(item for item in payload["data"]["streams"] if item["device_id"] == "cam-inference-http")
+        self.assertEqual("rtsp", stream["protocol"])
+        self.assertEqual({"ocr": False, "face": True}, stream["capabilities"])
+        self.assertEqual(1, stream["workload_count"])
+        self.assertEqual(1, stream["ready_workload_count"])
+        self.assertTrue(stream["binding_ready"])
+        self.assertLessEqual(stream["sample_fps"], 8.0)
+        workload = stream["workloads"][0]
+        self.assertEqual("face", workload["capability"])
+        self.assertEqual("face-detector-http", workload["algorithm_id"])
+        self.assertEqual("lib-face-http", workload["base_library_id"])
+        self.assertEqual("ready", workload["binding_status"])
+
     def test_audit_recent_endpoint_requires_operator_role(self) -> None:
         self._post(
             "/api/v1/devices/register",
@@ -3414,3 +3491,4 @@ class P0HttpApiTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

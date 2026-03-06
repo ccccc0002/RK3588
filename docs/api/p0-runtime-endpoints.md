@@ -620,6 +620,26 @@ GB28181 example:
     - `streams[]` with `device_id`, `sample_fps`, `estimated_cost`
   - scheduler input `fps_in` comes from latest runtime telemetry when available, otherwise falls back to default `8.0`
 
+- `POST /api/v1/inference/plan`
+  - body: `{ "budget": 10.0 }`
+  - RBAC: requires `device:read`
+  - 200 envelope with the normalized control-plane contract for the RK3588 inference core:
+    - top-level fields:
+      - `budget`, `degraded`, `total_cost`, `stream_count`, `ready_stream_count`
+    - `streams[]` fields:
+      - identity: `tenant_id`, `site_id`, `box_id`, `device_id`
+      - ingest: `protocol`, `stream_url`, `ingest_spec`
+      - scheduling: `fps_in`, `sample_fps`, `estimated_cost`, `priority`, `complexity`
+      - capability state: `capabilities`, `workload_count`, `ready_workload_count`, `binding_ready`
+      - `workloads[]` per enabled capability (`face`, `ocr`) with:
+        - `capability`
+        - `algorithm_id`, `algorithm_version`, `algorithm_status`
+        - `base_library_id`, `base_library_version`
+        - `binding_status` (`ready`, `missing_algorithm`, `missing_base_library`, `missing_algorithm_and_base_library`)
+  - algorithm resolution is deterministic: the runtime selects the lexicographically first active algorithm whose `capabilities[]` include the requested capability
+  - base-library resolution is per-device and per-capability, using the existing `/api/v1/base-libraries/mappings/*` state
+  - this endpoint is the current bridge contract between the Python control-plane and a future MPP + RGA + RKNN data-plane process
+
 - `GET /api/v1/runtime/telemetry`
   - RBAC: requires `device:read`
   - 200 envelope with `{ "items": [ { "tenant_id": "...", "site_id": "...", "box_id": "...", "device_id": "...", "fps_in": 12.0, "updated_at": "..." } ] }`
@@ -1201,3 +1221,4 @@ File: `src/p0_runtime/fastapi_adapter.py`
 ```powershell
 python -m unittest discover -s tests -p 'test_*.py'
 ```
+

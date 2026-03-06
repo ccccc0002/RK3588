@@ -3041,21 +3041,68 @@ class P0Runtime:
         items.sort(key=lambda item: (item["tenant_id"], item["site_id"], item["box_id"], item["device_id"]))
         return items
 
-    def plan_capability_schedule(self, budget: float) -> dict:
+    @staticmethod
+    def _device_stream_sort_key(item: dict) -> tuple[str, str, str, str]:
+        return (
+            str(item.get("tenant_id", "")),
+            str(item.get("site_id", "")),
+            str(item.get("box_id", "")),
+            str(item.get("device_id", "")),
+        )
+
+    @staticmethod
+    def _capability_priority_and_complexity(capabilities: dict) -> tuple[int, float]:
+        priority = 3 if capabilities["face"] else (2 if capabilities["ocr"] else 1)
+        complexity = 1.0 + (0.6 if capabilities["face"] else 0.0) + (0.4 if capabilities["ocr"] else 0.0)
+        return priority, complexity
+
+    @staticmethod
+    def _select_algorithm_for_capability(algorithms: list[dict], capability: str) -> dict | None:
+        normalized_capability = str(capability).strip().lower()
+        candidates: list[dict] = []
+        for item in algorithms:
+            if str(item.get("status", "")).strip().lower() != "active":
+                continue
+            capabilities = {
+                str(entry).strip().lower()
+                for entry in item.get("capabilities", [])
+                if str(entry).strip()
+            }
+            if normalized_capability in capabilities:
+                candidates.append(dict(item))
+        if not candidates:
+            return None
+        candidates.sort(key=lambda item: (str(item.get("algorithm_id", "")), str(item.get("version", ""))))
+        return dict(candidates[0])
+
+    def build_inference_plan(self, budget: float) -> dict:
         capped_budget = max(0.1, float(budget))
         with self._lock:
             devices = [dict(item) for item in self._devices.values() if bool(item.get("enabled", True))]
+            devices.sort(key=self._device_stream_sort_key)
             previous = self._last_capability_schedule
             telemetry_map = {key: float(item.get("fps_in", 8.0)) for key, item in self._stream_telemetry.items()}
+            algorithms = [dict(item) for item in self._algorithms.values()]
+            base_library_mappings = {key: dict(item) for key, item in self._base_library_mappings.items()}
 
-        streams = []
+        stream_loads: list[StreamLoad] = []
+        prepared_devices: list[dict] = []
         for item in devices:
-            key = (item["tenant_id"], item["site_id"], item["box_id"], item["device_id"])
-            fps_in = float(telemetry_map.get(key, 8.0))
+            device_key = (item["tenant_id"], item["site_id"], item["box_id"], item["device_id"])
+            fps_in = float(telemetry_map.get(device_key, 8.0))
             capabilities = self._normalize_capabilities(item.get("capabilities"))
-            priority = 3 if capabilities["face"] else (2 if capabilities["ocr"] else 1)
-            complexity = 1.0 + (0.6 if capabilities["face"] else 0.0) + (0.4 if capabilities["ocr"] else 0.0)
-            streams.append(
+            priority, complexity = self._capability_priority_and_complexity(capabilities)
+            prepared_devices.append(
+                {
+                    "device": item,
+                    "device_key": device_key,
+                    "fps_in": fps_in,
+                    "capabilities": capabilities,
+                    "priority": priority,
+                    "complexity": complexity,
+                }
+            )
+            stream_loads.append(
                 StreamLoad(
                     stream_id=str(item["device_id"]),
                     fps_in=fps_in,
@@ -3064,20 +3111,89 @@ class P0Runtime:
                 )
             )
 
-        plan = build_schedule(tuple(streams), budget=capped_budget, previous=previous)
+        plan = build_schedule(tuple(stream_loads), budget=capped_budget, previous=previous)
         with self._lock:
             self._last_capability_schedule = plan
 
+        schedule_by_device = {item.stream_id: item for item in plan.streams}
+        streams: list[dict] = []
+        for prepared in prepared_devices:
+            device = dict(prepared["device"])
+            schedule_item = schedule_by_device.get(str(device["device_id"]))
+            if schedule_item is None:
+                continue
+
+            workloads: list[dict] = []
+            for capability in ("face", "ocr"):
+                if not bool(prepared["capabilities"].get(capability, False)):
+                    continue
+                algorithm = self._select_algorithm_for_capability(algorithms, capability)
+                mapping = base_library_mappings.get(prepared["device_key"] + (capability,))
+                if algorithm is not None and mapping is not None:
+                    binding_status = "ready"
+                elif algorithm is None and mapping is None:
+                    binding_status = "missing_algorithm_and_base_library"
+                elif algorithm is None:
+                    binding_status = "missing_algorithm"
+                else:
+                    binding_status = "missing_base_library"
+                workloads.append(
+                    {
+                        "capability": capability,
+                        "algorithm_id": None if algorithm is None else str(algorithm.get("algorithm_id", "")),
+                        "algorithm_version": None if algorithm is None else str(algorithm.get("version", "")),
+                        "algorithm_status": None if algorithm is None else str(algorithm.get("status", "")),
+                        "base_library_id": None if mapping is None else str(mapping.get("library_id", "")),
+                        "base_library_version": None if mapping is None else str(mapping.get("library_version", "")),
+                        "binding_status": binding_status,
+                    }
+                )
+
+            ready_workload_count = sum(1 for item in workloads if item["binding_status"] == "ready")
+            streams.append(
+                {
+                    "tenant_id": str(device["tenant_id"]),
+                    "site_id": str(device["site_id"]),
+                    "box_id": str(device["box_id"]),
+                    "device_id": str(device["device_id"]),
+                    "protocol": str(device.get("protocol", "")),
+                    "stream_url": str(device.get("stream_url", "")),
+                    "ingest_spec": dict(device.get("ingest_spec", {})),
+                    "capabilities": dict(prepared["capabilities"]),
+                    "fps_in": float(prepared["fps_in"]),
+                    "sample_fps": float(schedule_item.sample_fps),
+                    "estimated_cost": float(schedule_item.estimated_cost),
+                    "priority": int(prepared["priority"]),
+                    "complexity": round(float(prepared["complexity"]), 6),
+                    "workloads": workloads,
+                    "workload_count": len(workloads),
+                    "ready_workload_count": ready_workload_count,
+                    "binding_ready": len(workloads) == ready_workload_count,
+                }
+            )
+
+        ready_stream_count = sum(1 for item in streams if bool(item["binding_ready"]))
         return {
+            "budget": capped_budget,
             "degraded": bool(plan.degraded),
             "total_cost": float(plan.total_cost),
+            "stream_count": len(streams),
+            "ready_stream_count": ready_stream_count,
+            "streams": streams,
+        }
+
+    def plan_capability_schedule(self, budget: float) -> dict:
+        plan = self.build_inference_plan(budget=budget)
+        return {
+            "degraded": bool(plan["degraded"]),
+            "total_cost": float(plan["total_cost"]),
             "streams": [
                 {
-                    "device_id": item.stream_id,
-                    "sample_fps": float(item.sample_fps),
-                    "estimated_cost": float(item.estimated_cost),
+                    "device_id": item["device_id"],
+                    "sample_fps": float(item["sample_fps"]),
+                    "estimated_cost": float(item["estimated_cost"]),
                 }
-                for item in plan.streams
+                for item in plan["streams"]
             ],
         }
 
@@ -3337,3 +3453,4 @@ class P0Runtime:
                 "gray_batch_cache_policy_default_max_clear_entries": policy_default_max_clear_entries,
                 "gray_batch_cache_policy_enabled": policy_default_max_clear_entries is not None,
             }
+

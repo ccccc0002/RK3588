@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 
 SUPPORTED_ROLES = frozenset({"admin", "operator", "viewer"})
@@ -132,3 +132,4 @@ def required_post_action(path: str) -> str | None:
     if path == "/api/v1/push/worker/stop":
         return "device:write"
     return None
+
