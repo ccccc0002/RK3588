@@ -1234,3 +1234,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-106-audit-cursor-window-time-gap-outlier-inlier-ratio-delta-direction-code-validated/20260306-133054
 - Summary: add window_time_gap_outlier_inlier_ratio_delta_direction_code metadata with local and remote validation
 - Next: start next delta-family metadata iteration
+
+## [2026-03-06T13:42:44+08:00] P4-iteration-107-audit-cursor-window-time-gap-outlier-inlier-ratio-delta-percentage-points-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 6e31592
+- Tag: checkpoint/P4-iteration-107-audit-cursor-window-time-gap-outlier-inlier-ratio-delta-percentage-points-validated/20260306-134244
+- Summary: add window_time_gap_outlier_inlier_ratio_delta_percentage_points metadata with local and remote validation
+- Next: continue next audit cursor metadata iteration
