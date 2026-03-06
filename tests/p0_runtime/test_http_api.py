@@ -197,6 +197,7 @@ class P0HttpApiTests(unittest.TestCase):
                 )
             else:
                 expected_outlier_lower_truncation_ratio = 0.0
+            expected_outlier_lower_clipped = float(expected_outlier_lower) < 0.0
             expected_outlier_ratio = round(float(expected_outlier_count) / float(len(gaps)), 6)
             expected_inlier_count = max(0, int(len(gaps)) - int(expected_outlier_count))
             expected_inlier_ratio = round(float(expected_inlier_count) / float(len(gaps)), 6)
@@ -225,6 +226,7 @@ class P0HttpApiTests(unittest.TestCase):
             expected_outlier_effective_coverage_ratio = 0.0
             expected_outlier_lower_truncation_seconds = 0.0
             expected_outlier_lower_truncation_ratio = 0.0
+            expected_outlier_lower_clipped = False
             expected_outlier_ratio = 0.0
             expected_inlier_count = 0
             expected_inlier_ratio = 0.0
@@ -275,6 +277,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertAlmostEqual(expected_outlier_effective_coverage_ratio, float(data["window_time_gap_outlier_effective_coverage_ratio"]), places=6)
         self.assertAlmostEqual(expected_outlier_lower_truncation_seconds, float(data["window_time_gap_outlier_lower_truncation_seconds"]), places=6)
         self.assertAlmostEqual(expected_outlier_lower_truncation_ratio, float(data["window_time_gap_outlier_lower_truncation_ratio"]), places=6)
+        self.assertEqual(expected_outlier_lower_clipped, bool(data["window_time_gap_outlier_lower_clipped"]))
         self.assertAlmostEqual(expected_outlier_ratio, float(data["window_time_gap_outlier_ratio"]), places=6)
         self.assertEqual(expected_inlier_count, int(data["window_time_gap_inlier_count"]))
         self.assertAlmostEqual(expected_inlier_ratio, float(data["window_time_gap_inlier_ratio"]), places=6)
