@@ -23,6 +23,16 @@ Self-check:
 ./build/rk_decode_demo --self-check
 ```
 
+Fetch runtime plan into a local JSON artifact:
+
+```bash
+python3 tools/fetch_inference_plan.py \
+  --runtime-url http://127.0.0.1:18080 \
+  --budget 12 \
+  --token <bearer-token> \
+  --output artifacts/inference-plan.json
+```
+
 Planned next steps:
 
 1. Accept an inference-plan JSON file produced by the Python runtime.
@@ -30,3 +40,4 @@ Planned next steps:
 3. Use RGA for resize/color conversion to RKNN input tensors.
 4. Load an `.rknn` model and run one-frame inference.
 5. Return structured detections back to the Python runtime.
+
