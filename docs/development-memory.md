@@ -1115,3 +1115,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-89-audit-cursor-window-time-gap-outlier-lower-clip-state-validated/20260306-103343
 - Summary: add window_time_gap_outlier_lower_clip_state across runtime/http/docs/tests with py3.8 isolated validation
 - Next: continue P4 metadata rollout iteration-90
+
+## [2026-03-06T10:43:12+08:00] P4-iteration-90-audit-cursor-window-time-gap-outlier-lower-clip-state-code-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: e01d583
+- Tag: checkpoint/P4-iteration-90-audit-cursor-window-time-gap-outlier-lower-clip-state-code-validated/20260306-104312
+- Summary: add window_time_gap_outlier_lower_clip_state_code across runtime/http/docs/tests with py3.8 isolated validation
+- Next: continue P4 metadata rollout iteration-91
