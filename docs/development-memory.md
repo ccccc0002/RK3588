@@ -1052,3 +1052,10 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-80-audit-cursor-window-time-gap-outlier-effective-span-seconds-validated/20260306-085332
 - Summary: added window_time_gap_outlier_effective_span_seconds across runtime/http/docs/openapi with local and remote test validation
 - Next: continue audit cursor distribution metadata iterations
+
+## [2026-03-06T09:05:39+08:00] P4-iteration-81-audit-cursor-window-time-gap-outlier-effective-midpoint-seconds-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: f658a12
+- Tag: checkpoint/P4-iteration-81-audit-cursor-window-time-gap-outlier-effective-midpoint-seconds-validated/20260306-090539
+- Summary: added window_time_gap_outlier_effective_midpoint_seconds across runtime/http/docs/openapi with local and remote test validation
+- Next: continue audit cursor distribution metadata iterations
