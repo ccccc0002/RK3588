@@ -2985,6 +2985,9 @@ components:
           minimum: -1
           maximum: 1
           nullable: true
+        window_time_gap_outlier_inlier_ratio_delta_basis_points:
+          type: integer
+          nullable: true
         window_time_gap_outlier_inlier_ratio_delta_percentage_points:
           type: number
           nullable: true

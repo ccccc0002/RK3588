@@ -10,3 +10,4 @@ coverage/
 .checkpoints/commit-timeline.local.md
 __pycache__/
 *.pyc
+.tmp/
