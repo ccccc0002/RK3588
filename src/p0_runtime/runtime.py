@@ -1613,6 +1613,7 @@ class P0Runtime:
         window_time_gap_outlier_inlier_ratio_delta_nonpositive = None
         window_time_gap_outlier_inlier_ratio_delta_negative = None
         window_time_gap_outlier_inlier_ratio_delta_nonnegative = None
+        window_time_gap_outlier_inlier_ratio_delta_zero = None
         window_time_gap_inlier_minus_outlier_count = None
         window_time_gap_outlier_minus_inlier_count = None
         window_time_gap_outlier_lower_seconds = None
@@ -1710,6 +1711,7 @@ class P0Runtime:
                     window_time_gap_outlier_inlier_ratio_delta_nonpositive = True
                     window_time_gap_outlier_inlier_ratio_delta_negative = False
                     window_time_gap_outlier_inlier_ratio_delta_nonnegative = True
+                    window_time_gap_outlier_inlier_ratio_delta_zero = True
                     window_time_gap_inlier_minus_outlier_count = 0
                     window_time_gap_outlier_minus_inlier_count = 0
                     window_time_gap_outlier_lower_seconds = 0.0
@@ -1891,6 +1893,9 @@ class P0Runtime:
                     window_time_gap_outlier_inlier_ratio_delta_nonnegative = (
                         window_time_gap_outlier_inlier_ratio_delta >= 0.0
                     )
+                    window_time_gap_outlier_inlier_ratio_delta_zero = (
+                        window_time_gap_outlier_inlier_ratio_delta == 0.0
+                    )
                     p95_index = max(0, int((len(sorted_gaps) * 95 + 99) // 100) - 1)
                     window_time_gap_p95_seconds = round(float(sorted_gaps[p95_index]), 6)
                     p99_index = max(0, int((len(sorted_gaps) * 99 + 99) // 100) - 1)
@@ -2023,6 +2028,7 @@ class P0Runtime:
             "window_time_gap_outlier_inlier_ratio_delta_nonpositive": window_time_gap_outlier_inlier_ratio_delta_nonpositive,
             "window_time_gap_outlier_inlier_ratio_delta_negative": window_time_gap_outlier_inlier_ratio_delta_negative,
             "window_time_gap_outlier_inlier_ratio_delta_nonnegative": window_time_gap_outlier_inlier_ratio_delta_nonnegative,
+            "window_time_gap_outlier_inlier_ratio_delta_zero": window_time_gap_outlier_inlier_ratio_delta_zero,
             "window_time_gap_inlier_minus_outlier_count": window_time_gap_inlier_minus_outlier_count,
             "window_time_gap_outlier_minus_inlier_count": window_time_gap_outlier_minus_inlier_count,
             "window_time_gap_outlier_lower_seconds": window_time_gap_outlier_lower_seconds,
@@ -3263,6 +3269,10 @@ class P0Runtime:
                 "gray_batch_cache_policy_default_max_clear_entries": policy_default_max_clear_entries,
                 "gray_batch_cache_policy_enabled": policy_default_max_clear_entries is not None,
             }
+
+
+
+
 
 
 
