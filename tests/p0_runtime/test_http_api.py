@@ -231,10 +231,13 @@ class P0HttpApiTests(unittest.TestCase):
             expected_outlier_inlier_ratio_delta_zero = expected_outlier_inlier_ratio_delta == 0.0
             expected_outlier_inlier_ratio_delta_nonzero = expected_outlier_inlier_ratio_delta != 0.0
             if expected_outlier_inlier_ratio_delta > 0.0:
+                expected_outlier_inlier_ratio_delta_state = "positive"
                 expected_outlier_inlier_ratio_delta_sign = 1
             elif expected_outlier_inlier_ratio_delta < 0.0:
+                expected_outlier_inlier_ratio_delta_state = "negative"
                 expected_outlier_inlier_ratio_delta_sign = -1
             else:
+                expected_outlier_inlier_ratio_delta_state = "zero"
                 expected_outlier_inlier_ratio_delta_sign = 0
             p95_index = max(0, int((len(sorted_gaps) * 95 + 99) // 100) - 1)
             expected_p95 = round(float(sorted_gaps[p95_index]), 6)
@@ -283,6 +286,7 @@ class P0HttpApiTests(unittest.TestCase):
             expected_outlier_inlier_ratio_delta_nonnegative = True
             expected_outlier_inlier_ratio_delta_zero = True
             expected_outlier_inlier_ratio_delta_nonzero = False
+            expected_outlier_inlier_ratio_delta_state = "zero"
         if gaps:
             expected_total_raw = float(sum(gaps))
             expected_avg_raw = expected_total_raw / float(len(gaps))
@@ -352,6 +356,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(expected_outlier_inlier_ratio_delta_nonnegative, bool(data["window_time_gap_outlier_inlier_ratio_delta_nonnegative"]))
         self.assertEqual(expected_outlier_inlier_ratio_delta_zero, bool(data["window_time_gap_outlier_inlier_ratio_delta_zero"]))
         self.assertEqual(expected_outlier_inlier_ratio_delta_nonzero, bool(data["window_time_gap_outlier_inlier_ratio_delta_nonzero"]))
+        self.assertEqual(expected_outlier_inlier_ratio_delta_state, data["window_time_gap_outlier_inlier_ratio_delta_state"])
 
     def test_issue_token_endpoint(self) -> None:
         status, payload = self._post("/api/v1/auth/token", {"user_id": "u1", "role": "operator"})
@@ -3371,21 +3376,3 @@ class P0HttpApiTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

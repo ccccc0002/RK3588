@@ -2699,7 +2699,7 @@ components:
 
     AuditListData:
       type: object
-      required: [items, limit, before_id, query_string, returned_items, window_max_id, window_min_id, window_span, dense_window, id_gap_count, window_density, window_newest_at, window_oldest_at, window_time_parseable, window_time_unparseable_count, window_time_parseable_count, window_time_missing_at_count, window_time_invalid_at_count, window_time_missing_at_ratio, window_time_invalid_at_ratio, window_time_unparseable_ratio, window_time_parseable_ratio, window_time_span_seconds, window_time_desc_order, window_time_gap_max_seconds, window_time_gap_min_seconds, window_time_gap_range_seconds, window_time_gap_count, window_time_gap_zero_count, window_time_gap_nonzero_count, window_time_gap_zero_ratio, window_time_gap_nonzero_ratio, window_time_gap_median_seconds, window_time_gap_p90_seconds, window_time_gap_p75_seconds, window_time_gap_p25_seconds, window_time_gap_iqr_seconds, window_time_gap_p95_seconds, window_time_gap_p99_seconds, window_time_gap_total_seconds, window_time_gap_avg_seconds, window_time_gap_stddev_seconds, window_time_gap_cv_ratio, window_time_gap_mad_seconds, window_time_gap_mad_ratio, window_time_gap_outlier_count, window_time_gap_outlier_lower_seconds, window_time_gap_outlier_upper_seconds, window_time_gap_outlier_fence_span_seconds, window_time_gap_outlier_fence_midpoint_seconds, window_time_gap_outlier_effective_lower_seconds, window_time_gap_outlier_effective_span_seconds, window_time_gap_outlier_effective_midpoint_seconds, window_time_gap_outlier_effective_coverage_ratio, window_time_gap_outlier_lower_truncation_seconds, window_time_gap_outlier_lower_truncation_ratio, window_time_gap_outlier_lower_clipped, window_time_gap_outlier_lower_clipped_ratio, window_time_gap_outlier_lower_unclipped, window_time_gap_outlier_lower_unclipped_ratio, window_time_gap_outlier_lower_clip_state, window_time_gap_outlier_lower_clip_state_code, window_time_gap_outlier_ratio, window_time_gap_inlier_count, window_time_gap_inlier_ratio, window_time_gap_inlier_minus_outlier_count, window_time_gap_outlier_minus_inlier_count, window_time_gap_outlier_inlier_count_ratio, window_time_gap_inlier_outlier_count_ratio, window_time_gap_outlier_inlier_ratio_delta, window_time_gap_outlier_inlier_ratio_delta_abs, window_time_gap_outlier_inlier_ratio_delta_sign, window_time_gap_outlier_inlier_ratio_delta_positive, window_time_gap_outlier_inlier_ratio_delta_nonpositive, window_time_gap_outlier_inlier_ratio_delta_negative, window_time_gap_outlier_inlier_ratio_delta_nonnegative, window_time_gap_outlier_inlier_ratio_delta_zero, window_time_gap_outlier_inlier_ratio_delta_nonzero, snapshot_at, order, has_more, next_before_id, next_query, next_query_string, total_candidates, remaining_candidates]
+      required: [items, limit, before_id, query_string, returned_items, window_max_id, window_min_id, window_span, dense_window, id_gap_count, window_density, window_newest_at, window_oldest_at, window_time_parseable, window_time_unparseable_count, window_time_parseable_count, window_time_missing_at_count, window_time_invalid_at_count, window_time_missing_at_ratio, window_time_invalid_at_ratio, window_time_unparseable_ratio, window_time_parseable_ratio, window_time_span_seconds, window_time_desc_order, window_time_gap_max_seconds, window_time_gap_min_seconds, window_time_gap_range_seconds, window_time_gap_count, window_time_gap_zero_count, window_time_gap_nonzero_count, window_time_gap_zero_ratio, window_time_gap_nonzero_ratio, window_time_gap_median_seconds, window_time_gap_p90_seconds, window_time_gap_p75_seconds, window_time_gap_p25_seconds, window_time_gap_iqr_seconds, window_time_gap_p95_seconds, window_time_gap_p99_seconds, window_time_gap_total_seconds, window_time_gap_avg_seconds, window_time_gap_stddev_seconds, window_time_gap_cv_ratio, window_time_gap_mad_seconds, window_time_gap_mad_ratio, window_time_gap_outlier_count, window_time_gap_outlier_lower_seconds, window_time_gap_outlier_upper_seconds, window_time_gap_outlier_fence_span_seconds, window_time_gap_outlier_fence_midpoint_seconds, window_time_gap_outlier_effective_lower_seconds, window_time_gap_outlier_effective_span_seconds, window_time_gap_outlier_effective_midpoint_seconds, window_time_gap_outlier_effective_coverage_ratio, window_time_gap_outlier_lower_truncation_seconds, window_time_gap_outlier_lower_truncation_ratio, window_time_gap_outlier_lower_clipped, window_time_gap_outlier_lower_clipped_ratio, window_time_gap_outlier_lower_unclipped, window_time_gap_outlier_lower_unclipped_ratio, window_time_gap_outlier_lower_clip_state, window_time_gap_outlier_lower_clip_state_code, window_time_gap_outlier_ratio, window_time_gap_inlier_count, window_time_gap_inlier_ratio, window_time_gap_inlier_minus_outlier_count, window_time_gap_outlier_minus_inlier_count, window_time_gap_outlier_inlier_count_ratio, window_time_gap_inlier_outlier_count_ratio, window_time_gap_outlier_inlier_ratio_delta, window_time_gap_outlier_inlier_ratio_delta_abs, window_time_gap_outlier_inlier_ratio_delta_sign, window_time_gap_outlier_inlier_ratio_delta_positive, window_time_gap_outlier_inlier_ratio_delta_nonpositive, window_time_gap_outlier_inlier_ratio_delta_negative, window_time_gap_outlier_inlier_ratio_delta_nonnegative, window_time_gap_outlier_inlier_ratio_delta_zero, window_time_gap_outlier_inlier_ratio_delta_nonzero, window_time_gap_outlier_inlier_ratio_delta_state, snapshot_at, order, has_more, next_before_id, next_query, next_query_string, total_candidates, remaining_candidates]
       properties:
         items:
           type: array
@@ -3012,6 +3012,10 @@ components:
           nullable: true
         window_time_gap_outlier_inlier_ratio_delta_nonzero:
           type: boolean
+          nullable: true
+        window_time_gap_outlier_inlier_ratio_delta_state:
+          type: string
+          enum: [positive, zero, negative]
           nullable: true
         snapshot_at:
           type: string
@@ -4062,15 +4066,3 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/MetricsData'
-
-
-
-
-
-
-
-
-
-
-
-
