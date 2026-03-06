@@ -1,4 +1,5 @@
-﻿#include "decode_demo/runtime_probe.hpp"
+﻿#include "decode_demo/plan_manifest.hpp"
+#include "decode_demo/runtime_probe.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -6,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -29,7 +31,7 @@ Options parse_args(int argc, char** argv) {
         } else if (arg == "--plan-file" && i + 1 < argc) {
             options.plan_file = argv[++i];
         } else if (arg == "--help" || arg == "-h") {
-            std::cout << "Usage: rk_decode_demo [--self-check] [--stream <url_or_path>] [--model <file.rknn>] [--plan-file <plan.json>]\n";
+            std::cout << "Usage: rk_decode_demo [--self-check] [--stream <url_or_path>] [--model <file.rknn>] [--plan-file <plan.manifest.tsv>]\n";
             std::exit(0);
         } else {
             std::cerr << "Unknown argument: " << arg << '\n';
@@ -52,23 +54,29 @@ void print_path_summary(const std::string& label, const std::string& value) {
     std::cout << '\n';
 }
 
-void print_plan_summary(const std::string& plan_file) {
+void print_manifest_summary(const std::string& plan_file) {
     if (plan_file.empty()) {
         return;
     }
-    std::ifstream input(plan_file, std::ios::binary);
-    if (!input) {
-        std::cerr << "failed to open plan file: " << plan_file << '\n';
-        std::exit(2);
+    const decode_demo::PlanManifest manifest = decode_demo::load_plan_manifest(plan_file);
+    const std::vector<decode_demo::ManifestWorkload> ready = decode_demo::collect_ready_workloads(manifest);
+    std::cout << "plan_file=" << plan_file << '\n';
+    std::cout << "manifest_budget=" << manifest.budget << '\n';
+    std::cout << "manifest_degraded=" << (manifest.degraded ? "true" : "false") << '\n';
+    std::cout << "manifest_stream_count=" << manifest.stream_count << '\n';
+    std::cout << "manifest_ready_stream_count=" << manifest.ready_stream_count << '\n';
+    std::cout << "manifest_workload_count=" << manifest.workloads.size() << '\n';
+    std::cout << "manifest_ready_workload_count=" << ready.size() << '\n';
+    if (!ready.empty()) {
+        const auto& first = ready.front();
+        std::cout << "selected_device_id=" << first.device_id << '\n';
+        std::cout << "selected_capability=" << first.capability << '\n';
+        std::cout << "selected_algorithm_id=" << first.algorithm_id << '\n';
+        std::cout << "selected_algorithm_version=" << first.algorithm_version << '\n';
+        std::cout << "selected_base_library_id=" << first.base_library_id << '\n';
+        std::cout << "selected_stream_url=" << first.stream_url << '\n';
+        std::cout << "selected_sample_fps=" << first.sample_fps << '\n';
     }
-    input.seekg(0, std::ios::end);
-    const auto size = input.tellg();
-    input.seekg(0, std::ios::beg);
-    std::string preview;
-    preview.resize(static_cast<std::size_t>(std::min<std::streamoff>(size, 240)));
-    input.read(preview.data(), static_cast<std::streamsize>(preview.size()));
-    std::cout << "plan_file=" << plan_file << " bytes=" << size << '\n';
-    std::cout << "plan_preview=" << preview << '\n';
 }
 
 }  // namespace
@@ -85,8 +93,8 @@ int main(int argc, char** argv) {
     if (!options.stream.empty()) {
         std::cout << "stream=" << options.stream << '\n';
     }
-    print_plan_summary(options.plan_file);
+    print_manifest_summary(options.plan_file);
     std::cout << "status=not_yet_executing_real_pipeline\n";
-    std::cout << "next=implement MPP demux/decode, RGA resize, and RKNN init/run using the resolved inference plan\n";
+    std::cout << "next=implement MPP demux/decode, RGA resize, and RKNN init/run using the selected ready workload\n";
     return 0;
 }

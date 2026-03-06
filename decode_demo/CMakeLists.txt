@@ -16,6 +16,7 @@ find_library(DL_LIB dl)
 
 add_executable(rk_decode_demo
     src/main.cpp
+    src/plan_manifest.cpp
     src/runtime_probe.cpp
 )
 
@@ -51,3 +52,4 @@ message(STATUS "RKNN_INCLUDE_DIR=${RKNN_INCLUDE_DIR}")
 message(STATUS "RK_MPP_LIB=${RK_MPP_LIB}")
 message(STATUS "RGA_LIB=${RGA_LIB}")
 message(STATUS "RKNN_LIB=${RKNN_LIB}")
+

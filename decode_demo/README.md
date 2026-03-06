@@ -33,6 +33,20 @@ python3 tools/fetch_inference_plan.py \
   --output artifacts/inference-plan.json
 ```
 
+Render the JSON plan into a TSV manifest that `rk_decode_demo` can consume directly:
+
+```bash
+python3 tools/render_plan_manifest.py \
+  --input artifacts/inference-plan.json \
+  --output artifacts/inference-plan.manifest.tsv
+```
+
+Run the C++ executable with the generated manifest:
+
+```bash
+./build/rk_decode_demo --plan-file artifacts/inference-plan.manifest.tsv
+```
+
 Planned next steps:
 
 1. Accept an inference-plan JSON file produced by the Python runtime.
@@ -40,4 +54,5 @@ Planned next steps:
 3. Use RGA for resize/color conversion to RKNN input tensors.
 4. Load an `.rknn` model and run one-frame inference.
 5. Return structured detections back to the Python runtime.
+
 
