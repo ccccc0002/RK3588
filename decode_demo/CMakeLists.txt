@@ -22,6 +22,7 @@ add_executable(rk_decode_demo
     src/main.cpp
     src/mpp_decode.cpp
     src/plan_manifest.cpp
+    src/rknn_runner.cpp
     src/runtime_probe.cpp
 )
 

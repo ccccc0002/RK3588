@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
+#include <vector>
 
 namespace decode_demo {
 
@@ -25,6 +27,7 @@ struct RgaResizeInfo {
     int output_height{0};
     int output_channels{0};
     std::size_t output_bytes{0};
+    std::vector<std::uint8_t> output_data;
 };
 
 struct DecodePipelineInfo {

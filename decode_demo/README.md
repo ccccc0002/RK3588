@@ -10,6 +10,7 @@ Current scope:
 - aligns with the Python control-plane contract exposed by `POST /api/v1/inference/plan`
 - decodes the first frame from a local Annex-B H.264/H.265 elementary stream with MPP
 - optionally runs one in-process RGA color-convert + resize probe on the decoded DMA frame
+- optionally loads an RKNN model and runs one-frame inference, printing raw output tensor summaries
 
 Build:
 
@@ -51,15 +52,23 @@ python3 tools/prepare_annexb_stream.py \
   --output artifacts/preview-clip.h264
 ```
 
+Fetch the official RK3588 YOLOv5 sample model:
+
+```bash
+python3 tools/fetch_rknn_model.py \
+  --output artifacts/models/yolov5s-640-640.rknn
+```
+
 Run the C++ executable with the generated manifest or a prepared elementary stream:
 
 ```bash
 ./build/rk_decode_demo --plan-file artifacts/inference-plan.manifest.tsv
 ./build/rk_decode_demo --stream artifacts/preview-clip.h264
 ./build/rk_decode_demo --stream artifacts/preview-clip.h264 --rga-width 640 --rga-height 640
+./build/rk_decode_demo --stream artifacts/preview-clip.h264 --model artifacts/models/yolov5s-640-640.rknn
 ```
 
-Expected decode output fields for `--stream`:
+Expected pipeline output fields for `--stream`:
 
 - `decode_ok`
 - `decode_coding`
@@ -77,10 +86,13 @@ Expected decode output fields for `--stream`:
 - `rga_output_height`
 - `rga_output_channels`
 - `rga_output_bytes`
+- `rknn_model_ok`
+- `rknn_ok`
+- `rknn_output_<n>_sample_values`
 
 Planned next steps:
 
 1. Resolve manifest-selected streams into MPP input automatically.
-2. Feed the RGA output directly into RKNN tensors.
-3. Load an `.rknn` model and run one-frame inference.
-4. Return structured detections back to the Python runtime.
+2. Replace raw RKNN tensor dumps with YOLOv5 post-processing and detection boxes.
+3. Return structured detections back to the Python runtime.
+4. Extend the same path to additional RKNN models.

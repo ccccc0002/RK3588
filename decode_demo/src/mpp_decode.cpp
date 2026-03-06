@@ -265,6 +265,7 @@ RgaResizeInfo probe_rga_resize(MppFrame frame, int output_width, int output_heig
 
     info.ok = true;
     info.output_bytes = rgb_scaled.size();
+    info.output_data = std::move(rgb_scaled);
     info.detail = "imcvtcolor+imresize_ok";
     return info;
 }
@@ -373,3 +374,5 @@ DecodedFrameInfo decode_one_frame_from_annexb(const std::string& path) {
 }
 
 }  // namespace decode_demo
+
+
