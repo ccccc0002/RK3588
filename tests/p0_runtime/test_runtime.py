@@ -2232,6 +2232,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_ratio"]), places=6)
         self.assertEqual(0, int(page["window_time_gap_inlier_count"]))
         self.assertAlmostEqual(0.0, float(page["window_time_gap_inlier_ratio"]), places=6)
+        self.assertEqual(0, int(page["window_time_gap_inlier_minus_outlier_count"]))
         self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_inlier_count_ratio"]), places=6)
         self.assertAlmostEqual(0.0, float(page["window_time_gap_inlier_outlier_count_ratio"]), places=6)
         self.assertEqual("id_desc", page["order"])
@@ -2377,6 +2378,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_ratio"]), places=6)
             self.assertEqual(0, int(page_with_cursor["window_time_gap_inlier_count"]))
             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_inlier_ratio"]), places=6)
+            self.assertEqual(0, int(page_with_cursor["window_time_gap_inlier_minus_outlier_count"]))
             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_inlier_count_ratio"]), places=6)
             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_inlier_outlier_count_ratio"]), places=6)
         else:
@@ -2440,6 +2442,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["window_time_gap_outlier_ratio"])
             self.assertIsNone(page_with_cursor["window_time_gap_inlier_count"])
             self.assertIsNone(page_with_cursor["window_time_gap_inlier_ratio"])
+            self.assertIsNone(page_with_cursor["window_time_gap_inlier_minus_outlier_count"])
             self.assertIsNone(page_with_cursor["window_time_gap_outlier_inlier_count_ratio"])
             self.assertIsNone(page_with_cursor["window_time_gap_inlier_outlier_count_ratio"])
         if page_with_cursor["has_more"]:
@@ -2578,6 +2581,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_ratio"]), places=6)
         self.assertEqual(0, int(page_with_total["window_time_gap_inlier_count"]))
         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_inlier_ratio"]), places=6)
+        self.assertEqual(0, int(page_with_total["window_time_gap_inlier_minus_outlier_count"]))
         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_inlier_count_ratio"]), places=6)
         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_inlier_outlier_count_ratio"]), places=6)
         self.assertIsNotNone(page_with_total["next_query"])
@@ -2758,6 +2762,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_ratio"]), places=6)
         self.assertEqual(0, int(page["window_time_gap_inlier_count"]))
         self.assertAlmostEqual(0.0, float(page["window_time_gap_inlier_ratio"]), places=6)
+        self.assertEqual(0, int(page["window_time_gap_inlier_minus_outlier_count"]))
         self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_inlier_count_ratio"]), places=6)
         self.assertAlmostEqual(0.0, float(page["window_time_gap_inlier_outlier_count_ratio"]), places=6)
         self.assertEqual("id_desc", page["order"])
@@ -2882,6 +2887,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_ratio"]), places=6)
             self.assertEqual(0, int(page_with_cursor["window_time_gap_inlier_count"]))
             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_inlier_ratio"]), places=6)
+            self.assertEqual(0, int(page_with_cursor["window_time_gap_inlier_minus_outlier_count"]))
             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_inlier_count_ratio"]), places=6)
             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_inlier_outlier_count_ratio"]), places=6)
         else:
@@ -2924,6 +2930,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["window_time_gap_outlier_ratio"])
             self.assertIsNone(page_with_cursor["window_time_gap_inlier_count"])
             self.assertIsNone(page_with_cursor["window_time_gap_inlier_ratio"])
+            self.assertIsNone(page_with_cursor["window_time_gap_inlier_minus_outlier_count"])
             self.assertIsNone(page_with_cursor["window_time_gap_outlier_inlier_count_ratio"])
             self.assertIsNone(page_with_cursor["window_time_gap_inlier_outlier_count_ratio"])
         if page_with_cursor["has_more"]:
@@ -3041,6 +3048,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_ratio"]), places=6)
         self.assertEqual(0, int(page_with_total["window_time_gap_inlier_count"]))
         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_inlier_ratio"]), places=6)
+        self.assertEqual(0, int(page_with_total["window_time_gap_inlier_minus_outlier_count"]))
         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_inlier_count_ratio"]), places=6)
         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_inlier_outlier_count_ratio"]), places=6)
         self.assertIsNotNone(page_with_total["next_query"])
@@ -3249,6 +3257,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_ratio"]), places=6)
         self.assertEqual(0, int(page["window_time_gap_inlier_count"]))
         self.assertAlmostEqual(0.0, float(page["window_time_gap_inlier_ratio"]), places=6)
+        self.assertEqual(0, int(page["window_time_gap_inlier_minus_outlier_count"]))
         self.assertAlmostEqual(0.0, float(page["window_time_gap_outlier_inlier_count_ratio"]), places=6)
         self.assertAlmostEqual(0.0, float(page["window_time_gap_inlier_outlier_count_ratio"]), places=6)
         self.assertEqual("id_desc", page["order"])
@@ -3376,6 +3385,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_ratio"]), places=6)
             self.assertEqual(0, int(page_with_cursor["window_time_gap_inlier_count"]))
             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_inlier_ratio"]), places=6)
+            self.assertEqual(0, int(page_with_cursor["window_time_gap_inlier_minus_outlier_count"]))
             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_outlier_inlier_count_ratio"]), places=6)
             self.assertAlmostEqual(0.0, float(page_with_cursor["window_time_gap_inlier_outlier_count_ratio"]), places=6)
         else:
@@ -3418,6 +3428,7 @@ class P0RuntimeTests(unittest.TestCase):
             self.assertIsNone(page_with_cursor["window_time_gap_outlier_ratio"])
             self.assertIsNone(page_with_cursor["window_time_gap_inlier_count"])
             self.assertIsNone(page_with_cursor["window_time_gap_inlier_ratio"])
+            self.assertIsNone(page_with_cursor["window_time_gap_inlier_minus_outlier_count"])
             self.assertIsNone(page_with_cursor["window_time_gap_outlier_inlier_count_ratio"])
             self.assertIsNone(page_with_cursor["window_time_gap_inlier_outlier_count_ratio"])
         if page_with_cursor["has_more"]:
@@ -3535,6 +3546,7 @@ class P0RuntimeTests(unittest.TestCase):
         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_ratio"]), places=6)
         self.assertEqual(0, int(page_with_total["window_time_gap_inlier_count"]))
         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_inlier_ratio"]), places=6)
+        self.assertEqual(0, int(page_with_total["window_time_gap_inlier_minus_outlier_count"]))
         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_outlier_inlier_count_ratio"]), places=6)
         self.assertAlmostEqual(0.0, float(page_with_total["window_time_gap_inlier_outlier_count_ratio"]), places=6)
         self.assertIsNotNone(page_with_total["next_query"])
@@ -3598,6 +3610,7 @@ class P0RuntimeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
 
