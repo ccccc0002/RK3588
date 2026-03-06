@@ -1611,6 +1611,7 @@ class P0Runtime:
         window_time_gap_outlier_effective_lower_seconds = None
         window_time_gap_outlier_effective_span_seconds = None
         window_time_gap_outlier_effective_midpoint_seconds = None
+        window_time_gap_outlier_effective_coverage_ratio = None
         if items:
             newest_at = items[0].get("at")
             oldest_at = items[-1].get("at")
@@ -1688,6 +1689,7 @@ class P0Runtime:
                     window_time_gap_outlier_effective_lower_seconds = 0.0
                     window_time_gap_outlier_effective_span_seconds = 0.0
                     window_time_gap_outlier_effective_midpoint_seconds = 0.0
+                    window_time_gap_outlier_effective_coverage_ratio = 0.0
                 else:
                     gaps = [
                         abs((parsed_times[i] - parsed_times[i + 1]).total_seconds())
@@ -1762,6 +1764,14 @@ class P0Runtime:
                         (float(outlier_upper) + max(0.0, float(outlier_lower))) / 2.0,
                         6,
                     )
+                    if window_time_gap_outlier_fence_span_seconds > 0.0:
+                        window_time_gap_outlier_effective_coverage_ratio = round(
+                            float(window_time_gap_outlier_effective_span_seconds)
+                            / float(window_time_gap_outlier_fence_span_seconds),
+                            6,
+                        )
+                    else:
+                        window_time_gap_outlier_effective_coverage_ratio = 0.0
                     window_time_gap_outlier_ratio = round(
                         float(window_time_gap_outlier_count) / float(len(gaps)),
                         6,
@@ -1904,6 +1914,7 @@ class P0Runtime:
             "window_time_gap_outlier_effective_lower_seconds": window_time_gap_outlier_effective_lower_seconds,
             "window_time_gap_outlier_effective_span_seconds": window_time_gap_outlier_effective_span_seconds,
             "window_time_gap_outlier_effective_midpoint_seconds": window_time_gap_outlier_effective_midpoint_seconds,
+            "window_time_gap_outlier_effective_coverage_ratio": window_time_gap_outlier_effective_coverage_ratio,
             "snapshot_at": snapshot_at,
             "order": "id_desc",
             "has_more": has_more,
