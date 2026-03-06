@@ -1606,6 +1606,7 @@ class P0Runtime:
         window_time_gap_inlier_ratio = None
         window_time_gap_outlier_inlier_count_ratio = None
         window_time_gap_inlier_outlier_count_ratio = None
+        window_time_gap_outlier_inlier_ratio_delta = None
         window_time_gap_inlier_minus_outlier_count = None
         window_time_gap_outlier_minus_inlier_count = None
         window_time_gap_outlier_lower_seconds = None
@@ -1696,6 +1697,7 @@ class P0Runtime:
                     window_time_gap_inlier_ratio = 0.0
                     window_time_gap_outlier_inlier_count_ratio = 0.0
                     window_time_gap_inlier_outlier_count_ratio = 0.0
+                    window_time_gap_outlier_inlier_ratio_delta = 0.0
                     window_time_gap_inlier_minus_outlier_count = 0
                     window_time_gap_outlier_minus_inlier_count = 0
                     window_time_gap_outlier_lower_seconds = 0.0
@@ -1850,6 +1852,11 @@ class P0Runtime:
                         / float(max(1, int(window_time_gap_outlier_count))),
                         6,
                     )
+                    window_time_gap_outlier_inlier_ratio_delta = round(
+                        float(window_time_gap_outlier_ratio)
+                        - float(window_time_gap_inlier_ratio),
+                        6,
+                    )
                     p95_index = max(0, int((len(sorted_gaps) * 95 + 99) // 100) - 1)
                     window_time_gap_p95_seconds = round(float(sorted_gaps[p95_index]), 6)
                     p99_index = max(0, int((len(sorted_gaps) * 99 + 99) // 100) - 1)
@@ -1975,6 +1982,7 @@ class P0Runtime:
             "window_time_gap_inlier_ratio": window_time_gap_inlier_ratio,
             "window_time_gap_outlier_inlier_count_ratio": window_time_gap_outlier_inlier_count_ratio,
             "window_time_gap_inlier_outlier_count_ratio": window_time_gap_inlier_outlier_count_ratio,
+            "window_time_gap_outlier_inlier_ratio_delta": window_time_gap_outlier_inlier_ratio_delta,
             "window_time_gap_inlier_minus_outlier_count": window_time_gap_inlier_minus_outlier_count,
             "window_time_gap_outlier_minus_inlier_count": window_time_gap_outlier_minus_inlier_count,
             "window_time_gap_outlier_lower_seconds": window_time_gap_outlier_lower_seconds,
