@@ -1607,6 +1607,7 @@ class P0Runtime:
         window_time_gap_outlier_inlier_count_ratio = None
         window_time_gap_inlier_outlier_count_ratio = None
         window_time_gap_outlier_inlier_ratio_delta = None
+        window_time_gap_outlier_inlier_ratio_delta_percentage_points = None
         window_time_gap_outlier_inlier_ratio_delta_abs = None
         window_time_gap_outlier_inlier_ratio_delta_sign = None
         window_time_gap_outlier_inlier_ratio_delta_positive = None
@@ -1709,6 +1710,7 @@ class P0Runtime:
                     window_time_gap_outlier_inlier_count_ratio = 0.0
                     window_time_gap_inlier_outlier_count_ratio = 0.0
                     window_time_gap_outlier_inlier_ratio_delta = 0.0
+                    window_time_gap_outlier_inlier_ratio_delta_percentage_points = 0.0
                     window_time_gap_outlier_inlier_ratio_delta_abs = 0.0
                     window_time_gap_outlier_inlier_ratio_delta_sign = 0
                     window_time_gap_outlier_inlier_ratio_delta_positive = False
@@ -1879,6 +1881,10 @@ class P0Runtime:
                         - float(window_time_gap_inlier_ratio),
                         6,
                     )
+                    window_time_gap_outlier_inlier_ratio_delta_percentage_points = round(
+                        float(window_time_gap_outlier_inlier_ratio_delta) * 100.0,
+                        6,
+                    )
                     window_time_gap_outlier_inlier_ratio_delta_abs = round(
                         abs(float(window_time_gap_outlier_ratio) - float(window_time_gap_inlier_ratio)),
                         6,
@@ -2045,6 +2051,7 @@ class P0Runtime:
             "window_time_gap_outlier_inlier_count_ratio": window_time_gap_outlier_inlier_count_ratio,
             "window_time_gap_inlier_outlier_count_ratio": window_time_gap_inlier_outlier_count_ratio,
             "window_time_gap_outlier_inlier_ratio_delta": window_time_gap_outlier_inlier_ratio_delta,
+            "window_time_gap_outlier_inlier_ratio_delta_percentage_points": window_time_gap_outlier_inlier_ratio_delta_percentage_points,
             "window_time_gap_outlier_inlier_ratio_delta_abs": window_time_gap_outlier_inlier_ratio_delta_abs,
             "window_time_gap_outlier_inlier_ratio_delta_sign": window_time_gap_outlier_inlier_ratio_delta_sign,
             "window_time_gap_outlier_inlier_ratio_delta_positive": window_time_gap_outlier_inlier_ratio_delta_positive,

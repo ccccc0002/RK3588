@@ -220,6 +220,10 @@ class P0HttpApiTests(unittest.TestCase):
                 float(expected_outlier_ratio) - float(expected_inlier_ratio),
                 6,
             )
+            expected_outlier_inlier_ratio_delta_percentage_points = round(
+                float(expected_outlier_inlier_ratio_delta) * 100.0,
+                6,
+            )
             expected_outlier_inlier_ratio_delta_abs = round(
                 abs(float(expected_outlier_ratio) - float(expected_inlier_ratio)),
                 6,
@@ -284,6 +288,7 @@ class P0HttpApiTests(unittest.TestCase):
             expected_outlier_inlier_count_ratio = 0.0
             expected_inlier_outlier_count_ratio = 0.0
             expected_outlier_inlier_ratio_delta = 0.0
+            expected_outlier_inlier_ratio_delta_percentage_points = 0.0
             expected_outlier_inlier_ratio_delta_abs = 0.0
             expected_outlier_inlier_ratio_delta_sign = 0
             expected_outlier_inlier_ratio_delta_positive = False
@@ -356,6 +361,7 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertAlmostEqual(expected_outlier_inlier_count_ratio, float(data["window_time_gap_outlier_inlier_count_ratio"]), places=6)
         self.assertAlmostEqual(expected_inlier_outlier_count_ratio, float(data["window_time_gap_inlier_outlier_count_ratio"]), places=6)
         self.assertAlmostEqual(expected_outlier_inlier_ratio_delta, float(data["window_time_gap_outlier_inlier_ratio_delta"]), places=6)
+        self.assertAlmostEqual(expected_outlier_inlier_ratio_delta_percentage_points, float(data["window_time_gap_outlier_inlier_ratio_delta_percentage_points"]), places=6)
         self.assertAlmostEqual(expected_outlier_inlier_ratio_delta_abs, float(data["window_time_gap_outlier_inlier_ratio_delta_abs"]), places=6)
         self.assertEqual(expected_outlier_inlier_ratio_delta_sign, int(data["window_time_gap_outlier_inlier_ratio_delta_sign"]))
         self.assertEqual(expected_outlier_inlier_ratio_delta_positive, bool(data["window_time_gap_outlier_inlier_ratio_delta_positive"]))
