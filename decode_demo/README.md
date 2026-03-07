@@ -150,6 +150,7 @@ Result JSON contains:
 Batch summary JSON contains:
 
 - one item per manifest-selected workload
+- root-level plan provenance fields such as `plan_source`, `runtime_plan_url`, `runtime_plan_http_status`, `runtime_plan_attempt_count`, `runtime_plan_used_cache`, and `runtime_plan_cache_path` when execution came from `--runtime-url`
 - resolved stream/model/output paths
 - per-workload exit code and stage status
 - per-workload detection counts
