@@ -21,6 +21,57 @@ def _json_response(handler: BaseHTTPRequestHandler, status: int, payload: dict) 
     handler.wfile.write(body)
 
 
+def _html_response(handler: BaseHTTPRequestHandler, status: int, body: str) -> None:
+    encoded = body.encode("utf-8")
+    handler.send_response(status)
+    handler.send_header("Content-Type", "text/html; charset=utf-8")
+    handler.send_header("Content-Length", str(len(encoded)))
+    handler.end_headers()
+    handler.wfile.write(encoded)
+
+
+def _runtime_landing_page(runtime: P0Runtime) -> str:
+    snapshot = runtime.snapshot()
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>RK3588 P0 Runtime</title>
+  <style>
+    body {{ font-family: Arial, sans-serif; margin: 40px; color: #1f2937; background: #f8fafc; }}
+    main {{ max-width: 840px; background: #ffffff; border: 1px solid #dbe2ea; border-radius: 12px; padding: 28px; }}
+    h1 {{ margin-top: 0; }}
+    code {{ background: #eff6ff; padding: 2px 6px; border-radius: 4px; }}
+    ul {{ line-height: 1.7; }}
+    .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 20px 0; }}
+    .card {{ border: 1px solid #dbe2ea; border-radius: 10px; padding: 14px; background: #f9fbff; }}
+    .label {{ color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }}
+    .value {{ font-size: 24px; font-weight: 700; margin-top: 4px; }}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>RK3588 P0 Runtime</h1>
+    <p>The runtime service is online. This root page is a lightweight status page; functional APIs are under <code>/api/v1/...</code>.</p>
+    <div class="grid">
+      <div class="card"><div class="label">Devices</div><div class="value">{snapshot.get('device_count', 0)}</div></div>
+      <div class="card"><div class="label">Algorithms</div><div class="value">{snapshot.get('algorithm_count', 0)}</div></div>
+      <div class="card"><div class="label">Base Libraries</div><div class="value">{snapshot.get('base_library_count', 0)}</div></div>
+      <div class="card"><div class="label">Push Queue</div><div class="value">{snapshot.get('push_queue_size', 0)}</div></div>
+    </div>
+    <ul>
+      <li>OpenAPI-style JSON endpoints require a bearer token.</li>
+      <li>Health snapshot: <code>/api/v1/runtime/snapshot</code></li>
+      <li>Metrics: <code>/api/v1/metrics</code></li>
+      <li>Inference plan: <code>/api/v1/inference/plan</code></li>
+      <li>Inference results: <code>/api/v1/inference/results</code></li>
+    </ul>
+  </main>
+</body>
+</html>
+"""
+
+
 def _parse_time(value: str | None) -> datetime | None:
     if not value:
         return None
@@ -75,6 +126,10 @@ class _RuntimeHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path == "/":
+            _html_response(self, 200, _runtime_landing_page(self.runtime))
+            return
+
         required_action = required_get_action(parsed.path)
         if required_action is not None:
             denied_status, denied_payload = self._authorize(required_action)

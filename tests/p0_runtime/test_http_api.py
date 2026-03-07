@@ -68,6 +68,17 @@ class P0HttpApiTests(unittest.TestCase):
         except HTTPError as exc:
             return exc.code, json.loads(exc.read().decode("utf-8"))
 
+    def _get_raw(self, path: str, token: str = ""):
+        headers = {}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        req = Request(url=f"http://127.0.0.1:{self.port}{path}", headers=headers, method="GET")
+        try:
+            with urlopen(req, timeout=3) as resp:
+                return resp.status, resp.headers.get("Content-Type", ""), resp.read().decode("utf-8")
+        except HTTPError as exc:
+            return exc.code, exc.headers.get("Content-Type", ""), exc.read().decode("utf-8")
+
     def _assert_window_time_gap_metrics(self, payload: dict) -> None:
         data = payload["data"]
         items = data["items"]
@@ -438,6 +449,13 @@ class P0HttpApiTests(unittest.TestCase):
         self.assertEqual(202, status)
         self.assertTrue(payload["success"])
         self.assertIn("event_id", payload["data"])
+
+    def test_runtime_root_landing_page(self) -> None:
+        status, content_type, body = self._get_raw("/")
+        self.assertEqual(200, status)
+        self.assertIn("text/html", content_type)
+        self.assertIn("RK3588 P0 Runtime", body)
+        self.assertIn("/api/v1/runtime/snapshot", body)
 
     def test_register_and_list_devices_endpoints(self) -> None:
         reg_status, reg_payload = self._post(
