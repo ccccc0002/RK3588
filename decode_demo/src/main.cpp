@@ -24,6 +24,7 @@ struct Options {
     std::string plan_file;
     std::string asset_map;
     std::string output;
+    std::string label_file;
     std::string runtime_url;
     std::string token;
     std::string runtime_plan_cache{"artifacts/runtime-plan-cache.json"};
@@ -98,6 +99,8 @@ Options parse_args(int argc, char** argv) {
             options.asset_map = argv[++i];
         } else if (arg == "--output" && i + 1 < argc) {
             options.output = argv[++i];
+        } else if (arg == "--label-file" && i + 1 < argc) {
+            options.label_file = argv[++i];
         } else if (arg == "--runtime-url" && i + 1 < argc) {
             options.runtime_url = argv[++i];
         } else if (arg == "--token" && i + 1 < argc) {
@@ -119,7 +122,7 @@ Options parse_args(int argc, char** argv) {
                 << "Usage: rk_decode_demo [--self-check] [--stream <annexb.h264>] [--model <file.rknn>] "
                 << "[--plan-file <plan.manifest.tsv>] [--runtime-url <http://host:port>] [--token <bearer>] "
                 << "[--budget <n>] [--runtime-plan-cache <plan.json>] [--runtime-plan-attempts <n>] "
-                << "[--runtime-plan-backoff-ms <n>] [--asset-map <assets.tsv>] [--output <result.json>] "
+                << "[--runtime-plan-backoff-ms <n>] [--asset-map <assets.tsv>] [--output <result.json>] [--label-file <labels.txt>] "
                 << "[--rga-width <n> --rga-height <n>]\n";
             std::exit(0);
         } else {
@@ -412,7 +415,8 @@ PipelineRunSummary run_stream_pipeline(const std::string& stream_path,
                                        const std::string& output_path,
                                        const decode_demo::ManifestWorkload* workload,
                                        int requested_rga_width,
-                                       int requested_rga_height) {
+                                       int requested_rga_height,
+                                       const std::vector<std::string>* labels) {
     PipelineRunSummary summary;
     print_path_summary("stream", stream_path);
     if (!model_path.empty()) {
@@ -485,7 +489,8 @@ PipelineRunSummary run_stream_pipeline(const std::string& stream_path,
                     sample.pipeline.rga.pad_x,
                     sample.pipeline.rga.pad_y,
                     sample.pipeline.frame.width,
-                    sample.pipeline.frame.height);
+                    sample.pipeline.frame.height,
+                    labels);
                 std::cout << "sample_" << i << "_rknn_ok=" << (candidate_run.ok ? "true" : "false") << '\n';
                 std::cout << "sample_" << i << "_detection_count=" << candidate_run.detections.size() << '\n';
 
@@ -538,6 +543,21 @@ PipelineRunSummary run_stream_pipeline(const std::string& stream_path,
     summary.rga_ok = selected_pipeline.rga.ok;
 
     bool ok = pipeline_ready_for_inference(selected_pipeline);
+    if (!model_path.empty() && !has_selected_run && ok) {
+        selected_run = decode_demo::run_rknn_inference(
+            model_path,
+            selected_pipeline.rga.output_data,
+            selected_pipeline.rga.output_width,
+            selected_pipeline.rga.output_height,
+            selected_pipeline.rga.output_channels,
+            selected_pipeline.rga.scale,
+            selected_pipeline.rga.pad_x,
+            selected_pipeline.rga.pad_y,
+            selected_pipeline.frame.width,
+            selected_pipeline.frame.height,
+            labels);
+        has_selected_run = true;
+    }
     if (!model_path.empty()) {
         summary.rknn_requested = has_selected_run || ok;
         if (has_selected_run) {
@@ -606,6 +626,15 @@ int main(int argc, char** argv) {
         }
 
         std::cout << "rk_decode_demo pipeline prototype\n";
+        std::vector<std::string> loaded_labels;
+        const std::vector<std::string>* labels = nullptr;
+        if (!options.label_file.empty()) {
+            print_path_summary("label_file", options.label_file);
+            loaded_labels = decode_demo::load_label_file(options.label_file);
+            labels = &loaded_labels;
+            std::cout << "label_count=" << loaded_labels.size() << '\n';
+        }
+
         decode_demo::BatchRunMetadata batch_metadata;
         std::vector<ResolvedExecution> executions = resolve_executions_from_options(options, &batch_metadata);
         if (executions.empty()) {
@@ -635,7 +664,8 @@ int main(int argc, char** argv) {
                 execution.output_path,
                 execution.workload,
                 options.rga_width,
-                options.rga_height);
+                options.rga_height,
+                labels);
             return summary.exit_code;
         }
 
@@ -685,7 +715,8 @@ int main(int argc, char** argv) {
                 execution.output_path,
                 execution.workload,
                 options.rga_width,
-                options.rga_height);
+                options.rga_height,
+                labels);
             item.exit_code = summary.exit_code;
             item.status = summary.status;
             item.decode_ok = summary.decode_ok;

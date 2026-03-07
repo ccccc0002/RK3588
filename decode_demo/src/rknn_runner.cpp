@@ -1,11 +1,13 @@
 #include "decode_demo/rknn_runner.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstring>
 #include <fstream>
 #include <iterator>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -54,6 +56,37 @@ bool load_file_bytes(const std::string& path, std::vector<char>* data) {
     }
     data->assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
     return !data->empty();
+}
+
+std::string trim_ascii(std::string value) {
+    auto is_space = [](unsigned char ch) {
+        return std::isspace(ch) != 0;
+    };
+    value.erase(value.begin(), std::find_if(value.begin(), value.end(), [&](char ch) {
+                    return !is_space(static_cast<unsigned char>(ch));
+                }));
+    value.erase(std::find_if(value.rbegin(), value.rend(), [&](char ch) {
+                    return !is_space(static_cast<unsigned char>(ch));
+                }).base(),
+                value.end());
+    return value;
+}
+
+std::string fallback_class_name(int class_id) {
+    return "class_" + std::to_string(class_id);
+}
+
+std::string resolve_class_name(int class_id, const std::vector<std::string>* labels) {
+    if (labels != nullptr) {
+        if (class_id >= 0 && static_cast<std::size_t>(class_id) < labels->size()) {
+            return (*labels)[static_cast<std::size_t>(class_id)];
+        }
+        return fallback_class_name(class_id);
+    }
+    if (class_id >= 0 && class_id < kYolov5ClassCount) {
+        return kCoco80Labels[class_id];
+    }
+    return fallback_class_name(class_id);
 }
 
 RknnTensorSummary summarize_attr(const rknn_tensor_attr& attr) {
@@ -207,7 +240,8 @@ std::vector<RknnDetection> convert_detections_to_image_space(const std::vector<R
                                                              int source_width,
                                                              int source_height,
                                                              int model_width,
-                                                             int model_height) {
+                                                             int model_height,
+                                                             const std::vector<std::string>* labels) {
     std::vector<RknnDetection> final_detections;
     if (letterbox_scale <= 0.0f) {
         return final_detections;
@@ -242,9 +276,7 @@ std::vector<RknnDetection> convert_detections_to_image_space(const std::vector<R
 
         RknnDetection detection;
         detection.class_id = candidate.class_id;
-        if (candidate.class_id >= 0 && candidate.class_id < kYolov5ClassCount) {
-            detection.class_name = kCoco80Labels[candidate.class_id];
-        }
+        detection.class_name = resolve_class_name(candidate.class_id, labels);
         detection.confidence = candidate.confidence;
         detection.left = static_cast<int>(clamp_float(x1, 0.0f, static_cast<float>(source_width)));
         detection.top = static_cast<int>(clamp_float(y1, 0.0f, static_cast<float>(source_height)));
@@ -344,6 +376,28 @@ RknnModelInfo inspect_rknn_model(const std::string& model_path) {
     return inspect_rknn_model_with_bytes(model_bytes);
 }
 
+std::vector<std::string> load_label_file(const std::string& label_path) {
+    std::ifstream input(label_path);
+    if (!input.is_open()) {
+        throw std::runtime_error("failed to open label file: " + label_path);
+    }
+
+    std::vector<std::string> labels;
+    std::string line;
+    while (std::getline(input, line)) {
+        std::string trimmed = trim_ascii(line);
+        if (trimmed.empty() || trimmed[0] == '#') {
+            continue;
+        }
+        labels.push_back(std::move(trimmed));
+    }
+
+    if (labels.empty()) {
+        throw std::runtime_error("label file is empty: " + label_path);
+    }
+    return labels;
+}
+
 RknnRunInfo run_rknn_inference(const std::string& model_path,
                                const std::vector<std::uint8_t>& input_data,
                                int input_width,
@@ -353,7 +407,8 @@ RknnRunInfo run_rknn_inference(const std::string& model_path,
                                int letterbox_pad_x,
                                int letterbox_pad_y,
                                int source_width,
-                               int source_height) {
+                               int source_height,
+                               const std::vector<std::string>* labels) {
     RknnRunInfo result;
     result.requested = true;
 
@@ -455,7 +510,8 @@ RknnRunInfo run_rknn_inference(const std::string& model_path,
         source_width,
         source_height,
         result.model.model_width,
-        result.model.model_height);
+        result.model.model_height,
+        labels);
 
     rknn_outputs_release(ctx, static_cast<std::uint32_t>(outputs.size()), outputs.data());
     rknn_destroy(ctx);

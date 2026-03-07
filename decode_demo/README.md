@@ -85,6 +85,7 @@ Run the C++ executable with a prepared elementary stream:
 
 ```bash
 ./build/rk_decode_demo --stream artifacts/latest-clip.h264 --model artifacts/models/yolov5s-640-640.rknn --output artifacts/results/manual.json
+# optional: add --label-file path/to/labels.txt to override built-in COCO-80 labels
 ```
 
 Run the same pipeline from a manifest plus asset map:
@@ -111,7 +112,7 @@ When the manifest contains multiple ready workloads, `rk_decode_demo` now execut
 
 For `--runtime-url`, the demo retries failed plan fetches, saves the last successful plan JSON to `--runtime-plan-cache`, and automatically falls back to that cache when the control-plane is temporarily unavailable.
 
-When a workload carries `execution.frames_per_sample > 1` or `execution.max_samples_per_run > 1`, the demo decodes multiple frames from the Annex-B stream, runs RKNN on each sampled frame, and keeps the best successful sample as the compatibility result JSON for that workload. The per-workload result JSON adds an optional `sampling` block with the selected frame index and requested vs actual sample counts, and the batch summary records the same aggregate sampling fields for each workload.
+When a workload carries `execution.frames_per_sample > 1` or `execution.max_samples_per_run > 1`, the demo decodes multiple frames from the Annex-B stream, runs RKNN on each sampled frame, and keeps the best successful sample as the compatibility result JSON for that workload. The per-workload result JSON adds an optional `sampling` block with the selected frame index and requested vs actual sample counts, and the batch summary records the same aggregate sampling fields for each workload. When `--label-file` is provided, detection `class_name` values come from that text file instead of the built-in COCO-80 list.
 
 Expected pipeline output fields for `--stream` / `--plan-file` / `--runtime-url`:
 
@@ -167,6 +168,5 @@ python3 tools/submit_inference_result.py \
 
 Planned next steps:
 
-1. Add optional label-file loading instead of the built-in COCO-80 list.
-2. Add long-running decode session management for continuous stream polling instead of file-based clips.
-3. Add observability counters for runtime-plan live fetches vs cache fallbacks in long-running service mode.
+1. Add long-running decode session management for continuous stream polling instead of file-based clips.
+2. Add observability counters for runtime-plan live fetches vs cache fallbacks in long-running service mode.

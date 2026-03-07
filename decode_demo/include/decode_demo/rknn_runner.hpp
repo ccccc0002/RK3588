@@ -56,6 +56,7 @@ struct RknnRunInfo {
 };
 
 RknnModelInfo inspect_rknn_model(const std::string& model_path);
+std::vector<std::string> load_label_file(const std::string& label_path);
 RknnRunInfo run_rknn_inference(const std::string& model_path,
                                const std::vector<std::uint8_t>& input_data,
                                int input_width,
@@ -65,6 +66,7 @@ RknnRunInfo run_rknn_inference(const std::string& model_path,
                                int letterbox_pad_x,
                                int letterbox_pad_y,
                                int source_width,
-                               int source_height);
+                               int source_height,
+                               const std::vector<std::string>* labels = nullptr);
 
 }  // namespace decode_demo
