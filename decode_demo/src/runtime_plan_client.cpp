@@ -1,14 +1,17 @@
 #include "decode_demo/runtime_plan_client.hpp"
 
+#include <chrono>
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <iomanip>
-#include <memory>
 #include <map>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -395,6 +398,84 @@ std::string build_runtime_plan_request_body(double budget) {
     return output.str();
 }
 
+void ensure_parent_dir(const std::string& path) {
+    if (path.empty()) {
+        return;
+    }
+    const auto parent = std::filesystem::path(path).parent_path();
+    if (!parent.empty()) {
+        std::filesystem::create_directories(parent);
+    }
+}
+
+void write_text_file(const std::string& path, const std::string& content) {
+    if (path.empty()) {
+        return;
+    }
+    ensure_parent_dir(path);
+    std::ofstream output(path, std::ios::binary | std::ios::trunc);
+    if (!output.is_open()) {
+        throw std::runtime_error("failed to open runtime plan cache for write: " + path);
+    }
+    output.write(content.data(), static_cast<std::streamsize>(content.size()));
+}
+
+std::string read_text_file(const std::string& path) {
+    std::ifstream input(path, std::ios::binary);
+    if (!input.is_open()) {
+        throw std::runtime_error("failed to open runtime plan cache: " + path);
+    }
+    std::ostringstream buffer;
+    buffer << input.rdbuf();
+    return buffer.str();
+}
+
+RuntimePlanFetchResult fetch_runtime_plan_once(const RuntimePlanFetchOptions& options) {
+    const std::string request_url = options.runtime_url + "/api/v1/inference/plan";
+    const std::string request_body = build_runtime_plan_request_body(options.budget);
+    const std::string marker = "__RK_HTTP_STATUS__:";
+
+    std::string command = "curl -sS -X POST --max-time 15 -H 'Content-Type: application/json' ";
+    if (!options.token.empty()) {
+        command += "-H ";
+        command += shell_escape_single_quoted("Authorization: Bearer " + options.token);
+        command += ' ';
+    }
+    command += "--data ";
+    command += shell_escape_single_quoted(request_body);
+    command += ' ';
+    command += shell_escape_single_quoted(request_url);
+    command += " -w ";
+    command += shell_escape_single_quoted("\n" + marker + "%{http_code}");
+
+    int exit_code = 0;
+    const std::string output = run_command_capture_stdout(command, &exit_code);
+    if (exit_code != 0) {
+        throw std::runtime_error("runtime plan request command failed with exit code " + std::to_string(exit_code));
+    }
+
+    const std::size_t marker_pos = output.rfind(marker);
+    if (marker_pos == std::string::npos) {
+        throw std::runtime_error("runtime plan fetch response missing HTTP status marker");
+    }
+
+    RuntimePlanFetchResult result;
+    result.request_url = request_url;
+    result.cache_path = options.cache_path;
+    result.response_body = output.substr(0, marker_pos);
+    if (!result.response_body.empty() && result.response_body.back() == static_cast<char>(10)) {
+        result.response_body.pop_back();
+    }
+    const std::string status_text = output.substr(marker_pos + marker.size());
+    result.http_status = std::strtol(status_text.c_str(), nullptr, 10);
+    if (result.http_status != 200) {
+        throw std::runtime_error("runtime plan request returned HTTP " + std::to_string(result.http_status) + ": " + result.response_body);
+    }
+
+    result.manifest = parse_runtime_plan_json(result.response_body);
+    return result;
+}
+
 }  // namespace
 
 PlanManifest parse_runtime_plan_json(const std::string& payload) {
@@ -472,48 +553,43 @@ RuntimePlanFetchResult fetch_runtime_plan(const RuntimePlanFetchOptions& options
     if (options.runtime_url.empty()) {
         throw std::runtime_error("runtime_url must not be empty");
     }
-    const std::string request_url = options.runtime_url + "/api/v1/inference/plan";
-    const std::string request_body = build_runtime_plan_request_body(options.budget);
-    const std::string marker = "__RK_HTTP_STATUS__:";
 
-    std::string command = "curl -sS -X POST --max-time 15 -H 'Content-Type: application/json' ";
-    if (!options.token.empty()) {
-        command += "-H ";
-        command += shell_escape_single_quoted("Authorization: Bearer " + options.token);
-        command += ' ';
-    }
-    command += "--data ";
-    command += shell_escape_single_quoted(request_body);
-    command += ' ';
-    command += shell_escape_single_quoted(request_url);
-    command += " -w ";
-    command += shell_escape_single_quoted("\n" + marker + "%{http_code}");
+    const int max_attempts = options.max_attempts > 0 ? options.max_attempts : 1;
+    const int retry_backoff_ms = options.retry_backoff_ms >= 0 ? options.retry_backoff_ms : 0;
+    std::string last_error;
 
-    int exit_code = 0;
-    const std::string output = run_command_capture_stdout(command, &exit_code);
-    if (exit_code != 0) {
-        throw std::runtime_error("runtime plan request command failed with exit code " + std::to_string(exit_code));
-    }
-
-    const std::size_t marker_pos = output.rfind(marker);
-    if (marker_pos == std::string::npos) {
-        throw std::runtime_error("runtime plan fetch response missing HTTP status marker");
+    for (int attempt = 1; attempt <= max_attempts; ++attempt) {
+        try {
+            RuntimePlanFetchResult result = fetch_runtime_plan_once(options);
+            result.attempt_count = attempt;
+            result.used_cache = false;
+            if (!options.cache_path.empty()) {
+                write_text_file(options.cache_path, result.response_body);
+            }
+            return result;
+        } catch (const std::exception& ex) {
+            last_error = ex.what();
+            if (attempt < max_attempts && retry_backoff_ms > 0) {
+                const int sleep_ms = retry_backoff_ms * attempt;
+                std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
+            }
+        }
     }
 
-    RuntimePlanFetchResult result;
-    result.request_url = request_url;
-    result.response_body = output.substr(0, marker_pos);
-    if (!result.response_body.empty() && result.response_body.back() == static_cast<char>(10)) {
-        result.response_body.pop_back();
-    }
-    const std::string status_text = output.substr(marker_pos + marker.size());
-    result.http_status = std::strtol(status_text.c_str(), nullptr, 10);
-    if (result.http_status != 200) {
-        throw std::runtime_error("runtime plan request returned HTTP " + std::to_string(result.http_status) + ": " + result.response_body);
+    if (!options.cache_path.empty() && std::filesystem::exists(options.cache_path)) {
+        RuntimePlanFetchResult cached;
+        cached.request_url = options.runtime_url + "/api/v1/inference/plan";
+        cached.cache_path = options.cache_path;
+        cached.http_status = 0;
+        cached.attempt_count = max_attempts;
+        cached.used_cache = true;
+        cached.response_body = read_text_file(options.cache_path);
+        cached.manifest = parse_runtime_plan_json(cached.response_body);
+        return cached;
     }
 
-    result.manifest = parse_runtime_plan_json(result.response_body);
-    return result;
+    throw std::runtime_error("runtime plan fetch failed after " + std::to_string(max_attempts) +
+                             " attempt(s): " + last_error);
 }
 
 }  // namespace decode_demo

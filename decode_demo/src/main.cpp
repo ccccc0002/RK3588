@@ -26,7 +26,10 @@ struct Options {
     std::string output;
     std::string runtime_url;
     std::string token;
+    std::string runtime_plan_cache{"artifacts/runtime-plan-cache.json"};
     double budget{10.0};
+    int runtime_plan_attempts{3};
+    int runtime_plan_backoff_ms{500};
     int rga_width{0};
     int rga_height{0};
 };
@@ -100,6 +103,12 @@ Options parse_args(int argc, char** argv) {
             options.token = argv[++i];
         } else if (arg == "--budget" && i + 1 < argc) {
             options.budget = parse_positive_double("--budget", argv[++i]);
+        } else if (arg == "--runtime-plan-cache" && i + 1 < argc) {
+            options.runtime_plan_cache = argv[++i];
+        } else if (arg == "--runtime-plan-attempts" && i + 1 < argc) {
+            options.runtime_plan_attempts = parse_positive_int("--runtime-plan-attempts", argv[++i]);
+        } else if (arg == "--runtime-plan-backoff-ms" && i + 1 < argc) {
+            options.runtime_plan_backoff_ms = parse_positive_int("--runtime-plan-backoff-ms", argv[++i]);
         } else if (arg == "--rga-width" && i + 1 < argc) {
             options.rga_width = parse_positive_int("--rga-width", argv[++i]);
         } else if (arg == "--rga-height" && i + 1 < argc) {
@@ -108,7 +117,8 @@ Options parse_args(int argc, char** argv) {
             std::cout
                 << "Usage: rk_decode_demo [--self-check] [--stream <annexb.h264>] [--model <file.rknn>] "
                 << "[--plan-file <plan.manifest.tsv>] [--runtime-url <http://host:port>] [--token <bearer>] "
-                << "[--budget <n>] [--asset-map <assets.tsv>] [--output <result.json>] "
+                << "[--budget <n>] [--runtime-plan-cache <plan.json>] [--runtime-plan-attempts <n>] "
+                << "[--runtime-plan-backoff-ms <n>] [--asset-map <assets.tsv>] [--output <result.json>] "
                 << "[--rga-width <n> --rga-height <n>]\n";
             std::exit(0);
         } else {
@@ -305,7 +315,10 @@ decode_demo::PlanManifest load_execution_manifest(const Options& options) {
         decode_demo::RuntimePlanFetchOptions fetch_options;
         fetch_options.runtime_url = options.runtime_url;
         fetch_options.token = options.token;
+        fetch_options.cache_path = options.runtime_plan_cache;
         fetch_options.budget = options.budget;
+        fetch_options.max_attempts = options.runtime_plan_attempts;
+        fetch_options.retry_backoff_ms = options.runtime_plan_backoff_ms;
         const decode_demo::RuntimePlanFetchResult fetched = decode_demo::fetch_runtime_plan(fetch_options);
         std::cout << "runtime_plan_url=" << fetched.request_url << '\n';
         std::cout << "runtime_plan_http_status=" << fetched.http_status << '\n';
