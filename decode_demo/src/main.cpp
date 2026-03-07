@@ -322,6 +322,9 @@ decode_demo::PlanManifest load_execution_manifest(const Options& options) {
         const decode_demo::RuntimePlanFetchResult fetched = decode_demo::fetch_runtime_plan(fetch_options);
         std::cout << "runtime_plan_url=" << fetched.request_url << '\n';
         std::cout << "runtime_plan_http_status=" << fetched.http_status << '\n';
+        std::cout << "runtime_plan_attempt_count=" << fetched.attempt_count << '\n';
+        std::cout << "runtime_plan_used_cache=" << (fetched.used_cache ? "true" : "false") << '\n';
+        std::cout << "runtime_plan_cache_path=" << fetched.cache_path << '\n';
         std::cout << "runtime_plan_response_bytes=" << fetched.response_body.size() << '\n';
         return fetched.manifest;
     }
