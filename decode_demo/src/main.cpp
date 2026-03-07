@@ -519,10 +519,18 @@ PipelineRunSummary run_stream_pipeline(const std::string& stream_path,
         selected_frame_index = selected_pipeline.frame.ok ? 1 : 0;
     }
 
+    summary.selected_frame_index = selected_frame_index;
     if (selected_frame_index > 0) {
         std::cout << "selected_frame_index=" << selected_frame_index << '\n';
     }
     print_decode_pipeline_summary(selected_pipeline);
+
+    decode_demo::ResultSamplingMetadata sampling_metadata;
+    sampling_metadata.applied = sampling_requested || summary.sampled_frame_count > 1;
+    sampling_metadata.selected_frame_index = summary.selected_frame_index;
+    sampling_metadata.frames_per_sample = summary.frames_per_sample;
+    sampling_metadata.requested_sample_count = summary.requested_sample_count;
+    sampling_metadata.sampled_frame_count = summary.sampled_frame_count;
 
     const decode_demo::DecodedFrameInfo& frame = selected_pipeline.frame;
     summary.decode_ok = frame.ok;

@@ -158,6 +158,17 @@ void write_detection_result_json(const std::string& path,
     write_indent(output, 2);
     output << "},\n";
 
+    if (sampling != nullptr && sampling->applied) {
+        write_indent(output, 2);
+        output << "\"sampling\": {\n";
+        write_int_field(output, 4, "selected_frame_index", sampling->selected_frame_index, true);
+        write_int_field(output, 4, "frames_per_sample", sampling->frames_per_sample, true);
+        write_int_field(output, 4, "requested_sample_count", sampling->requested_sample_count, true);
+        write_int_field(output, 4, "sampled_frame_count", sampling->sampled_frame_count, false);
+        write_indent(output, 2);
+        output << "},\n";
+    }
+
     write_indent(output, 2);
     output << "\"inference\": {\n";
     if (run != nullptr) {

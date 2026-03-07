@@ -2310,6 +2310,12 @@ class P0RuntimeTests(unittest.TestCase):
                     "pad_y": 140,
                     "scale": 0.333333,
                 },
+                "sampling": {
+                    "selected_frame_index": 3,
+                    "frames_per_sample": 2,
+                    "requested_sample_count": 2,
+                    "sampled_frame_count": 2,
+                },
                 "inference": {
                     "requested": True,
                     "ok": True,

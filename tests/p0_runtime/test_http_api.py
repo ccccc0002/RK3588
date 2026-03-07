@@ -2119,6 +2119,12 @@ class P0HttpApiTests(unittest.TestCase):
                     "pad_y": 140,
                     "scale": 0.5,
                 },
+                "sampling": {
+                    "selected_frame_index": 2,
+                    "frames_per_sample": 1,
+                    "requested_sample_count": 4,
+                    "sampled_frame_count": 4,
+                },
                 "inference": {
                     "requested": True,
                     "ok": True,
