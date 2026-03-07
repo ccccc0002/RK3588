@@ -310,7 +310,10 @@ void ensure_unique_output_paths(std::vector<ResolvedExecution>& executions) {
     }
 }
 
-decode_demo::PlanManifest load_execution_manifest(const Options& options) {
+decode_demo::PlanManifest load_execution_manifest(const Options& options, decode_demo::BatchRunMetadata* metadata) {
+    if (metadata != nullptr) {
+        metadata->plan_source = options.runtime_url.empty() ? (options.plan_file.empty() ? "manual" : "manifest_file") : "runtime_url";
+    }
     if (!options.runtime_url.empty()) {
         decode_demo::RuntimePlanFetchOptions fetch_options;
         fetch_options.runtime_url = options.runtime_url;
@@ -320,6 +323,14 @@ decode_demo::PlanManifest load_execution_manifest(const Options& options) {
         fetch_options.max_attempts = options.runtime_plan_attempts;
         fetch_options.retry_backoff_ms = options.runtime_plan_backoff_ms;
         const decode_demo::RuntimePlanFetchResult fetched = decode_demo::fetch_runtime_plan(fetch_options);
+        if (metadata != nullptr) {
+            metadata->plan_source = "runtime_url";
+            metadata->runtime_plan_url = fetched.request_url;
+            metadata->runtime_plan_http_status = fetched.http_status;
+            metadata->runtime_plan_attempt_count = fetched.attempt_count;
+            metadata->runtime_plan_used_cache = fetched.used_cache;
+            metadata->runtime_plan_cache_path = fetched.cache_path;
+        }
         std::cout << "runtime_plan_url=" << fetched.request_url << '\n';
         std::cout << "runtime_plan_http_status=" << fetched.http_status << '\n';
         std::cout << "runtime_plan_attempt_count=" << fetched.attempt_count << '\n';
@@ -331,7 +342,8 @@ decode_demo::PlanManifest load_execution_manifest(const Options& options) {
     return decode_demo::load_plan_manifest(options.plan_file);
 }
 
-std::vector<ResolvedExecution> resolve_executions_from_options(const Options& options) {
+std::vector<ResolvedExecution> resolve_executions_from_options(const Options& options,
+                                                    decode_demo::BatchRunMetadata* metadata) {
     std::vector<ResolvedExecution> executions;
     if (options.plan_file.empty() && options.runtime_url.empty()) {
         ResolvedExecution resolved;
@@ -342,7 +354,7 @@ std::vector<ResolvedExecution> resolve_executions_from_options(const Options& op
         return executions;
     }
 
-    const decode_demo::PlanManifest manifest = load_execution_manifest(options);
+    const decode_demo::PlanManifest manifest = load_execution_manifest(options, metadata);
     print_manifest_summary(manifest);
     static std::vector<decode_demo::ManifestWorkload> selected_workloads;
     selected_workloads = decode_demo::collect_ready_workloads(manifest);
@@ -585,7 +597,8 @@ int main(int argc, char** argv) {
         }
 
         std::cout << "rk_decode_demo pipeline prototype\n";
-        std::vector<ResolvedExecution> executions = resolve_executions_from_options(options);
+        decode_demo::BatchRunMetadata batch_metadata;
+        std::vector<ResolvedExecution> executions = resolve_executions_from_options(options, &batch_metadata);
         if (executions.empty()) {
             throw std::runtime_error("no executable workload resolved");
         }
@@ -684,7 +697,7 @@ int main(int argc, char** argv) {
         }
 
         const std::string batch_output_path = default_batch_output_path(options, executions);
-        decode_demo::write_batch_result_json(batch_output_path, batch_items);
+        decode_demo::write_batch_result_json(batch_output_path, batch_items, &batch_metadata);
         print_path_summary("batch_output", batch_output_path);
         std::cout << "batch_run_count=" << batch_items.size() << '\n';
         std::cout << "batch_success_count=" << success_count << '\n';

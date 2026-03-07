@@ -28,12 +28,21 @@ struct BatchExecutionItem {
     int sampled_frame_count{1};
 };
 
+struct BatchRunMetadata {
+    std::string plan_source{"manual"};
+    std::string runtime_plan_url;
+    long runtime_plan_http_status{0};
+    int runtime_plan_attempt_count{0};
+    bool runtime_plan_used_cache{false};
+    std::string runtime_plan_cache_path;
+};
+
 void write_detection_result_json(const std::string& path,
                                  const ManifestWorkload* workload,
                                  const DecodedFrameInfo& frame,
                                  const RgaResizeInfo& rga,
                                  const RknnRunInfo* run);
 
-void write_batch_result_json(const std::string& path, const std::vector<BatchExecutionItem>& items);
+void write_batch_result_json(const std::string& path, const std::vector<BatchExecutionItem>& items, const BatchRunMetadata* metadata = nullptr);
 
 }  // namespace decode_demo

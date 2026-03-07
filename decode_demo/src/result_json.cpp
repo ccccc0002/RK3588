@@ -199,7 +199,7 @@ void write_detection_result_json(const std::string& path,
     output << "}\n";
 }
 
-void write_batch_result_json(const std::string& path, const std::vector<BatchExecutionItem>& items) {
+void write_batch_result_json(const std::string& path, const std::vector<BatchExecutionItem>& items, const BatchRunMetadata* metadata) {
     if (path.empty()) {
         return;
     }
@@ -221,6 +221,14 @@ void write_batch_result_json(const std::string& path, const std::vector<BatchExe
     write_int_field(output, 2, "item_count", static_cast<int>(items.size()), true);
     write_int_field(output, 2, "success_count", success_count, true);
     write_int_field(output, 2, "failure_count", static_cast<int>(items.size()) - success_count, true);
+    if (metadata != nullptr) {
+        write_string_field(output, 2, "plan_source", metadata->plan_source, true);
+        write_string_field(output, 2, "runtime_plan_url", metadata->runtime_plan_url, true);
+        write_int_field(output, 2, "runtime_plan_http_status", static_cast<int>(metadata->runtime_plan_http_status), true);
+        write_int_field(output, 2, "runtime_plan_attempt_count", metadata->runtime_plan_attempt_count, true);
+        write_bool_field(output, 2, "runtime_plan_used_cache", metadata->runtime_plan_used_cache, true);
+        write_string_field(output, 2, "runtime_plan_cache_path", metadata->runtime_plan_cache_path, true);
+    }
     write_indent(output, 2);
     output << "\"items\": [\n";
     for (std::size_t i = 0; i < items.size(); ++i) {
