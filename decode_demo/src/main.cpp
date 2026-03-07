@@ -51,6 +51,7 @@ struct PipelineRunSummary {
     bool rknn_requested{false};
     bool rknn_ok{false};
     int detection_count{0};
+    int selected_frame_index{0};
     int frames_per_sample{1};
     int requested_sample_count{1};
     int sampled_frame_count{0};
@@ -536,7 +537,7 @@ PipelineRunSummary run_stream_pipeline(const std::string& stream_path,
             summary.detection_count = static_cast<int>(selected_run.detections.size());
             print_rknn_run_summary(selected_run);
             ok = ok && selected_run.ok;
-            decode_demo::write_detection_result_json(output_path, workload, frame, selected_pipeline.rga, &selected_run);
+            decode_demo::write_detection_result_json(output_path, workload, frame, selected_pipeline.rga, &selected_run, &sampling_metadata);
         } else {
             summary.rknn_ok = false;
             summary.detection_count = 0;
@@ -546,13 +547,13 @@ PipelineRunSummary run_stream_pipeline(const std::string& stream_path,
                 std::cout << "rknn_detail=skipped_due_to_decode_or_rga_failure\n";
                 std::cout << "rknn_detection_count=0\n";
             }
-            decode_demo::write_detection_result_json(output_path, workload, frame, selected_pipeline.rga, nullptr);
+            decode_demo::write_detection_result_json(output_path, workload, frame, selected_pipeline.rga, nullptr, &sampling_metadata);
         }
     } else {
         summary.rknn_requested = false;
         summary.rknn_ok = false;
         summary.detection_count = 0;
-        decode_demo::write_detection_result_json(output_path, workload, frame, selected_pipeline.rga, nullptr);
+        decode_demo::write_detection_result_json(output_path, workload, frame, selected_pipeline.rga, nullptr, &sampling_metadata);
     }
 
     summary.exit_code = ok ? 0 : 2;

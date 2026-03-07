@@ -37,11 +37,20 @@ struct BatchRunMetadata {
     std::string runtime_plan_cache_path;
 };
 
+struct ResultSamplingMetadata {
+    bool applied{false};
+    int selected_frame_index{0};
+    int frames_per_sample{1};
+    int requested_sample_count{1};
+    int sampled_frame_count{1};
+};
+
 void write_detection_result_json(const std::string& path,
                                  const ManifestWorkload* workload,
                                  const DecodedFrameInfo& frame,
                                  const RgaResizeInfo& rga,
-                                 const RknnRunInfo* run);
+                                 const RknnRunInfo* run,
+                                 const ResultSamplingMetadata* sampling = nullptr);
 
 void write_batch_result_json(const std::string& path, const std::vector<BatchExecutionItem>& items, const BatchRunMetadata* metadata = nullptr);
 

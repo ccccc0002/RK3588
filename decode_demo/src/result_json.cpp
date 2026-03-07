@@ -113,7 +113,8 @@ void write_detection_result_json(const std::string& path,
                                  const ManifestWorkload* workload,
                                  const DecodedFrameInfo& frame,
                                  const RgaResizeInfo& rga,
-                                 const RknnRunInfo* run) {
+                                 const RknnRunInfo* run,
+                                 const ResultSamplingMetadata* sampling) {
     if (path.empty()) {
         return;
     }
