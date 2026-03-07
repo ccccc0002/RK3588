@@ -95,7 +95,21 @@ Run the same pipeline from a manifest plus asset map:
   --asset-map artifacts/execution-assets.tsv
 ```
 
+Run the same pipeline by fetching the plan directly from the Python runtime:
+
+```bash
+./build/rk_decode_demo \
+  --runtime-url http://127.0.0.1:18080 \
+  --token <bearer-token> \
+  --budget 12 \
+  --runtime-plan-cache artifacts/runtime-plan-cache.json \
+  --runtime-plan-attempts 3 \
+  --runtime-plan-backoff-ms 500
+```
+
 When the manifest contains multiple ready workloads, `rk_decode_demo` now executes each workload in sequence, writes one per-workload result JSON, and emits a batch summary JSON (default: `artifacts/results/manifest-run-summary.json`). If the manifest carries `execution.stream_uri` / `execution.model_uri` / `execution.result_uri`, the demo can run without `--asset-map`.
+
+For `--runtime-url`, the demo retries failed plan fetches, saves the last successful plan JSON to `--runtime-plan-cache`, and automatically falls back to that cache when the control-plane is temporarily unavailable.
 
 When a workload carries `execution.frames_per_sample > 1` or `execution.max_samples_per_run > 1`, the demo decodes multiple frames from the Annex-B stream, runs RKNN on each sampled frame, and keeps the best successful sample as the compatibility result JSON for that workload. The batch summary records the requested and actual sample counts for each workload.
 
@@ -155,4 +169,4 @@ Planned next steps:
 1. Extend the result JSON schema with optional sampling metadata for per-workload debugging and auditing.
 2. Add optional label-file loading instead of the built-in COCO-80 list.
 3. Add long-running decode session management for continuous stream polling instead of file-based clips.
-4. Add retry/backoff and local plan caching around `--runtime-url` for intermittent control-plane outages.
+4. Add observability counters for runtime-plan live fetches vs cache fallbacks in long-running service mode.
