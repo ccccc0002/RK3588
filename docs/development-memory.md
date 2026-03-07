@@ -1311,3 +1311,14 @@ Append-only checkpoints are written automatically by scripts/stage-checkpoint.ps
 - Tag: checkpoint/P4-iteration-117-mpp-decoder-init-probe/20260306-174931
 - Summary: extended decode_demo self-check to perform real MPP AVC decoder context init on RK3588 and kept local Python regression suite green
 - Next: push branch/tag to GitHub, sync remote tracked repo, then start wiring MPP packet input/decode loop against a local sample mp4
+## [2026-03-07T12:55:49+08:00] P4-iteration-118-sampling-result-json-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: 322c9e4
+- Summary: finalized per-result sampling metadata emission, added runtime/http compatibility coverage for extra sampling fields, synced GitHub plus RK3588 remote, and validated sampled plan execution on device with sampling block present in single-result JSON
+- Next: add configurable label-file support and restore non-sampled direct RKNN inference path
+
+## [2026-03-07T12:55:49+08:00] P4-iteration-119-label-file-direct-inference-validated
+- Branch: stage/P3-phase2-readiness
+- Commit: b71dad2
+- Summary: restored direct --stream/--model RKNN inference, added optional --label-file override for detection class names, synced GitHub plus RK3588 remote, and validated default labels, custom labels, and sampled-plan output on device
+- Next: continue decode_demo long-running session management and runtime-plan observability hardening
