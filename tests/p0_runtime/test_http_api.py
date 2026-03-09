@@ -454,8 +454,23 @@ class P0HttpApiTests(unittest.TestCase):
         status, content_type, body = self._get_raw("/")
         self.assertEqual(200, status)
         self.assertIn("text/html", content_type)
-        self.assertIn("RK3588 P0 Runtime", body)
-        self.assertIn("/api/v1/runtime/snapshot", body)
+        self.assertIn("RK3588 AI Box Console", body)
+        self.assertIn("/assets/dashboard.css", body)
+        self.assertIn("/assets/dashboard.js", body)
+
+    def test_runtime_dashboard_css_asset(self) -> None:
+        status, content_type, body = self._get_raw("/assets/dashboard.css")
+        self.assertEqual(200, status)
+        self.assertIn("text/css", content_type)
+        self.assertIn("--bg:", body)
+        self.assertIn(".sidebar", body)
+
+    def test_runtime_dashboard_js_asset(self) -> None:
+        status, content_type, body = self._get_raw("/assets/dashboard.js")
+        self.assertEqual(200, status)
+        self.assertTrue("javascript" in content_type or "text/plain" in content_type)
+        self.assertIn("/api/v1/auth/token", body)
+        self.assertIn("seedDemoData", body)
 
     def test_register_and_list_devices_endpoints(self) -> None:
         reg_status, reg_payload = self._post(

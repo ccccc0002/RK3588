@@ -1,104 +1,246 @@
 ﻿<!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RK3588 P0 Dashboard</title>
-  <style>
-    :root {
-      --bg: #f4f6f8;
-      --panel: #ffffff;
-      --text: #13212d;
-      --accent: #0f6d5f;
-      --warn: #d97706;
-      --danger: #c2410c;
-    }
-
-    body {
-      margin: 0;
-      font-family: "Segoe UI", Tahoma, sans-serif;
-      color: var(--text);
-      background: radial-gradient(circle at top right, #d6efe9 0%, var(--bg) 45%);
-    }
-
-    .wrap {
-      max-width: 1100px;
-      margin: 32px auto;
-      padding: 0 16px;
-    }
-
-    .title {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-    }
-
-    .card {
-      background: var(--panel);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 6px 20px rgba(16, 24, 40, 0.08);
-    }
-
-    .label {
-      font-size: 12px;
-      opacity: 0.8;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .value {
-      margin-top: 8px;
-      font-size: 28px;
-      font-weight: 700;
-    }
-
-    .status {
-      margin-top: 8px;
-      font-size: 13px;
-    }
-
-    .ok { color: var(--accent); }
-    .warn { color: var(--warn); }
-    .danger { color: var(--danger); }
-  </style>
+  <title>RK3588 AI Box Console</title>
+  <link rel="stylesheet" href="/assets/dashboard.css" />
 </head>
 <body>
-  <div class="wrap">
-    <div class="title">
-      <h1>RK3588 AI Box P0 Dashboard</h1>
-      <small>Prototype static status board</small>
-    </div>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">RK</div>
+        <div>
+          <div class="brand-title">AI Box Console</div>
+          <div class="brand-subtitle">Runtime Operator Cockpit</div>
+        </div>
+      </div>
+      <nav class="nav" id="navTabs">
+        <button class="nav-link active" data-tab="overview">总览</button>
+        <button class="nav-link" data-tab="devices">设备接入</button>
+        <button class="nav-link" data-tab="algorithms">算法仓库</button>
+        <button class="nav-link" data-tab="libraries">底库与映射</button>
+        <button class="nav-link" data-tab="planner">任务计划</button>
+        <button class="nav-link" data-tab="results">结果中心</button>
+      </nav>
+      <section class="sidebar-panel auth-panel">
+        <div class="panel-title">运行时登录</div>
+        <label class="field">
+          <span>用户 ID</span>
+          <input id="userId" type="text" value="operator-ui" />
+        </label>
+        <label class="field">
+          <span>角色</span>
+          <select id="roleSelect">
+            <option value="viewer">viewer</option>
+            <option value="operator" selected>operator</option>
+            <option value="admin">admin</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Bootstrap Token</span>
+          <input id="bootstrapToken" type="password" placeholder="仅 admin 需要" />
+        </label>
+        <button class="primary-btn wide" id="issueTokenBtn">签发 Token</button>
+        <div class="token-chip" id="tokenState">未登录</div>
+      </section>
+      <section class="sidebar-panel status-panel">
+        <div class="panel-title">连接状态</div>
+        <div class="status-row"><span>API 根地址</span><strong id="apiBaseLabel">当前同源</strong></div>
+        <div class="status-row"><span>自动刷新</span><strong id="refreshState">已启用</strong></div>
+        <div class="status-row"><span>最后刷新</span><strong id="lastRefreshLabel">-</strong></div>
+      </section>
+    </aside>
 
-    <div class="grid">
-      <div class="card">
-        <div class="label">Ingest Streams</div>
-        <div class="value">12</div>
-        <div class="status ok">RTSP/RTMP active</div>
-      </div>
-      <div class="card">
-        <div class="label">Viewer Sessions</div>
-        <div class="value">37</div>
-        <div class="status ok">on-demand state machine running</div>
-      </div>
-      <div class="card">
-        <div class="label">AI Load</div>
-        <div class="value">74%</div>
-        <div class="status warn">dynamic frame scheduler in degraded mode</div>
-      </div>
-      <div class="card">
-        <div class="label">Push Queue</div>
-        <div class="value">5</div>
-        <div class="status danger">1 dead-letter task</div>
-      </div>
-    </div>
+    <main class="main">
+      <header class="hero">
+        <div>
+          <div class="eyebrow">Commercial Control Surface</div>
+          <h1>RK3588 边端 AI 一体机运营界面</h1>
+          <p>面向商用部署的统一控制台。覆盖设备接入、算法/底库管理、推理计划、结果回传与运行态总览。</p>
+        </div>
+        <div class="hero-actions">
+          <button class="ghost-btn" id="refreshAllBtn">立即刷新</button>
+          <button class="ghost-btn" id="seedDemoBtn">注入 Demo 数据</button>
+        </div>
+      </header>
+
+      <section class="hero-metrics" id="snapshotCards">
+        <article class="metric-card accent-cyan">
+          <div class="metric-label">设备数</div>
+          <div class="metric-value" data-metric="device_count">-</div>
+          <div class="metric-foot">当前接入设备</div>
+        </article>
+        <article class="metric-card accent-amber">
+          <div class="metric-label">算法数</div>
+          <div class="metric-value" data-metric="algorithm_count">-</div>
+          <div class="metric-foot">在线算法版本</div>
+        </article>
+        <article class="metric-card accent-green">
+          <div class="metric-label">底库数</div>
+          <div class="metric-value" data-metric="base_library_count">-</div>
+          <div class="metric-foot">可分配底库</div>
+        </article>
+        <article class="metric-card accent-pink">
+          <div class="metric-label">推送队列</div>
+          <div class="metric-value" data-metric="push_queue_size">-</div>
+          <div class="metric-foot">待处理任务</div>
+        </article>
+      </section>
+
+      <section class="tab-panel active" data-tab-panel="overview">
+        <div class="section-grid overview-grid">
+          <article class="panel panel-spotlight">
+            <div class="panel-head">
+              <div>
+                <div class="panel-kicker">Runtime Snapshot</div>
+                <h2>系统快照</h2>
+              </div>
+            </div>
+            <pre class="code-card" id="snapshotJson">等待登录后加载...</pre>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <div class="panel-kicker">Metrics</div>
+                <h2>核心指标</h2>
+              </div>
+            </div>
+            <div class="mini-grid" id="metricsGrid"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="devices">
+        <div class="section-grid two-col">
+          <article class="panel">
+            <div class="panel-head"><h2>注册设备</h2></div>
+            <form class="form-grid" id="deviceForm">
+              <input name="tenant_id" placeholder="tenant_id" value="t1" />
+              <input name="site_id" placeholder="site_id" value="s1" />
+              <input name="box_id" placeholder="box_id" value="rk3588-box-1" />
+              <input name="device_id" placeholder="device_id" value="cam-ui-demo" />
+              <input name="stream_url" placeholder="stream_url" value="rtsp://10.0.0.200/live" class="span-2" />
+              <select name="protocol">
+                <option value="rtsp">rtsp</option>
+                <option value="gb28181">gb28181</option>
+                <option value="file">file</option>
+              </select>
+              <label class="toggle-field"><input type="checkbox" name="enabled" checked />启用设备</label>
+              <label class="toggle-field"><input type="checkbox" name="cap_face" checked />face</label>
+              <label class="toggle-field"><input type="checkbox" name="cap_ocr" />ocr</label>
+              <button type="submit" class="primary-btn span-2">注册并刷新</button>
+            </form>
+            <form class="form-grid compact" id="capabilityForm">
+              <input name="tenant_id" placeholder="tenant_id" value="t1" />
+              <input name="site_id" placeholder="site_id" value="s1" />
+              <input name="box_id" placeholder="box_id" value="rk3588-box-1" />
+              <input name="device_id" placeholder="device_id" value="cam-ui-demo" />
+              <label class="toggle-field"><input type="checkbox" name="cap_face" checked />face</label>
+              <label class="toggle-field"><input type="checkbox" name="cap_ocr" />ocr</label>
+              <button type="submit" class="ghost-btn span-2">更新能力</button>
+            </form>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><h2>设备列表</h2></div>
+            <div class="table-shell"><table><thead><tr><th>设备</th><th>协议</th><th>流地址</th><th>能力</th><th>启用</th></tr></thead><tbody id="devicesTable"></tbody></table></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="algorithms">
+        <div class="section-grid two-col">
+          <article class="panel">
+            <div class="panel-head"><h2>算法上架</h2></div>
+            <form class="form-grid" id="algorithmForm">
+              <input name="algorithm_id" placeholder="algorithm_id" value="face-detector-ui" />
+              <input name="version" placeholder="version" value="1.0.0" />
+              <input name="capabilities" placeholder="capabilities, comma separated" value="face" class="span-2" />
+              <select name="status"><option value="active">active</option><option value="inactive">inactive</option></select>
+              <button type="submit" class="primary-btn">保存算法</button>
+            </form>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><h2>算法列表</h2></div>
+            <div class="table-shell"><table><thead><tr><th>算法</th><th>版本</th><th>状态</th><th>能力</th></tr></thead><tbody id="algorithmsTable"></tbody></table></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="libraries">
+        <div class="section-grid two-col">
+          <article class="panel stack-gap">
+            <div>
+              <div class="panel-head"><h2>底库上架</h2></div>
+              <form class="form-grid compact" id="libraryForm">
+                <input name="library_id" placeholder="library_id" value="lib-face-ui" />
+                <input name="version" placeholder="version" value="2026.03" />
+                <input name="capability" placeholder="capability" value="face" />
+                <select name="status"><option value="active">active</option><option value="inactive">inactive</option></select>
+                <button type="submit" class="primary-btn span-2">保存底库</button>
+              </form>
+            </div>
+            <div>
+              <div class="panel-head"><h2>映射设备</h2></div>
+              <form class="form-grid compact" id="mappingForm">
+                <input name="tenant_id" placeholder="tenant_id" value="t1" />
+                <input name="site_id" placeholder="site_id" value="s1" />
+                <input name="box_id" placeholder="box_id" value="rk3588-box-1" />
+                <input name="device_id" placeholder="device_id" value="cam-ui-demo" />
+                <input name="capability" placeholder="capability" value="face" />
+                <input name="library_id" placeholder="library_id" value="lib-face-ui" />
+                <input name="library_version" placeholder="library_version" value="2026.03" />
+                <button type="submit" class="ghost-btn span-2">保存映射</button>
+              </form>
+            </div>
+          </article>
+          <article class="panel stack-gap">
+            <div>
+              <div class="panel-head"><h2>底库列表</h2></div>
+              <div class="table-shell compact-table"><table><thead><tr><th>底库</th><th>版本</th><th>能力</th><th>状态</th></tr></thead><tbody id="librariesTable"></tbody></table></div>
+            </div>
+            <div>
+              <div class="panel-head"><h2>映射列表</h2></div>
+              <div class="table-shell compact-table"><table><thead><tr><th>设备</th><th>能力</th><th>底库</th><th>版本</th></tr></thead><tbody id="mappingsTable"></tbody></table></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="planner">
+        <div class="section-grid two-col">
+          <article class="panel">
+            <div class="panel-head"><h2>推理计划</h2></div>
+            <form class="form-grid compact" id="planForm">
+              <input name="budget" placeholder="budget" type="number" step="0.1" value="100" />
+              <button type="submit" class="primary-btn">生成计划</button>
+            </form>
+            <div class="plan-summary" id="planSummary"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><h2>计划详情</h2></div>
+            <pre class="code-card" id="planJson">暂无计划</pre>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="results">
+        <div class="section-grid two-col-results">
+          <article class="panel">
+            <div class="panel-head"><h2>最近结果</h2></div>
+            <div class="table-shell"><table><thead><tr><th>设备</th><th>能力</th><th>状态</th><th>检测数</th><th>时间</th></tr></thead><tbody id="resultsTable"></tbody></table></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><h2>详情</h2></div>
+            <pre class="code-card" id="resultJson">选择一条结果查看详情</pre>
+          </article>
+        </div>
+      </section>
+
+      <div class="toast" id="toast"></div>
+    </main>
   </div>
+  <script src="/assets/dashboard.js"></script>
 </body>
 </html>
